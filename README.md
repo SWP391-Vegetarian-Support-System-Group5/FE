@@ -2,7 +2,17 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Copy `.env.example` to `.env.local`, then provide a Google Maps browser key:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:5299/api
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_browser_key
+NEXT_PUBLIC_GOOGLE_MAP_ID=your_map_id
+```
+
+Enable **Maps JavaScript API** and **Geocoding API** for the key and restrict it to the frontend's allowed HTTP referrers. The location page has a clear fallback when the key or backend is unavailable.
+
+Run the development server:
 
 ```bash
 npm run dev
@@ -15,6 +25,8 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+The vegetarian location finder is available at [http://localhost:3000/vegan-places](http://localhost:3000/vegan-places). Run the API from the sibling `BE` repository on port `5299` for server-provided locations and restaurant results.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

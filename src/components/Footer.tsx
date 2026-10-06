@@ -49,12 +49,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/#restaurants" className="transition hover:text-[#07241A]">
+                <Link href="/vegan-places" className="transition hover:text-[#07241A]">
                   Restaurant Reviews
                 </Link>
               </li>
               <li>
-                <Link href="/#restaurants" className="transition hover:text-[#07241A]">
+                <Link href="/vegan-places" className="transition hover:text-[#07241A]">
                   Vegan Places Guide
                 </Link>
               </li>
