@@ -60,6 +60,15 @@ export default function LocationExplorer() {
     if (nextCenter) setCenter(nextCenter);
   };
 
+  const changeArea = (nextAreaCode: string) => {
+    setLoading(true);
+    setAreaCode(nextAreaCode);
+    const nextArea = areas.find((item) => item.code === nextAreaCode);
+    if (nextArea?.latitude != null && nextArea.longitude != null) {
+      setCenter({ lat: nextArea.latitude, lng: nextArea.longitude });
+    }
+  };
+
   const searchAddress = async () => {
     setMessage("");
     if (!address.trim()) {
@@ -133,7 +142,7 @@ export default function LocationExplorer() {
             </label>
             <label className="text-xs font-semibold text-[#274537]">
               Ward / Commune / Area
-              <select value={areaCode} onChange={(event) => { setLoading(true); setAreaCode(event.target.value); }} className="mt-2 w-full appearance-none rounded-xl border-0 bg-[#f5f3f0] px-4 py-3.5 text-sm font-normal text-[#18372a] outline-none ring-[#356d54] focus:ring-2">
+              <select value={areaCode} onChange={(event) => changeArea(event.target.value)} className="mt-2 w-full appearance-none rounded-xl border-0 bg-[#f5f3f0] px-4 py-3.5 text-sm font-normal text-[#18372a] outline-none ring-[#356d54] focus:ring-2">
                 {areas.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
               </select>
             </label>
@@ -160,9 +169,9 @@ export default function LocationExplorer() {
             {loading ? <p className="py-10 text-center text-sm text-[#788079]">Đang tìm địa điểm…</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">Chưa có dữ liệu nhà hàng cho khu vực này. Hãy chọn “Tất cả khu vực” hoặc bổ sung dữ liệu từ Google Places/DB.</p> : (
               <div className="space-y-3">{restaurants.map((restaurant) => (
                 <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setCenter({ lat: restaurant.latitude, lng: restaurant.longitude }); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
-                  <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{restaurant.category}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">★ {restaurant.rating}</span></div>
+                  <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{restaurant.category}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.rating > 0 ? `★ ${restaurant.rating}` : "Mới"}</span></div>
                   <p className="mt-2 text-xs leading-5 text-[#677069]">{restaurant.address}</p>
-                  <p className="mt-2 text-[11px] text-[#8a918c]">{restaurant.reviewCount} đánh giá{restaurant.distanceKm != null ? ` · ${restaurant.distanceKm} km` : ""}</p>
+                  <p className="mt-2 text-[11px] text-[#8a918c]">{restaurant.reviewCount > 0 ? `${restaurant.reviewCount} đánh giá` : "Chưa có đánh giá"}{restaurant.distanceKm != null ? ` · ${restaurant.distanceKm} km` : ""}</p>
                 </button>
               ))}</div>
             )}

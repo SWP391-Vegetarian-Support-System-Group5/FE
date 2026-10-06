@@ -2,12 +2,16 @@ export type Province = {
   code: string;
   name: string;
   type: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type Area = {
   code: string;
   name: string;
   type: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type Coordinates = {
