@@ -3,10 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
   getAddressSuggestions,
-  hasGoogleMapsKey,
-  resolveAddressSuggestion,
   type AddressSuggestion,
-} from "@/lib/google-maps";
+} from "@/lib/openstreetmap";
 import type { Coordinates } from "@/types/location";
 
 type Props = {
@@ -23,7 +21,7 @@ export default function AddressAutocomplete({ value, center, onChange, onSelect,
   const requestId = useRef(0);
 
   useEffect(() => {
-    if (!hasGoogleMapsKey() || value.trim().length < 3 || !open) return;
+    if (value.trim().length < 3 || !open) return;
     const currentRequest = ++requestId.current;
     const timer = window.setTimeout(() => {
       getAddressSuggestions(value.trim(), center)
@@ -37,7 +35,7 @@ export default function AddressAutocomplete({ value, center, onChange, onSelect,
     setOpen(false);
     setSuggestions([]);
     try {
-      onSelect(await resolveAddressSuggestion(suggestion));
+      onSelect({ lat: suggestion.lat, lng: suggestion.lng, formattedAddress: suggestion.label });
     } catch {
       onChange(suggestion.label);
       onSearch();

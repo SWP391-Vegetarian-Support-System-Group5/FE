@@ -2,15 +2,13 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-Copy `.env.example` to `.env.local`, then provide a Google Maps browser key:
+Copy `.env.example` to `.env.local` and point the frontend to the backend API:
 
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_browser_key
-NEXT_PUBLIC_GOOGLE_MAP_ID=your_map_id
 ```
 
-Enable **Maps JavaScript API**, **Geocoding API**, and **Places API (New)** for the key. Restrict the browser key to the frontend's allowed HTTP referrers and set a billing quota before deployment. The location page has a clear fallback when the key or backend is unavailable.
+The location page uses Leaflet with OpenStreetMap tiles, Photon address suggestions, Nominatim geocoding, and Overpass restaurant search. No Google Maps key or billing account is required. These public OpenStreetMap services are intended for low-volume development/demo use; a production deployment should use a hosted provider or a self-hosted service and cache geocoding results.
 
 Run the development server:
 
