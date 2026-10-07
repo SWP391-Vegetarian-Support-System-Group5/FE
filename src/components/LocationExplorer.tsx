@@ -1,8 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import GoogleRestaurantMap from "@/components/GoogleRestaurantMap";
-import { geocodeAddress, hasGoogleMapsKey } from "@/lib/google-maps";
+import {
+  geocodeAddress,
+  hasGoogleMapsKey,
+  reverseGeocodeLocation,
+  searchVegetarianPlaces,
+} from "@/lib/google-maps";
+import { readLivingLocation, saveLivingLocation } from "@/lib/living-location";
 import { locationApi } from "@/lib/location-api";
 import { provinceCenters } from "@/lib/location-data";
 import type { Area, Coordinates, Province, Restaurant } from "@/types/location";
@@ -27,27 +34,40 @@ export default function LocationExplorer() {
   useEffect(() => { locationApi.provinces().then(setProvinces); }, []);
 
   useEffect(() => {
+    const saved = readLivingLocation();
+    if (!saved) return;
+    // Defer hydration-only state so server and first client render remain identical.
+    queueMicrotask(() => {
+      setProvinceCode(saved.provinceCode);
+      setAreaCode(saved.areaCode);
+      setAddress(saved.address);
+      setCenter(saved.center);
+    });
+  }, []);
+
+  useEffect(() => {
     locationApi.areas(provinceCode).then(setAreas);
   }, [provinceCode]);
 
   const loadRestaurants = useCallback(async (coordinates = center) => {
     setLoading(true);
-    const data = await locationApi.restaurants(provinceCode, areaCode, coordinates.lat, coordinates.lng);
+    let data = await locationApi.restaurants(provinceCode, areaCode, coordinates.lat, coordinates.lng);
+    // Google Places fills the gap while the project's restaurant database is empty.
+    if (data.length === 0 && hasGoogleMapsKey()) {
+      try {
+        data = await searchVegetarianPlaces(coordinates, provinceCode, areaCode);
+      } catch {
+        // A disabled Places API must not break address and map features.
+      }
+    }
     setRestaurants(data);
     setSelected(data[0]);
     setLoading(false);
   }, [areaCode, center, provinceCode]);
 
   useEffect(() => {
-    let active = true;
     // Area filters trigger a fresh query; map panning alone intentionally does not.
-    locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng).then((data) => {
-      if (!active) return;
-      setRestaurants(data);
-      setSelected(data[0]);
-      setLoading(false);
-    });
-    return () => { active = false; };
+    void loadRestaurants(center);
     // The center is searched explicitly so dragging/selecting a marker does not refetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaCode, provinceCode]);
@@ -85,11 +105,38 @@ export default function LocationExplorer() {
       const nextCenter = { lat: result.lat, lng: result.lng };
       setAddress(result.formattedAddress);
       setCenter(nextCenter);
+      saveLivingLocation({ provinceCode, areaCode, address: result.formattedAddress, center: nextCenter });
       await loadRestaurants(nextCenter);
       setMessage("Đã cập nhật các địa điểm chay gần địa chỉ này.");
     } catch {
       setMessage("Không tìm thấy địa chỉ. Hãy nhập thêm số nhà, tên đường hoặc phường/xã.");
     }
+  };
+
+  const selectAddress = async (result: { lat: number; lng: number; formattedAddress: string }) => {
+    const nextCenter = { lat: result.lat, lng: result.lng };
+    setAddress(result.formattedAddress);
+    setCenter(nextCenter);
+    saveLivingLocation({ provinceCode, areaCode, address: result.formattedAddress, center: nextCenter });
+    await loadRestaurants(nextCenter);
+    setMessage("Đã chọn địa chỉ và cập nhật các địa điểm gần đó.");
+  };
+
+  const selectMapLocation = async (nextCenter: Coordinates) => {
+    setCenter(nextCenter);
+    setMessage("Đang xác định địa chỉ trên bản đồ…");
+    let nextAddress = address;
+    if (hasGoogleMapsKey()) {
+      try {
+        nextAddress = await reverseGeocodeLocation(nextCenter);
+        setAddress(nextAddress);
+      } catch {
+        setMessage("Đã chọn tọa độ nhưng Google không trả về địa chỉ.");
+      }
+    }
+    saveLivingLocation({ provinceCode, areaCode, address: nextAddress, center: nextCenter });
+    await loadRestaurants(nextCenter);
+    setMessage("Đã cập nhật vị trí được chọn trên bản đồ.");
   };
 
   const useCurrentLocation = () => {
@@ -102,6 +149,16 @@ export default function LocationExplorer() {
       async ({ coords }) => {
         const nextCenter = { lat: coords.latitude, lng: coords.longitude };
         setCenter(nextCenter);
+        let nextAddress = address;
+        if (hasGoogleMapsKey()) {
+          try {
+            nextAddress = await reverseGeocodeLocation(nextCenter);
+            setAddress(nextAddress);
+          } catch {
+            // Browser coordinates remain useful even when reverse geocoding fails.
+          }
+        }
+        saveLivingLocation({ provinceCode, areaCode, address: nextAddress, center: nextCenter });
         await loadRestaurants(nextCenter);
         setMessage("Đã dùng vị trí hiện tại của bạn.");
       },
@@ -152,7 +209,7 @@ export default function LocationExplorer() {
             Living Address
             <span className="mt-2 flex items-center rounded-xl bg-[#f5f3f0] px-4 ring-[#356d54] focus-within:ring-2">
               <span className="mr-3 text-[#a34d32]">⌖</span>
-              <input value={address} onChange={(event) => setAddress(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchAddress()} placeholder="Số nhà, tên đường, phường/xã" className="w-full bg-transparent py-3.5 text-sm font-normal text-[#18372a] outline-none" />
+              <AddressAutocomplete value={address} center={center} onChange={setAddress} onSelect={(result) => void selectAddress(result)} onSearch={() => void searchAddress()} />
               <button type="button" onClick={searchAddress} className="ml-3 rounded-lg bg-[#143f2e] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0a2d20]">Tìm kiếm</button>
             </span>
           </label>
@@ -160,7 +217,7 @@ export default function LocationExplorer() {
         </div>
 
         <div className="grid border-t border-[#edeae5] lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
-          <GoogleRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={setCenter} />
+          <GoogleRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
           <aside className="max-h-[510px] overflow-y-auto bg-[#fbfaf8] p-5">
             <div className="mb-4 flex items-end justify-between">
               <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">Places nearby</h3><p className="mt-1 text-xs text-[#788079]">Trong bán kính tối đa 15 km</p></div>
