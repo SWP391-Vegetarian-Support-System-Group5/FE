@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import GoogleRestaurantMap from "@/components/GoogleRestaurantMap";
 import {
@@ -16,6 +16,15 @@ import type { Area, Coordinates, Province, Restaurant } from "@/types/location";
 
 const defaultCenter = { lat: 10.8496, lng: 106.7537 };
 
+function normalizeLocationName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(thanh pho|tp|tinh|phuong|xa|dac khu|khu vuc)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
 export default function LocationExplorer() {
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
@@ -27,6 +36,7 @@ export default function LocationExplorer() {
   const [selected, setSelected] = useState<Restaurant>();
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const skipNextFilterReload = useRef(false);
 
   const province = useMemo(() => provinces.find((item) => item.code === provinceCode), [provinces, provinceCode]);
   const area = useMemo(() => areas.find((item) => item.code === areaCode), [areas, areaCode]);
@@ -49,13 +59,16 @@ export default function LocationExplorer() {
     locationApi.areas(provinceCode).then(setAreas);
   }, [provinceCode]);
 
-  const loadRestaurants = useCallback(async (coordinates = center) => {
+  const loadRestaurants = useCallback(async (
+    coordinates = center,
+    filters = { provinceCode, areaCode },
+  ) => {
     setLoading(true);
-    let data = await locationApi.restaurants(provinceCode, areaCode, coordinates.lat, coordinates.lng);
+    let data = await locationApi.restaurants(filters.provinceCode, filters.areaCode, coordinates.lat, coordinates.lng);
     // Google Places fills the gap while the project's restaurant database is empty.
     if (data.length === 0 && hasGoogleMapsKey()) {
       try {
-        data = await searchVegetarianPlaces(coordinates, provinceCode, areaCode);
+        data = await searchVegetarianPlaces(coordinates, filters.provinceCode, filters.areaCode);
       } catch {
         // A disabled Places API must not break address and map features.
       }
@@ -65,7 +78,30 @@ export default function LocationExplorer() {
     setLoading(false);
   }, [areaCode, center, provinceCode]);
 
+  const syncAdministrativeSelection = async (formattedAddress: string) => {
+    const normalizedAddress = normalizeLocationName(formattedAddress);
+    const matchedProvince = provinces.find((item) => normalizedAddress.includes(normalizeLocationName(item.name)));
+    const nextProvinceCode = matchedProvince?.code ?? provinceCode;
+    const candidateAreas = nextProvinceCode === provinceCode ? areas : await locationApi.areas(nextProvinceCode);
+    const matchedArea = candidateAreas
+      .filter((item) => item.code !== "all")
+      .find((item) => normalizedAddress.includes(normalizeLocationName(item.name)));
+    const nextAreaCode = matchedArea?.code ?? "all";
+
+    skipNextFilterReload.current = nextProvinceCode !== provinceCode || nextAreaCode !== areaCode;
+    if (nextProvinceCode !== provinceCode) {
+      setProvinceCode(nextProvinceCode);
+      setAreas(candidateAreas);
+    }
+    setAreaCode(nextAreaCode);
+    return { provinceCode: nextProvinceCode, areaCode: nextAreaCode };
+  };
+
   useEffect(() => {
+    if (skipNextFilterReload.current) {
+      skipNextFilterReload.current = false;
+      return;
+    }
     // Area filters trigger a fresh query; map panning alone intentionally does not.
     void loadRestaurants(center);
     // The center is searched explicitly so dragging/selecting a marker does not refetch.
@@ -76,8 +112,12 @@ export default function LocationExplorer() {
     setLoading(true);
     setProvinceCode(nextProvinceCode);
     setAreaCode("all");
-    const nextCenter = provinceCenters[nextProvinceCode];
-    if (nextCenter) setCenter(nextCenter);
+    const nextProvince = provinces.find((item) => item.code === nextProvinceCode);
+    const nextCenter = nextProvince?.latitude != null && nextProvince.longitude != null
+      ? { lat: nextProvince.latitude, lng: nextProvince.longitude }
+      : provinceCenters[nextProvinceCode] ?? center;
+    setCenter(nextCenter);
+    saveLivingLocation({ provinceCode: nextProvinceCode, areaCode: "all", address, center: nextCenter });
   };
 
   const changeArea = (nextAreaCode: string) => {
@@ -85,7 +125,11 @@ export default function LocationExplorer() {
     setAreaCode(nextAreaCode);
     const nextArea = areas.find((item) => item.code === nextAreaCode);
     if (nextArea?.latitude != null && nextArea.longitude != null) {
-      setCenter({ lat: nextArea.latitude, lng: nextArea.longitude });
+      const nextCenter = { lat: nextArea.latitude, lng: nextArea.longitude };
+      setCenter(nextCenter);
+      saveLivingLocation({ provinceCode, areaCode: nextAreaCode, address, center: nextCenter });
+    } else {
+      saveLivingLocation({ provinceCode, areaCode: nextAreaCode, address, center });
     }
   };
 
@@ -103,10 +147,11 @@ export default function LocationExplorer() {
     try {
       const result = await geocodeAddress(`${address}, ${area?.name ?? ""}, ${province?.name ?? ""}, Việt Nam`);
       const nextCenter = { lat: result.lat, lng: result.lng };
+      const filters = await syncAdministrativeSelection(result.formattedAddress);
       setAddress(result.formattedAddress);
       setCenter(nextCenter);
-      saveLivingLocation({ provinceCode, areaCode, address: result.formattedAddress, center: nextCenter });
-      await loadRestaurants(nextCenter);
+      saveLivingLocation({ ...filters, address: result.formattedAddress, center: nextCenter });
+      await loadRestaurants(nextCenter, filters);
       setMessage("Đã cập nhật các địa điểm chay gần địa chỉ này.");
     } catch {
       setMessage("Không tìm thấy địa chỉ. Hãy nhập thêm số nhà, tên đường hoặc phường/xã.");
@@ -115,10 +160,11 @@ export default function LocationExplorer() {
 
   const selectAddress = async (result: { lat: number; lng: number; formattedAddress: string }) => {
     const nextCenter = { lat: result.lat, lng: result.lng };
+    const filters = await syncAdministrativeSelection(result.formattedAddress);
     setAddress(result.formattedAddress);
     setCenter(nextCenter);
-    saveLivingLocation({ provinceCode, areaCode, address: result.formattedAddress, center: nextCenter });
-    await loadRestaurants(nextCenter);
+    saveLivingLocation({ ...filters, address: result.formattedAddress, center: nextCenter });
+    await loadRestaurants(nextCenter, filters);
     setMessage("Đã chọn địa chỉ và cập nhật các địa điểm gần đó.");
   };
 
@@ -134,8 +180,9 @@ export default function LocationExplorer() {
         setMessage("Đã chọn tọa độ nhưng Google không trả về địa chỉ.");
       }
     }
-    saveLivingLocation({ provinceCode, areaCode, address: nextAddress, center: nextCenter });
-    await loadRestaurants(nextCenter);
+    const filters = await syncAdministrativeSelection(nextAddress);
+    saveLivingLocation({ ...filters, address: nextAddress, center: nextCenter });
+    await loadRestaurants(nextCenter, filters);
     setMessage("Đã cập nhật vị trí được chọn trên bản đồ.");
   };
 
@@ -158,8 +205,9 @@ export default function LocationExplorer() {
             // Browser coordinates remain useful even when reverse geocoding fails.
           }
         }
-        saveLivingLocation({ provinceCode, areaCode, address: nextAddress, center: nextCenter });
-        await loadRestaurants(nextCenter);
+        const filters = await syncAdministrativeSelection(nextAddress);
+        saveLivingLocation({ ...filters, address: nextAddress, center: nextCenter });
+        await loadRestaurants(nextCenter, filters);
         setMessage("Đã dùng vị trí hiện tại của bạn.");
       },
       () => setMessage("Không thể truy cập vị trí. Hãy cấp quyền định vị cho trình duyệt."),

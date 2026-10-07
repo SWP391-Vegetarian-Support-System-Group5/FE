@@ -2,6 +2,7 @@ import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import type { Coordinates, Restaurant } from "@/types/location";
 
 let configured = false;
+let autocompleteSessionToken: google.maps.places.AutocompleteSessionToken | null = null;
 
 export function hasGoogleMapsKey() {
   return Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
@@ -56,14 +57,15 @@ export type AddressSuggestion = {
 export async function getAddressSuggestions(input: string, center: Coordinates) {
   configureGoogleMaps();
   const { AutocompleteSessionToken, AutocompleteSuggestion } = await importLibrary("places") as google.maps.PlacesLibrary;
-  const sessionToken = new AutocompleteSessionToken();
+  // Reuse one token while the user types so Google bills this as one autocomplete session.
+  autocompleteSessionToken ??= new AutocompleteSessionToken();
   const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
     input,
     includedRegionCodes: ["vn"],
     language: "vi",
     region: "VN",
     locationBias: { center, radius: 50_000 },
-    sessionToken,
+    sessionToken: autocompleteSessionToken,
   });
 
   return suggestions.flatMap<AddressSuggestion>((suggestion) => {
@@ -75,6 +77,7 @@ export async function getAddressSuggestions(input: string, center: Coordinates) 
 export async function resolveAddressSuggestion(suggestion: AddressSuggestion) {
   const place = suggestion.prediction.toPlace();
   await place.fetchFields({ fields: ["formattedAddress", "location"] });
+  autocompleteSessionToken = null;
   if (!place.location) throw new Error("Địa chỉ chưa có tọa độ.");
   return {
     lat: place.location.lat(),

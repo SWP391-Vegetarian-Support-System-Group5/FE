@@ -17,7 +17,12 @@ export default function GoogleRestaurantMap({ center, restaurants, selectedId, o
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
   const userMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const onMapClickRef = useRef(onMapClick);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
 
   useEffect(() => {
     if (!hasGoogleMapsKey()) return;
@@ -36,13 +41,13 @@ export default function GoogleRestaurantMap({ center, restaurants, selectedId, o
           clickableIcons: false,
         });
         mapRef.current.addListener("click", (event: google.maps.MapMouseEvent) => {
-          if (event.latLng) onMapClick({ lat: event.latLng.lat(), lng: event.latLng.lng() });
+          if (event.latLng) onMapClickRef.current({ lat: event.latLng.lat(), lng: event.latLng.lng() });
         });
       })
       .catch(() => active && setError("Không thể tải Google Maps. Hãy kiểm tra API key và các API đã bật."));
 
     return () => { active = false; };
-  }, [center, onMapClick]);
+  }, [center]);
 
   useEffect(() => {
     const map = mapRef.current;

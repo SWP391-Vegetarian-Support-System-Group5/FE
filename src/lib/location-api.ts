@@ -1,7 +1,7 @@
 import { fallbackAreas, fallbackRestaurants, vietnamProvinces } from "@/lib/location-data";
 import type { Area, Province, Restaurant } from "@/types/location";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5299/api";
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
 
 type BackendRestaurant = {
   restaurantId: number;
