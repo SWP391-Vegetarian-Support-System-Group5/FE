@@ -17,7 +17,7 @@ export default function LoginPage() {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E3A2F] hover:underline"
         >
           <span>←</span>
-          <span>Back to Homepage</span>
+          <span>Back to Home</span>
         </Link>
       </div>
 
