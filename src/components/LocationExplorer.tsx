@@ -112,12 +112,15 @@ export default function LocationExplorer() {
     setLoading(true);
     setProvinceCode(nextProvinceCode);
     setAreaCode("all");
+    // A street address belongs to the previous province and must not leak into the new selection.
+    setAddress("");
+    setMessage("Hãy chọn phường/xã hoặc nhập địa chỉ tại tỉnh/thành mới.");
     const nextProvince = provinces.find((item) => item.code === nextProvinceCode);
     const nextCenter = nextProvince?.latitude != null && nextProvince.longitude != null
       ? { lat: nextProvince.latitude, lng: nextProvince.longitude }
       : provinceCenters[nextProvinceCode] ?? center;
     setCenter(nextCenter);
-    saveLivingLocation({ provinceCode: nextProvinceCode, areaCode: "all", address, center: nextCenter });
+    saveLivingLocation({ provinceCode: nextProvinceCode, areaCode: "all", address: "", center: nextCenter });
   };
 
   const changeArea = async (nextAreaCode: string) => {

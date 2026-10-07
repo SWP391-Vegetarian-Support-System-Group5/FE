@@ -5,7 +5,7 @@ import type { Area, Province, Restaurant } from "@/types/location";
 export const vietnamProvinces: Province[] = [
   ["hanoi", "Hà Nội", "Thành phố"], ["hue", "Huế", "Thành phố"],
   ["haiphong", "Hải Phòng", "Thành phố"], ["danang", "Đà Nẵng", "Thành phố"],
-  ["cantho", "Cần Thơ", "Thành phố"], ["hochiminh", "Hồ Chí Minh", "Thành phố"],
+  ["cantho", "Cần Thơ", "Thành phố"], ["hochiminh", "Tp. Hồ Chí Minh", "Thành phố"],
   ["laocai", "Lào Cai", "Tỉnh"], ["tuyenquang", "Tuyên Quang", "Tỉnh"],
   ["caobang", "Cao Bằng", "Tỉnh"], ["laichau", "Lai Châu", "Tỉnh"],
   ["dienbien", "Điện Biên", "Tỉnh"], ["sonla", "Sơn La", "Tỉnh"],
@@ -24,7 +24,7 @@ export const vietnamProvinces: Province[] = [
 
 const knownAreas: Record<string, Area[]> = {
   hochiminh: [
-    ["all", "Tất cả khu vực", "Khu vực"], ["thu-duc", "Phường Thủ Đức", "Phường"],
+    ["all", "Tất cả", "Khu vực"], ["thu-duc", "Phường Thủ Đức", "Phường"],
     ["linh-xuan", "Phường Linh Xuân", "Phường"], ["tam-binh", "Phường Tam Bình", "Phường"],
     ["tang-nhon-phu", "Phường Tăng Nhơn Phú", "Phường"], ["sai-gon", "Phường Sài Gòn", "Phường"],
     ["ben-thanh", "Phường Bến Thành", "Phường"], ["xuan-hoa", "Phường Xuân Hòa", "Phường"],
@@ -33,21 +33,20 @@ const knownAreas: Record<string, Area[]> = {
     ["an-dong", "Phường An Đông", "Phường"],
   ].map(([code, name, type]) => ({ code, name, type })),
   hanoi: [
-    ["all", "Tất cả khu vực", "Khu vực"], ["hoan-kiem", "Phường Hoàn Kiếm", "Phường"],
+    ["all", "Tất cả", "Khu vực"], ["hoan-kiem", "Phường Hoàn Kiếm", "Phường"],
     ["ba-dinh", "Phường Ba Đình", "Phường"], ["cua-nam", "Phường Cửa Nam", "Phường"],
     ["hai-ba-trung", "Phường Hai Bà Trưng", "Phường"], ["tay-ho", "Phường Tây Hồ", "Phường"],
     ["cau-giay", "Phường Cầu Giấy", "Phường"],
   ].map(([code, name, type]) => ({ code, name, type })),
   danang: [
-    ["all", "Tất cả khu vực", "Khu vực"], ["hai-chau", "Phường Hải Châu", "Phường"],
+    ["all", "Tất cả", "Khu vực"], ["hai-chau", "Phường Hải Châu", "Phường"],
     ["son-tra", "Phường Sơn Trà", "Phường"], ["ngu-hanh-son", "Phường Ngũ Hành Sơn", "Phường"],
     ["an-hai", "Phường An Hải", "Phường"],
   ].map(([code, name, type]) => ({ code, name, type })),
 };
 
 export function fallbackAreas(provinceCode: string): Area[] {
-  const province = vietnamProvinces.find((item) => item.code === provinceCode);
-  return knownAreas[provinceCode] ?? [{ code: "all", name: `Toàn ${province?.name ?? "khu vực"}`, type: "Khu vực" }];
+  return knownAreas[provinceCode] ?? [{ code: "all", name: "Tất cả", type: "Khu vực" }];
 }
 
 export const fallbackRestaurants: Restaurant[] = [
