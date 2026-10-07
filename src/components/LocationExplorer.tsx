@@ -120,17 +120,27 @@ export default function LocationExplorer() {
     saveLivingLocation({ provinceCode: nextProvinceCode, areaCode: "all", address, center: nextCenter });
   };
 
-  const changeArea = (nextAreaCode: string) => {
+  const changeArea = async (nextAreaCode: string) => {
     setLoading(true);
+    skipNextFilterReload.current = true;
     setAreaCode(nextAreaCode);
     const nextArea = areas.find((item) => item.code === nextAreaCode);
+    let nextCenter = center;
     if (nextArea?.latitude != null && nextArea.longitude != null) {
-      const nextCenter = { lat: nextArea.latitude, lng: nextArea.longitude };
+      nextCenter = { lat: nextArea.latitude, lng: nextArea.longitude };
       setCenter(nextCenter);
-      saveLivingLocation({ provinceCode, areaCode: nextAreaCode, address, center: nextCenter });
-    } else {
-      saveLivingLocation({ provinceCode, areaCode: nextAreaCode, address, center });
+    } else if (nextArea && nextAreaCode !== "all" && hasGoogleMapsKey()) {
+      try {
+        const result = await geocodeAddress(`${nextArea.name}, ${province?.name ?? ""}, Việt Nam`);
+        nextCenter = { lat: result.lat, lng: result.lng };
+        setCenter(nextCenter);
+        setMessage(`Đã xác định vị trí ${nextArea.name} trên bản đồ.`);
+      } catch {
+        setMessage("Chưa xác định được tâm khu vực này; bạn vẫn có thể nhập địa chỉ chi tiết.");
+      }
     }
+    saveLivingLocation({ provinceCode, areaCode: nextAreaCode, address, center: nextCenter });
+    await loadRestaurants(nextCenter, { provinceCode, areaCode: nextAreaCode });
   };
 
   const searchAddress = async () => {
@@ -247,7 +257,7 @@ export default function LocationExplorer() {
             </label>
             <label className="text-xs font-semibold text-[#274537]">
               Ward / Commune / Area
-              <select value={areaCode} onChange={(event) => changeArea(event.target.value)} className="mt-2 w-full appearance-none rounded-xl border-0 bg-[#f5f3f0] px-4 py-3.5 text-sm font-normal text-[#18372a] outline-none ring-[#356d54] focus:ring-2">
+              <select value={areaCode} onChange={(event) => void changeArea(event.target.value)} className="mt-2 w-full appearance-none rounded-xl border-0 bg-[#f5f3f0] px-4 py-3.5 text-sm font-normal text-[#18372a] outline-none ring-[#356d54] focus:ring-2">
                 {areas.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
               </select>
             </label>
