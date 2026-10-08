@@ -1,5 +1,5 @@
 import { fallbackAreas, fallbackRestaurants, vietnamProvinces } from "@/lib/location-data";
-import type { Area, Province, Restaurant } from "@/types/location";
+import type { Area, Coordinates, Province, Restaurant } from "@/types/location";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
 
@@ -25,10 +25,71 @@ async function getJson<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
+async function requestJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${apiUrl}${path}`, { signal: AbortSignal.timeout(35000) });
+  if (!response.ok) throw new Error(`API returned ${response.status}`);
+  return (await response.json()) as T;
+}
+
+export type AddressSuggestion = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+
+type GeocodeResult = {
+  latitude: number;
+  longitude: number;
+  formattedAddress: string;
+};
+
+type NearbyPlace = {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  provinceCode: string;
+  areaCode: string;
+  latitude: number;
+  longitude: number;
+  rating: number;
+  reviewCount: number;
+  distanceKm: number;
+};
+
 export const locationApi = {
   provinces: () => getJson<Province[]>("/locations/provinces", vietnamProvinces),
   areas: (provinceCode: string) =>
     getJson<Area[]>(`/locations/provinces/${provinceCode}/areas`, fallbackAreas(provinceCode)),
+  addressSuggestions: (query: string, center: Coordinates) => {
+    const params = new URLSearchParams({
+      query,
+      latitude: String(center.lat),
+      longitude: String(center.lng),
+    });
+    return requestJson<AddressSuggestion[]>(`/locations/address-suggestions?${params}`);
+  },
+  geocode: (address: string) =>
+    requestJson<GeocodeResult>(`/locations/geocode?${new URLSearchParams({ address })}`),
+  reverseGeocode: (coordinates: Coordinates) => {
+    const params = new URLSearchParams({
+      latitude: String(coordinates.lat),
+      longitude: String(coordinates.lng),
+    });
+    return requestJson<{ formattedAddress: string }>(`/locations/reverse-geocode?${params}`)
+      .then((result) => result.formattedAddress);
+  },
+  nearbyPlaces: (coordinates: Coordinates, provinceCode: string, areaCode: string) => {
+    const params = new URLSearchParams({
+      latitude: String(coordinates.lat),
+      longitude: String(coordinates.lng),
+      radiusKm: "15",
+      provinceCode,
+      areaCode,
+    });
+    return requestJson<NearbyPlace[]>(`/locations/nearby-places?${params}`) as Promise<Restaurant[]>;
+  },
   restaurants: (provinceCode: string, areaCode: string, latitude?: number, longitude?: number) => {
     const fallback = fallbackRestaurants.filter((restaurant) =>
       restaurant.provinceCode === provinceCode && (areaCode === "all" || restaurant.areaCode === areaCode));

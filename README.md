@@ -8,7 +8,7 @@ Copy `.env.example` to `.env.local` and point the frontend to the backend API:
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
-The location page uses Leaflet with OpenStreetMap tiles, Photon address suggestions, Nominatim geocoding, and Overpass restaurant search. No Google Maps key or billing account is required. These public OpenStreetMap services are intended for low-volume development/demo use; a production deployment should use a hosted provider or a self-hosted service and cache geocoding results.
+The location page uses Leaflet with OpenStreetMap tiles. Address suggestions, geocoding, and nearby-place searches go through the backend, which caches calls to Photon and uses Overpass as a detailed fallback. No Google Maps key or billing account is required. Public OpenStreetMap services are intended for low-volume development/demo use; a production deployment should use a hosted provider or a self-hosted service.
 
 Run the development server:
 

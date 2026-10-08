@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  getAddressSuggestions,
+  locationApi,
   type AddressSuggestion,
-} from "@/lib/openstreetmap";
+} from "@/lib/location-api";
 import type { Coordinates } from "@/types/location";
 
 type Props = {
@@ -24,7 +24,7 @@ export default function AddressAutocomplete({ value, center, onChange, onSelect,
     if (value.trim().length < 3 || !open) return;
     const currentRequest = ++requestId.current;
     const timer = window.setTimeout(() => {
-      getAddressSuggestions(value.trim(), center)
+      locationApi.addressSuggestions(value.trim(), center)
         .then((items) => currentRequest === requestId.current && setSuggestions(items))
         .catch(() => currentRequest === requestId.current && setSuggestions([]));
     }, 350);
@@ -35,7 +35,7 @@ export default function AddressAutocomplete({ value, center, onChange, onSelect,
     setOpen(false);
     setSuggestions([]);
     try {
-      onSelect({ lat: suggestion.lat, lng: suggestion.lng, formattedAddress: suggestion.label });
+      onSelect({ lat: suggestion.latitude, lng: suggestion.longitude, formattedAddress: suggestion.label });
     } catch {
       onChange(suggestion.label);
       onSearch();

@@ -3,11 +3,6 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
-import {
-  geocodeAddress,
-  reverseGeocodeLocation,
-  searchVegetarianPlaces,
-} from "@/lib/openstreetmap";
 import { readLivingLocation, saveLivingLocation } from "@/lib/living-location";
 import { locationApi } from "@/lib/location-api";
 import { provinceCenters } from "@/lib/location-data";
@@ -71,7 +66,7 @@ export default function LocationExplorer() {
     // OpenStreetMap fills the gap while the project's restaurant database is empty.
     if (data.length === 0) {
       try {
-        data = await searchVegetarianPlaces(coordinates, filters.provinceCode, filters.areaCode);
+        data = await locationApi.nearbyPlaces(coordinates, filters.provinceCode, filters.areaCode);
       } catch {
         // A busy public Overpass server must not break address and map features.
       }
@@ -137,8 +132,8 @@ export default function LocationExplorer() {
       setCenter(nextCenter);
     } else if (nextArea && nextAreaCode !== "all") {
       try {
-        const result = await geocodeAddress(`${nextArea.name}, ${province?.name ?? ""}, Việt Nam`);
-        nextCenter = { lat: result.lat, lng: result.lng };
+        const result = await locationApi.geocode(`${nextArea.name}, ${province?.name ?? ""}, Việt Nam`);
+        nextCenter = { lat: result.latitude, lng: result.longitude };
         setCenter(nextCenter);
         setMessage(`Đã xác định vị trí ${nextArea.name} trên bản đồ.`);
       } catch {
@@ -156,8 +151,8 @@ export default function LocationExplorer() {
       return;
     }
     try {
-      const result = await geocodeAddress(`${address}, ${area?.name ?? ""}, ${province?.name ?? ""}, Việt Nam`);
-      const nextCenter = { lat: result.lat, lng: result.lng };
+      const result = await locationApi.geocode(`${address}, ${area?.name ?? ""}, ${province?.name ?? ""}, Việt Nam`);
+      const nextCenter = { lat: result.latitude, lng: result.longitude };
       const filters = await syncAdministrativeSelection(result.formattedAddress);
       setAddress(result.formattedAddress);
       setCenter(nextCenter);
@@ -184,7 +179,7 @@ export default function LocationExplorer() {
     setMessage("Đang xác định địa chỉ trên bản đồ…");
     let nextAddress = address;
     try {
-      nextAddress = await reverseGeocodeLocation(nextCenter);
+      nextAddress = await locationApi.reverseGeocode(nextCenter);
       setAddress(nextAddress);
     } catch {
       setMessage("Đã chọn tọa độ nhưng OpenStreetMap không trả về địa chỉ.");
@@ -207,7 +202,7 @@ export default function LocationExplorer() {
         setCenter(nextCenter);
         let nextAddress = address;
         try {
-          nextAddress = await reverseGeocodeLocation(nextCenter);
+          nextAddress = await locationApi.reverseGeocode(nextCenter);
           setAddress(nextAddress);
         } catch {
           // Browser coordinates remain useful even when reverse geocoding fails.
