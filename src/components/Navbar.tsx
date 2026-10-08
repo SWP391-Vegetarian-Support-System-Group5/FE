@@ -62,7 +62,7 @@ export default function Navbar() {
               Explore
             </Link>
             <Link
-              href="/#restaurants"
+              href="/vegan-places"
               className="rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide text-[#424844] transition hover:bg-[#D9E6DC]/40 hover:text-[#07241A]"
             >
               Vegan Places
