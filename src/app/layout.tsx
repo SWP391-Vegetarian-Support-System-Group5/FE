@@ -16,8 +16,18 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "VeggieMate — Vegetarian Lifestyle Platform",
+  title: {
+    default: "VeggieMate",
+    template: "%s | VeggieMate",
+  },
   description: "Khám phá công thức nấu ăn, video ẩm thực và nhà hàng chay thanh đạm.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

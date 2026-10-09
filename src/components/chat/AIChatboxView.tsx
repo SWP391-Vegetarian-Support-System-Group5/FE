@@ -56,6 +56,11 @@ export default function AIChatboxView() {
   const [signupRequired, setSignupRequired] = useState(false);
   const [remainingGuestMessages, setRemainingGuestMessages] = useState<number | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -312,7 +317,7 @@ export default function AIChatboxView() {
 
   // Group user sessions for sidebar
   const groupedSessions: GroupedSessions[] = groupSessionsByDate(sessions);
-  const isLoggedIn = !!getStoredToken();
+  const isLoggedIn = isMounted && (!!user || !!getStoredToken());
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
