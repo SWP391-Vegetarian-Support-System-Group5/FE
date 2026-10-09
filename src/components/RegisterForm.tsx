@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { registerWithApi, ApiError } from "@/lib/auth";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -16,12 +17,15 @@ export default function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [emailExists, setEmailExists] = useState(false);
 
   const handleGoogleSignIn = async () => {
     try {
       setIsGoogleLoading(true);
       setLocalError(null);
+      setEmailExists(false);
       clearError();
       const signedInUser = await signInWithGoogle();
       if (signedInUser) {
@@ -38,10 +42,95 @@ export default function RegisterForm() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validate = (): string | null => {
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      return "Vui lòng nhập họ và tên.";
+    }
+    if (trimmedName.length > 150) {
+      return "Họ và tên không được vượt quá 150 ký tự.";
+    }
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      return "Vui lòng nhập địa chỉ email.";
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return "Địa chỉ email không hợp lệ.";
+    }
+
+    // Password must be at least 6 characters, do NOT trim password
+    if (password.length < 6) {
+      return "Mật khẩu phải có tối thiểu 6 ký tự.";
+    }
+
+    if (password !== confirmPassword) {
+      return "Mật khẩu xác nhận không khớp.";
+    }
+
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Placeholder handler - backend not integrated yet
-    console.log("Register attempt:", { fullName, email });
+    setLocalError(null);
+    setEmailExists(false);
+    clearError();
+
+    const validationError = validate();
+    if (validationError) {
+      setLocalError(validationError);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const targetEmail = email.trim();
+      // Backend expects { name, email, password }
+      const res = await registerWithApi(fullName.trim(), targetEmail, password);
+
+      // Store pending verification details in sessionStorage so reload preserves state
+      if (typeof window !== "undefined") {
+        const expiresInSeconds = res.expiresInSeconds || 600;
+        sessionStorage.setItem("veggiemate_pending_email", targetEmail);
+        sessionStorage.setItem(
+          "veggiemate_otp_expires_at",
+          String(Date.now() + expiresInSeconds * 1000)
+        );
+        // 60-second cooldown between resends
+        sessionStorage.setItem(
+          "veggiemate_otp_resend_cooldown",
+          String(Date.now() + 60 * 1000)
+        );
+      }
+
+      // Navigate to OTP verification without logging in
+      router.push(`/verify-otp?email=${encodeURIComponent(targetEmail)}`);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        const msg = err.message.toLowerCase();
+        if (
+          err.status === 409 ||
+          msg.includes("already exists") ||
+          msg.includes("đã tồn tại") ||
+          msg.includes("already registered") ||
+          msg.includes("duplicate")
+        ) {
+          setEmailExists(true);
+          setLocalError("Email này đã được đăng ký tài khoản.");
+          return;
+        }
+        setLocalError(err.message);
+      } else if (err instanceof Error) {
+        setLocalError(err.message);
+      } else {
+        setLocalError("Đăng ký không thành công. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const activeError = localError || authError;
@@ -109,11 +198,25 @@ export default function RegisterForm() {
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <div className="flex-1 leading-relaxed">{activeError}</div>
+          <div className="flex-1 leading-relaxed">
+            <p>{activeError}</p>
+            {emailExists && (
+              <p className="mt-1">
+                Bạn đã có tài khoản với email này?{" "}
+                <Link
+                  href={`/login?email=${encodeURIComponent(email.trim())}`}
+                  className="font-bold underline hover:text-[#07241A]"
+                >
+                  Đăng nhập tại đây
+                </Link>
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => {
               setLocalError(null);
+              setEmailExists(false);
               clearError();
             }}
             className="text-[#99462A]/60 hover:text-[#99462A]"
@@ -129,7 +232,7 @@ export default function RegisterForm() {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          disabled={isGoogleLoading}
+          disabled={isGoogleLoading || isSubmitting}
           className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-4 py-2.5 text-xs font-semibold text-[#1B1C1A] shadow-sm transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isGoogleLoading ? (
@@ -202,6 +305,7 @@ export default function RegisterForm() {
             id="fullName"
             type="text"
             required
+            maxLength={150}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Your full name"
@@ -249,9 +353,10 @@ export default function RegisterForm() {
               id="password"
               type={showPassword ? "text" : "password"}
               required
+              minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Enter your password (min 6 characters)"
               className="w-full rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-2.5 text-xs text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
             />
             <button
@@ -290,6 +395,7 @@ export default function RegisterForm() {
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               required
+              minLength={6}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
@@ -322,13 +428,43 @@ export default function RegisterForm() {
         <div className="pt-2">
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1E3A2F] px-4 py-3 text-xs font-semibold tracking-wide text-[#FBF9F6] shadow-sm transition hover:bg-[#07241A]"
+            disabled={isSubmitting || isGoogleLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1E3A2F] px-4 py-3 text-xs font-semibold tracking-wide text-[#FBF9F6] shadow-sm transition hover:bg-[#07241A] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span>Create Account</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
+            {isSubmitting ? (
+              <>
+                <svg
+                  className="h-4 w-4 animate-spin text-white"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="opacity-25"
+                  />
+                  <path
+                    d="M4 12a8 8 0 018-8"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    className="opacity-75"
+                  />
+                </svg>
+                <span>Đang xử lý đăng ký...</span>
+              </>
+            ) : (
+              <>
+                <span>Create Account</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </>
+            )}
           </button>
         </div>
       </form>

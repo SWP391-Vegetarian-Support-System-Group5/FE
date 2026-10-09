@@ -3,86 +3,207 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import {
-  ProfileData,
-  ProfileErrors,
-  DEMO_PROFILE,
-  DIET_TYPE_OPTIONS,
-  HEALTH_GOAL_OPTIONS,
   computeBmi,
   classifyBmi,
 } from "@/types/profile";
+import {
+  getProfile,
+  updateProfile,
+  getDietTypes,
+  getAllAllergens,
+  getUserAllergens,
+  updateUserAllergens,
+  getProvinces,
+  getAreas,
+  getAddressSuggestions,
+  reverseGeocode,
+  type BackendUserProfile,
+  type DietTypeItem,
+  type AllergenItem,
+  type ProvinceItem,
+  type AreaItem,
+  type AddressSuggestion,
+  type UpdateProfilePayload,
+} from "@/lib/profile-api";
+import { getStoredToken } from "@/lib/auth";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Draft shape — only fields the backend actually supports ─────────────────
 
-function validateProfile(data: ProfileData): ProfileErrors {
+interface ProfileDraft {
+  fullName: string;
+  email: string;
+  sex: "MALE" | "FEMALE" | null;
+  heightCm: string; // kept as string for controlled input
+  weightKg: string;
+  dietTypeId: number | null;
+}
+
+interface ProfileErrors {
+  fullName?: string;
+  heightCm?: string;
+  weightKg?: string;
+}
+
+function validateDraft(d: ProfileDraft): ProfileErrors {
   const errors: ProfileErrors = {};
-
-  if (!data.fullName.trim()) {
-    errors.fullName = "Full name is required.";
-  }
-
-  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRe.test(data.email)) {
-    errors.email = "Enter a valid email address.";
-  }
-
-  const h = parseFloat(data.heightCm);
-  if (data.heightCm !== "" && (isNaN(h) || h <= 0)) {
+  if (!d.fullName.trim()) errors.fullName = "Full name is required.";
+  const h = parseFloat(d.heightCm);
+  if (d.heightCm !== "" && (isNaN(h) || h <= 0))
     errors.heightCm = "Enter a positive number.";
-  }
-
-  const w = parseFloat(data.weightKg);
-  if (data.weightKg !== "" && (isNaN(w) || w <= 0)) {
+  const w = parseFloat(d.weightKg);
+  if (d.weightKg !== "" && (isNaN(w) || w <= 0))
     errors.weightKg = "Enter a positive number.";
-  }
-
   return errors;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function ProfileForm() {
-  // ── State: saved vs. draft ───────────────────────────────────────────────
-  const [savedProfile, setSavedProfile] = useState<ProfileData>({
-    ...DEMO_PROFILE,
-  });
-  const [draft, setDraft] = useState<ProfileData>({ ...DEMO_PROFILE });
-  const [errors, setErrors] = useState<ProfileErrors>({});
+  // ── Core state ────────────────────────────────────────────────────────────
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<ProfileErrors>({});
 
-  // Avatar preview (blob URL during editing, null otherwise)
+  // Profile draft
+  const [draft, setDraft] = useState<ProfileDraft>({
+    fullName: "",
+    email: "",
+    sex: null,
+    heightCm: "",
+    weightKg: "",
+    dietTypeId: null,
+  });
+  const [savedDraft, setSavedDraft] = useState<ProfileDraft>({ ...draft });
+
+  // Reference data from API
+  const [dietTypes, setDietTypes] = useState<DietTypeItem[]>([]);
+  const [allAllergens, setAllAllergens] = useState<AllergenItem[]>([]);
+  const [selectedAllergenIds, setSelectedAllergenIds] = useState<number[]>([]);
+  const [savedAllergenIds, setSavedAllergenIds] = useState<number[]>([]);
+  const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
+  const [areas, setAreas] = useState<AreaItem[]>([]);
+
+  // Location state (local-only, backend doesn't persist province/area text)
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>("");
+  const [selectedAreaCode, setSelectedAreaCode] = useState<string>("");
+  const [addressQuery, setAddressQuery] = useState("");
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // UI toggles
+  const [showDietDropdown, setShowDietDropdown] = useState(false);
+  const [showSexDropdown, setShowSexDropdown] = useState(false);
+  const [showAllergenDropdown, setShowAllergenDropdown] = useState(false);
+  const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
+  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
+  const dietDropdownRef = useRef<HTMLDivElement>(null);
+  const sexDropdownRef = useRef<HTMLDivElement>(null);
+  const allergenDropdownRef = useRef<HTMLDivElement>(null);
+  const provinceDropdownRef = useRef<HTMLDivElement>(null);
+  const areaDropdownRef = useRef<HTMLDivElement>(null);
+  const addressSuggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Avatar preview (local blob only — backend has no avatar field)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Allergy add popover
-  const [showAllergyInput, setShowAllergyInput] = useState(false);
-  const [allergyInputValue, setAllergyInputValue] = useState("");
-  const allergyInputRef = useRef<HTMLInputElement>(null);
+  // ── Load data on mount ────────────────────────────────────────────────────
+  useEffect(() => {
+    const token = getStoredToken();
+    if (!token) {
+      setLoading(false);
+      setToastMessage("Please log in to view your profile.");
+      return;
+    }
 
-  // Diet dropdown
-  const [showDietDropdown, setShowDietDropdown] = useState(false);
-  const dietDropdownRef = useRef<HTMLDivElement>(null);
+    let cancelled = false;
 
-  // Health goal dropdown
-  const [showGoalDropdown, setShowGoalDropdown] = useState(false);
-  const goalDropdownRef = useRef<HTMLDivElement>(null);
+    async function loadAll() {
+      // 1. Load public reference data (no auth needed) in parallel
+      const [dtList, allergenList, provList] = await Promise.allSettled([
+        getDietTypes(),
+        getAllAllergens(),
+        getProvinces(),
+      ]);
+
+      if (cancelled) return;
+
+      if (dtList.status === "fulfilled") setDietTypes(dtList.value);
+      if (allergenList.status === "fulfilled") setAllAllergens(allergenList.value);
+      if (provList.status === "fulfilled") setProvinces(provList.value);
+
+      // 2. Load authenticated user data
+      try {
+        const [profile, userAllergenList] = await Promise.all([
+          getProfile(),
+          getUserAllergens(),
+        ]);
+
+        if (cancelled) return;
+
+        const d: ProfileDraft = {
+          fullName: profile.fullName ?? "",
+          email: profile.email ?? "",
+          sex: profile.sex ?? null,
+          heightCm: profile.heightCm != null ? String(profile.heightCm) : "",
+          weightKg: profile.weightKg != null ? String(profile.weightKg) : "",
+          dietTypeId: profile.dietTypeId ?? null,
+        };
+
+        setDraft(d);
+        setSavedDraft({ ...d });
+
+        // userAllergens may come as array or wrapped object — normalize
+        const rawAllergens: unknown = userAllergenList;
+        const allergenArr: AllergenItem[] = Array.isArray(rawAllergens)
+          ? rawAllergens
+          : Array.isArray((rawAllergens as Record<string, unknown>)?.allergens)
+            ? (rawAllergens as Record<string, unknown>).allergens as AllergenItem[]
+            : [];
+        const ids = allergenArr.map((a) => a.allergenId);
+        setSelectedAllergenIds(ids);
+        setSavedAllergenIds([...ids]);
+      } catch (err: unknown) {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : "";
+          if (msg.includes("401")) {
+            setToastMessage(
+              "Session expired. Please log in again to load your profile.",
+            );
+          } else {
+            console.error("Failed to load profile data", err);
+            setToastMessage("Failed to load profile. Please try again.");
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadAll();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (
-        dietDropdownRef.current &&
-        !dietDropdownRef.current.contains(e.target as Node)
-      ) {
+      const t = e.target as Node;
+      if (dietDropdownRef.current && !dietDropdownRef.current.contains(t))
         setShowDietDropdown(false);
-      }
-      if (
-        goalDropdownRef.current &&
-        !goalDropdownRef.current.contains(e.target as Node)
-      ) {
-        setShowGoalDropdown(false);
-      }
+      if (sexDropdownRef.current && !sexDropdownRef.current.contains(t))
+        setShowSexDropdown(false);
+      if (allergenDropdownRef.current && !allergenDropdownRef.current.contains(t))
+        setShowAllergenDropdown(false);
+      if (provinceDropdownRef.current && !provinceDropdownRef.current.contains(t))
+        setShowProvinceDropdown(false);
+      if (areaDropdownRef.current && !areaDropdownRef.current.contains(t))
+        setShowAreaDropdown(false);
+      if (addressSuggestionsRef.current && !addressSuggestionsRef.current.contains(t))
+        setShowAddressSuggestions(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -96,13 +217,18 @@ export default function ProfileForm() {
     }
   }, [toastMessage]);
 
-  // ── Derived: BMI ─────────────────────────────────────────────────────────
+  // ── Derived ──────────────────────────────────────────────────────────────
   const bmi = computeBmi(draft.heightCm, draft.weightKg);
   const bmiCategory = bmi !== null ? classifyBmi(bmi) : null;
 
+  const currentDietType = dietTypes.find((d) => d.dietTypeId === draft.dietTypeId);
+
+  const selectedProvince = provinces.find((p) => p.code === selectedProvinceCode);
+  const selectedArea = areas.find((a) => a.code === selectedAreaCode);
+
   // ── Field updater ────────────────────────────────────────────────────────
   const updateField = useCallback(
-    <K extends keyof ProfileData>(field: K, value: ProfileData[K]) => {
+    <K extends keyof ProfileDraft>(field: K, value: ProfileDraft[K]) => {
       setDraft((prev) => ({ ...prev, [field]: value }));
       setErrors((prev) => {
         const next = { ...prev };
@@ -110,84 +236,95 @@ export default function ProfileForm() {
         return next;
       });
     },
-    []
+    [],
   );
 
-  // ── Avatar handlers ──────────────────────────────────────────────────────
-  const handlePhotoChange = () => fileInputRef.current?.click();
+  // ── Province selection → load areas ──────────────────────────────────────
+  const handleProvinceSelect = useCallback(
+    async (code: string) => {
+      setSelectedProvinceCode(code);
+      setSelectedAreaCode("");
+      setAreas([]);
+      setShowProvinceDropdown(false);
+      try {
+        const areaList = await getAreas(code);
+        setAreas(areaList);
+      } catch (err) {
+        console.error("Failed to load areas", err);
+      }
+    },
+    [],
+  );
 
+  // ── Address search ───────────────────────────────────────────────────────
+  const addressSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleAddressSearch = useCallback((query: string) => {
+    setAddressQuery(query);
+    if (addressSearchTimer.current) clearTimeout(addressSearchTimer.current);
+    if (query.trim().length < 2) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+    addressSearchTimer.current = setTimeout(async () => {
+      try {
+        const suggestions = await getAddressSuggestions(query);
+        setAddressSuggestions(suggestions);
+        setShowAddressSuggestions(suggestions.length > 0);
+      } catch {
+        setAddressSuggestions([]);
+      }
+    }, 300);
+  }, []);
+
+  const handleAddressSuggestionSelect = useCallback((suggestion: AddressSuggestion) => {
+    setAddressQuery(suggestion.label);
+    setSelectedCoords({ lat: suggestion.latitude, lng: suggestion.longitude });
+    setShowAddressSuggestions(false);
+  }, []);
+
+  // ── Allergy toggle ───────────────────────────────────────────────────────
+  const toggleAllergen = useCallback((id: number) => {
+    setSelectedAllergenIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }, []);
+
+  const removeAllergen = useCallback((id: number) => {
+    setSelectedAllergenIds((prev) => prev.filter((x) => x !== id));
+  }, []);
+
+  // ── Avatar (local only) ──────────────────────────────────────────────────
+  const handlePhotoChange = () => fileInputRef.current?.click();
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-    ];
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       setToastMessage("Please select a valid image file (JPG, PNG, GIF, WEBP).");
       return;
     }
-
-    // Revoke previous blob URL
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-
-    const url = URL.createObjectURL(file);
-    setAvatarPreview(url);
-    // Reset input so re-selecting the same file still triggers onChange
+    setAvatarPreview(URL.createObjectURL(file));
     e.target.value = "";
-  };
-
-  // ── Allergy handlers ─────────────────────────────────────────────────────
-  const addAllergy = () => {
-    const trimmed = allergyInputValue.trim();
-    if (!trimmed) return;
-
-    const isDuplicate = draft.allergies.some(
-      (a) => a.toLowerCase() === trimmed.toLowerCase()
-    );
-    if (isDuplicate) {
-      setErrors((prev) => ({
-        ...prev,
-        allergies: `"${trimmed}" is already added.`,
-      }));
-      return;
-    }
-
-    updateField("allergies", [...draft.allergies, trimmed]);
-    setAllergyInputValue("");
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next.allergies;
-      return next;
-    });
-  };
-
-  const removeAllergy = (allergyToRemove: string) => {
-    updateField(
-      "allergies",
-      draft.allergies.filter((a) => a !== allergyToRemove)
-    );
   };
 
   // ── Cancel ───────────────────────────────────────────────────────────────
   const handleCancel = () => {
-    setDraft({ ...savedProfile });
+    setDraft({ ...savedDraft });
+    setSelectedAllergenIds([...savedAllergenIds]);
     setErrors({});
     if (avatarPreview) {
       URL.revokeObjectURL(avatarPreview);
       setAvatarPreview(null);
     }
-    setShowAllergyInput(false);
-    setAllergyInputValue("");
     setToastMessage(null);
   };
 
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    const validationErrors = validateProfile(draft);
+    const validationErrors = validateDraft(draft);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -195,34 +332,61 @@ export default function ProfileForm() {
 
     setSaving(true);
     try {
-      // Mock service: simulates a 600ms network delay
-      // TODO: Replace with real API call when backend is ready
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      const payload: UpdateProfilePayload = {
+        fullName: draft.fullName,
+        sex: draft.sex,
+        heightCm: draft.heightCm ? parseFloat(draft.heightCm) : null,
+        weightKg: draft.weightKg ? parseFloat(draft.weightKg) : null,
+        dietTypeId: draft.dietTypeId,
+        latitude: selectedCoords?.lat ?? null,
+        longitude: selectedCoords?.lng ?? null,
+      };
 
-      const profileToSave = { ...draft };
-      // Note: avatar blob URL is a preview only — not uploaded to server
-      if (avatarPreview) {
-        // In a real implementation, this would be the URL returned by the upload API
-        profileToSave.avatarUrl = avatarPreview;
-      }
+      const [updatedProfile] = await Promise.all([
+        updateProfile(payload),
+        updateUserAllergens(selectedAllergenIds),
+      ]);
 
-      setSavedProfile(profileToSave);
-      setDraft(profileToSave);
-      // Keep avatarPreview as-is since it becomes the "saved" state for this session
+      const newDraft: ProfileDraft = {
+        fullName: updatedProfile.fullName ?? "",
+        email: updatedProfile.email ?? "",
+        sex: updatedProfile.sex ?? null,
+        heightCm:
+          updatedProfile.heightCm != null
+            ? String(updatedProfile.heightCm)
+            : "",
+        weightKg:
+          updatedProfile.weightKg != null
+            ? String(updatedProfile.weightKg)
+            : "",
+        dietTypeId: updatedProfile.dietTypeId ?? null,
+      };
+
+      setDraft(newDraft);
+      setSavedDraft({ ...newDraft });
+      setSavedAllergenIds([...selectedAllergenIds]);
       setErrors({});
-      setToastMessage("Demo changes applied for this session only.");
-    } catch {
+      setToastMessage("Profile updated successfully.");
+    } catch (err) {
+      console.error("Save failed", err);
       setToastMessage("Something went wrong. Your changes were not saved.");
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Current diet label ───────────────────────────────────────────────────
-  const currentDiet = DIET_TYPE_OPTIONS.find((d) => d.value === draft.dietType);
-  const currentGoal = HEALTH_GOAL_OPTIONS.find(
-    (g) => g.value === draft.healthGoal
-  );
+  // ── Loading skeleton ─────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <svg className="h-8 w-8 animate-spin text-[#1E3A2F]" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+          <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
+        </svg>
+        <span className="text-sm text-[#727974]">Loading profile…</span>
+      </div>
+    );
+  }
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -274,13 +438,26 @@ export default function ProfileForm() {
         <div className="flex items-center gap-5">
           {/* Avatar */}
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-[#EFEEEB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-            <Image
-              src={avatarPreview ?? draft.avatarUrl ?? "/images/avatar-demo.png"}
-              alt={draft.fullName}
-              fill
-              className="object-cover"
-              unoptimized={!!avatarPreview}
-            />
+            {avatarPreview ? (
+              <Image
+                src={avatarPreview}
+                alt={draft.fullName || "Avatar"}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#CAEADA] text-2xl font-bold text-[#1E3A2F]">
+                {draft.fullName
+                  ? draft.fullName
+                      .split(" ")
+                      .map((w) => w[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)
+                  : "?"}
+              </div>
+            )}
           </div>
 
           {/* Info */}
@@ -289,11 +466,8 @@ export default function ProfileForm() {
               {draft.fullName || "Your Name"}
             </h2>
             <span className="text-[13px] leading-5 text-[#727974]">
-              {draft.email} · Member since {draft.memberSince}
+              {draft.email}
             </span>
-            <p className="mt-0.5 font-serif text-sm italic leading-5 text-[#424844]">
-              {draft.bio}
-            </p>
           </div>
         </div>
 
@@ -302,6 +476,7 @@ export default function ProfileForm() {
           type="button"
           onClick={handlePhotoChange}
           className="flex items-center gap-2 rounded-xl bg-[#F5F3F0] px-3.5 py-2 text-xs font-semibold tracking-[0.02em] text-[#1B1C1A] transition hover:bg-[#EFEEEB]"
+          title="Avatar upload is not supported by the backend yet"
         >
           <svg
             width="13"
@@ -369,7 +544,7 @@ export default function ProfileForm() {
             )}
           </div>
 
-          {/* Email Address */}
+          {/* Email Address (read-only) */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
               Email Address
@@ -377,29 +552,72 @@ export default function ProfileForm() {
             <input
               type="email"
               value={draft.email}
-              onChange={(e) => updateField("email", e.target.value)}
-              className={`rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20 ${
-                errors.email ? "ring-2 ring-[#99462A]/40" : ""
-              }`}
-              placeholder="you@email.com"
+              readOnly
+              className="rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-[15px] leading-6 text-[#727974] outline-none cursor-not-allowed"
+              title="Email cannot be changed"
             />
-            {errors.email && (
-              <span className="text-xs text-[#99462A]">{errors.email}</span>
-            )}
           </div>
 
-          {/* Phone Number */}
+          {/* Gender dropdown */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Phone Number
+              Gender
             </label>
-            <input
-              type="tel"
-              value={draft.phone}
-              onChange={(e) => updateField("phone", e.target.value)}
-              className="rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20"
-              placeholder="+84 xxx xxx xxx"
-            />
+            <div ref={sexDropdownRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setShowSexDropdown((v) => !v)}
+                className="flex w-full items-center justify-between rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-left text-[15px] leading-6 text-[#1B1C1A] outline-none transition focus:ring-2 focus:ring-[#1E3A2F]/20"
+              >
+                <span>
+                  {draft.sex === "MALE"
+                    ? "Male"
+                    : draft.sex === "FEMALE"
+                      ? "Female"
+                      : "Not specified"}
+                </span>
+                <svg
+                  width="9"
+                  height="6"
+                  viewBox="0 0 9 6"
+                  fill="none"
+                  className={`text-[#727974] transition ${showSexDropdown ? "rotate-180" : ""}`}
+                >
+                  <path
+                    d="M1 1L4.5 4.5L8 1"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              {showSexDropdown && (
+                <div className="absolute left-0 top-full z-30 mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
+                  {([
+                    { value: null as "MALE" | "FEMALE" | null, label: "Not specified" },
+                    { value: "MALE" as const, label: "Male" },
+                    { value: "FEMALE" as const, label: "Female" },
+                  ]).map((opt) => (
+                    <button
+                      key={String(opt.value)}
+                      type="button"
+                      onClick={() => {
+                        updateField("sex", opt.value);
+                        setShowSexDropdown(false);
+                      }}
+                      className={`flex w-full px-4 py-2.5 text-left text-sm transition hover:bg-[#F5F3F0] ${
+                        draft.sex === opt.value
+                          ? "bg-[#F5F3F0] font-semibold text-[#07241A]"
+                          : "text-[#424844]"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -433,8 +651,8 @@ export default function ProfileForm() {
           </div>
         </div>
 
-        {/* Row 1: Height, Weight, Health Goal */}
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Row 1: Height, Weight */}
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Height */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
@@ -484,61 +702,9 @@ export default function ProfileForm() {
               <span className="text-xs text-[#99462A]">{errors.weightKg}</span>
             )}
           </div>
-
-          {/* Health Goal dropdown */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Health Goal
-            </label>
-            <div ref={goalDropdownRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setShowGoalDropdown((v) => !v)}
-                className="flex w-full items-center justify-between rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-left text-[15px] leading-6 text-[#1B1C1A] outline-none transition focus:ring-2 focus:ring-[#1E3A2F]/20"
-              >
-                <span>{currentGoal?.label ?? "Select goal"}</span>
-                <svg
-                  width="9"
-                  height="6"
-                  viewBox="0 0 9 6"
-                  fill="none"
-                  className={`text-[#727974] transition ${showGoalDropdown ? "rotate-180" : ""}`}
-                >
-                  <path
-                    d="M1 1L4.5 4.5L8 1"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {showGoalDropdown && (
-                <div className="absolute left-0 top-full z-30 mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
-                  {HEALTH_GOAL_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => {
-                        updateField("healthGoal", opt.value);
-                        setShowGoalDropdown(false);
-                      }}
-                      className={`flex w-full px-4 py-2.5 text-left text-sm transition hover:bg-[#F5F3F0] ${
-                        draft.healthGoal === opt.value
-                          ? "bg-[#F5F3F0] font-semibold text-[#07241A]"
-                          : "text-[#424844]"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
-        {/* Row 2: Vegetarian Diet Type (full-width dropdown) */}
+        {/* Row 2: Vegetarian Diet Type (full-width dropdown from API) */}
         <div className="mt-6 flex flex-col gap-1.5">
           <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
             Vegetarian Diet Type
@@ -550,8 +716,8 @@ export default function ProfileForm() {
               className="flex w-full items-center justify-between rounded-xl bg-[#F5F3F0] py-3 pl-4 pr-10 text-left text-[15px] font-medium leading-6 text-[#1B1C1A] outline-none transition focus:ring-2 focus:ring-[#1E3A2F]/20"
             >
               <span>
-                {currentDiet
-                  ? `${currentDiet.label} (${currentDiet.description})`
+                {currentDietType
+                  ? `${currentDietType.name}${currentDietType.description ? ` (${currentDietType.description})` : ""}`
                   : "Select diet type"}
               </span>
               <svg
@@ -571,33 +737,33 @@ export default function ProfileForm() {
               </svg>
             </button>
             {showDietDropdown && (
-              <div className="absolute left-0 top-full z-30 mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
-                {DIET_TYPE_OPTIONS.map((opt) => (
+              <div className="absolute left-0 top-full z-30 mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB] max-h-60 overflow-y-auto">
+                {dietTypes.map((dt) => (
                   <button
-                    key={opt.value}
+                    key={dt.dietTypeId}
                     type="button"
                     onClick={() => {
-                      updateField("dietType", opt.value);
+                      updateField("dietTypeId", dt.dietTypeId);
                       setShowDietDropdown(false);
                     }}
                     className={`flex w-full flex-col px-4 py-3 text-left transition hover:bg-[#F5F3F0] ${
-                      draft.dietType === opt.value
-                        ? "bg-[#F5F3F0]"
-                        : ""
+                      draft.dietTypeId === dt.dietTypeId ? "bg-[#F5F3F0]" : ""
                     }`}
                   >
                     <span
                       className={`text-sm ${
-                        draft.dietType === opt.value
+                        draft.dietTypeId === dt.dietTypeId
                           ? "font-semibold text-[#07241A]"
                           : "text-[#1B1C1A]"
                       }`}
                     >
-                      {opt.label}
+                      {dt.name}
                     </span>
-                    <span className="text-xs text-[#727974]">
-                      {opt.description}
-                    </span>
+                    {dt.description && (
+                      <span className="text-xs text-[#727974]">
+                        {dt.description}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -652,7 +818,7 @@ export default function ProfileForm() {
             </div>
           </div>
 
-          {/* Visual indicator — demo-only static visualization */}
+          {/* Visual indicator */}
           {bmi !== null && (
             <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5">
               <span className="text-xs font-semibold tracking-[0.02em] text-[#727974]">
@@ -672,10 +838,6 @@ export default function ProfileForm() {
                   style={{ width: "25%" }}
                 />
               </div>
-              <span className="text-xs font-semibold tracking-[0.02em] text-[#07241A]">
-                {/* Demo illustration value — not a computed metric */}
-                68%
-              </span>
             </div>
           )}
         </div>
@@ -693,70 +855,42 @@ export default function ProfileForm() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            {draft.allergies.map((allergy) => (
-              <span
-                key={allergy}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#FFDBD0] px-3 py-1 text-xs font-semibold tracking-[0.02em] text-[#390B00]"
-              >
-                {allergy}
-                <button
-                  type="button"
-                  onClick={() => removeAllergy(allergy)}
-                  className="flex items-center justify-center text-[#390B00]/60 transition hover:text-[#390B00]"
-                  aria-label={`Remove ${allergy}`}
+            {/* Render selected allergens as chips */}
+            {selectedAllergenIds.map((id) => {
+              const allergen = allAllergens.find((a) => a.allergenId === id);
+              return (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#FFDBD0] px-3 py-1 text-xs font-semibold tracking-[0.02em] text-[#390B00]"
                 >
-                  <svg
-                    width="8"
-                    height="8"
-                    viewBox="0 0 8 8"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
+                  {allergen?.name ?? `Allergen #${id}`}
+                  <button
+                    type="button"
+                    onClick={() => removeAllergen(id)}
+                    className="flex items-center justify-center text-[#390B00]/60 transition hover:text-[#390B00]"
+                    aria-label={`Remove ${allergen?.name ?? ""}`}
                   >
-                    <path d="M1 1l6 6M7 1l-6 6" />
-                  </svg>
-                </button>
-              </span>
-            ))}
+                    <svg
+                      width="8"
+                      height="8"
+                      viewBox="0 0 8 8"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    >
+                      <path d="M1 1l6 6M7 1l-6 6" />
+                    </svg>
+                  </button>
+                </span>
+              );
+            })}
 
-            {/* Add Allergy button / input */}
-            {showAllergyInput ? (
-              <div className="relative">
-                <input
-                  ref={allergyInputRef}
-                  type="text"
-                  value={allergyInputValue}
-                  onChange={(e) => {
-                    setAllergyInputValue(e.target.value);
-                    setErrors((prev) => {
-                      const next = { ...prev };
-                      delete next.allergies;
-                      return next;
-                    });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addAllergy();
-                    }
-                    if (e.key === "Escape") {
-                      setShowAllergyInput(false);
-                      setAllergyInputValue("");
-                    }
-                  }}
-                  placeholder="Type allergy name…"
-                  className="w-40 rounded-full bg-[#F5F3F0] px-3 py-1 text-xs text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20"
-                  autoFocus
-                />
-              </div>
-            ) : (
+            {/* Add Allergy dropdown from API allergens */}
+            <div ref={allergenDropdownRef} className="relative">
               <button
                 type="button"
-                onClick={() => {
-                  setShowAllergyInput(true);
-                  setTimeout(() => allergyInputRef.current?.focus(), 50);
-                }}
+                onClick={() => setShowAllergenDropdown((v) => !v)}
                 className="inline-flex items-center gap-1 rounded-full bg-[#F5F3F0] px-3 py-1 text-xs font-semibold tracking-[0.02em] text-[#1B1C1A] transition hover:bg-[#EFEEEB]"
               >
                 <svg
@@ -772,11 +906,58 @@ export default function ProfileForm() {
                 </svg>
                 Add Allergy
               </button>
-            )}
+              {showAllergenDropdown && (
+                <div className="absolute left-0 top-full z-30 mt-1 w-52 max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
+                  {allAllergens.length === 0 && (
+                    <div className="px-4 py-3 text-xs text-[#727974]">
+                      No allergens available
+                    </div>
+                  )}
+                  {allAllergens.map((allergen) => {
+                    const isSelected = selectedAllergenIds.includes(
+                      allergen.allergenId,
+                    );
+                    return (
+                      <button
+                        key={allergen.allergenId}
+                        type="button"
+                        onClick={() => toggleAllergen(allergen.allergenId)}
+                        className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition hover:bg-[#F5F3F0] ${
+                          isSelected
+                            ? "bg-[#FFDBD0]/30 font-semibold text-[#07241A]"
+                            : "text-[#424844]"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                            isSelected
+                              ? "border-[#99462A] bg-[#99462A]"
+                              : "border-[#DBDAD7]"
+                          }`}
+                        >
+                          {isSelected && (
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 10 10"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M2 5l2 2 4-4" />
+                            </svg>
+                          )}
+                        </span>
+                        {allergen.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-          {errors.allergies && (
-            <span className="text-xs text-[#99462A]">{errors.allergies}</span>
-          )}
         </div>
       </section>
 
@@ -835,78 +1016,134 @@ export default function ProfileForm() {
               Vegan Places Guide
             </span>{" "}
             and filter neighborhood community dining tables.
+            <br />
+            <span className="text-[11px] italic">
+              Note: Province/area selections are used to find coordinates only — the backend does not store address text.
+            </span>
           </p>
         </div>
 
-        {/* Row 1: City & District */}
+        {/* Row 1: Province & Area dropdowns */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Province */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
               City / Province
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={draft.city}
-                onChange={(e) => updateField("city", e.target.value)}
-                className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 pr-10 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20"
-                placeholder="Enter city or province"
-              />
-              <svg
-                width="9"
-                height="6"
-                viewBox="0 0 9 6"
-                fill="none"
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#727974]"
+            <div ref={provinceDropdownRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setShowProvinceDropdown((v) => !v)}
+                className="flex w-full items-center justify-between rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-left text-[15px] leading-6 text-[#1B1C1A] outline-none transition focus:ring-2 focus:ring-[#1E3A2F]/20"
               >
-                <path
-                  d="M1 1L4.5 4.5L8 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+                <span className={selectedProvince ? "" : "text-[#727974]"}>
+                  {selectedProvince?.name ?? "Select province"}
+                </span>
+                <svg
+                  width="9"
+                  height="6"
+                  viewBox="0 0 9 6"
+                  fill="none"
+                  className={`text-[#727974] transition ${showProvinceDropdown ? "rotate-180" : ""}`}
+                >
+                  <path
+                    d="M1 1L4.5 4.5L8 1"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              {showProvinceDropdown && (
+                <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
+                  {provinces.map((p) => (
+                    <button
+                      key={p.code}
+                      type="button"
+                      onClick={() => handleProvinceSelect(p.code)}
+                      className={`flex w-full px-4 py-2.5 text-left text-sm transition hover:bg-[#F5F3F0] ${
+                        selectedProvinceCode === p.code
+                          ? "bg-[#F5F3F0] font-semibold text-[#07241A]"
+                          : "text-[#424844]"
+                      }`}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
+          {/* Area */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
               District / Area
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={draft.district}
-                onChange={(e) => updateField("district", e.target.value)}
-                className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 pr-10 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20"
-                placeholder="Enter district or area"
-              />
-              <svg
-                width="9"
-                height="6"
-                viewBox="0 0 9 6"
-                fill="none"
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#727974]"
+            <div ref={areaDropdownRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (areas.length > 0) setShowAreaDropdown((v) => !v);
+                }}
+                disabled={areas.length === 0}
+                className="flex w-full items-center justify-between rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-left text-[15px] leading-6 text-[#1B1C1A] outline-none transition focus:ring-2 focus:ring-[#1E3A2F]/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <path
-                  d="M1 1L4.5 4.5L8 1"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+                <span className={selectedArea ? "" : "text-[#727974]"}>
+                  {selectedArea?.name ?? (selectedProvinceCode ? "Select area" : "Select province first")}
+                </span>
+                <svg
+                  width="9"
+                  height="6"
+                  viewBox="0 0 9 6"
+                  fill="none"
+                  className={`text-[#727974] transition ${showAreaDropdown ? "rotate-180" : ""}`}
+                >
+                  <path
+                    d="M1 1L4.5 4.5L8 1"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              {showAreaDropdown && areas.length > 0 && (
+                <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
+                  {areas.map((a) => (
+                    <button
+                      key={a.code}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAreaCode(a.code);
+                        setShowAreaDropdown(false);
+                        // Use area coordinates if available
+                        if (a.latitude != null && a.longitude != null) {
+                          setSelectedCoords({ lat: a.latitude, lng: a.longitude });
+                        }
+                      }}
+                      className={`flex w-full px-4 py-2.5 text-left text-sm transition hover:bg-[#F5F3F0] ${
+                        selectedAreaCode === a.code
+                          ? "bg-[#F5F3F0] font-semibold text-[#07241A]"
+                          : "text-[#424844]"
+                      }`}
+                    >
+                      {a.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Row 2: Living Address */}
+        {/* Row 2: Address search with suggestions */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-            Living Address
+            Search Address
           </label>
-          <div className="relative">
+          <div ref={addressSuggestionsRef} className="relative">
             <svg
               width="11"
               height="15"
@@ -923,18 +1160,40 @@ export default function ProfileForm() {
             </svg>
             <input
               type="text"
-              value={draft.address}
-              onChange={(e) => updateField("address", e.target.value)}
+              value={addressQuery}
+              onChange={(e) => handleAddressSearch(e.target.value)}
+              onFocus={() => {
+                if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
+              }}
               className="w-full rounded-xl bg-[#F5F3F0] py-2.5 pl-11 pr-4 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20"
-              placeholder="Enter your street address"
+              placeholder="Type to search for an address…"
             />
+            {showAddressSuggestions && addressSuggestions.length > 0 && (
+              <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
+                {addressSuggestions.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => handleAddressSuggestionSelect(s)}
+                    className="flex w-full px-4 py-2.5 text-left text-sm text-[#424844] transition hover:bg-[#F5F3F0]"
+                  >
+                    <span className="truncate">{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+          {selectedCoords && (
+            <p className="text-[11px] text-[#727974]">
+              Selected coordinates: {selectedCoords.lat.toFixed(6)}, {selectedCoords.lng.toFixed(6)}
+            </p>
+          )}
         </div>
 
         {/* Map Preview Container */}
         <MapPreview
-          city={draft.city}
-          district={draft.district}
+          provinceName={selectedProvince?.name}
+          areaName={selectedArea?.name}
         />
       </section>
 
@@ -1012,10 +1271,17 @@ export default function ProfileForm() {
  * TODO: Integrate with a map service (e.g. Mapbox, Google Maps) when API key is available.
  * This component does NOT request GPS permission or perform real geocoding.
  */
-function MapPreview({ city, district }: { city: string; district: string }) {
-  // Derive a display string for the radius label
+function MapPreview({
+  provinceName,
+  areaName,
+}: {
+  provinceName?: string;
+  areaName?: string;
+}) {
   const areaLabel =
-    district && city ? `${district}, ${city}` : district || city || "your area";
+    areaName && provinceName
+      ? `${areaName}, ${provinceName}`
+      : areaName || provinceName || "your area";
 
   return (
     <div className="relative h-56 w-full overflow-hidden rounded-xl bg-[#EAE8E5] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">

@@ -1,24 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { ApiError } from "@/lib/auth";
 
 export default function LoginForm() {
   const router = useRouter();
-  const { signInWithGoogle, user, error: authError, clearError } = useAuth();
+  const searchParams = useSearchParams();
+  const { signInWithGoogle, loginWithCredentials, user, error: authError, clearError } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [is401Error, setIs401Error] = useState(false);
+  const [isUnverified403, setIsUnverified403] = useState(false);
+  const [isDeactivated403, setIsDeactivated403] = useState(false);
+  const [verifiedSuccess, setVerifiedSuccess] = useState(false);
+
+  useEffect(() => {
+    const verifiedParam = searchParams.get("verified");
+    const emailParam = searchParams.get("email");
+
+    if (verifiedParam === "true") {
+      setVerifiedSuccess(true);
+    }
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
 
   const handleGoogleSignIn = async () => {
     try {
       setIsGoogleLoading(true);
       setLocalError(null);
+      setIs401Error(false);
+      setIsUnverified403(false);
+      setIsDeactivated403(false);
       clearError();
       const signedInUser = await signInWithGoogle();
       if (signedInUser) {
@@ -35,10 +57,82 @@ export default function LoginForm() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Placeholder handler - backend not integrated yet
-    console.log("Login attempt:", { email });
+    setLocalError(null);
+    setIs401Error(false);
+    setIsUnverified403(false);
+    setIsDeactivated403(false);
+    clearError();
+
+    const targetEmail = email.trim();
+    if (!targetEmail || !password) {
+      setLocalError("Vui lòng nhập đầy đủ email và mật khẩu.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      // Calls POST /api/auth/login and stores token & user in localStorage
+      await loginWithCredentials(targetEmail, password);
+      // Immediately redirect to homepage
+      router.push("/");
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        const lowerMsg = (err.message || "").toLowerCase();
+
+        // 401: Backend returns "Invalid email or password." for both wrong password and non-existent email
+        if (err.status === 401) {
+          setIs401Error(true);
+          setLocalError(
+            "Email hoặc mật khẩu không đúng. Nếu chưa có tài khoản, vui lòng đăng ký trước khi đăng nhập."
+          );
+          return;
+        }
+
+        // 403: Differentiate between unverified email vs deactivated account
+        if (err.status === 403) {
+          if (
+            lowerMsg.includes("not verified") ||
+            lowerMsg.includes("unverified") ||
+            lowerMsg.includes("chưa xác thực") ||
+            lowerMsg.includes("verify")
+          ) {
+            setIsUnverified403(true);
+            setLocalError(
+              "Tài khoản của bạn chưa được xác thực email. Vui lòng xác thực mã OTP để tiếp tục."
+            );
+            return;
+          }
+
+          if (
+            lowerMsg.includes("inactive") ||
+            lowerMsg.includes("disabled") ||
+            lowerMsg.includes("deactivated") ||
+            lowerMsg.includes("khóa") ||
+            lowerMsg.includes("vô hiệu hóa")
+          ) {
+            setIsDeactivated403(true);
+            setLocalError(
+              "Tài khoản của bạn hiện đang bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ."
+            );
+            return;
+          }
+
+          // Generic 403
+          setLocalError(err.message || "Tài khoản không có quyền truy cập.");
+          return;
+        }
+
+        setLocalError(err.message);
+      } else if (err instanceof Error) {
+        setLocalError(err.message);
+      } else {
+        setLocalError("Đăng nhập không thành công. Vui lòng thử lại.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const activeError = localError || authError;
@@ -75,6 +169,27 @@ export default function LoginForm() {
         </p>
       </div>
 
+      {/* Verified Success Banner */}
+      {verifiedSuccess && (
+        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
+          <span className="text-sm font-bold text-emerald-700">✓</span>
+          <div className="flex-1 leading-relaxed">
+            <p className="font-semibold">Email verified successfully. Please log in.</p>
+            <p className="text-[11px] text-[#526359] mt-0.5">
+              Tài khoản của bạn đã được kích hoạt thành công. Hãy nhập mật khẩu để đăng nhập.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setVerifiedSuccess(false)}
+            className="text-[#07241A]/60 hover:text-[#07241A]"
+            title="Đóng thông báo"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Logged in notification if already authenticated */}
       {user && (
         <div className="mt-4 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
@@ -106,11 +221,42 @@ export default function LoginForm() {
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <div className="flex-1 leading-relaxed">{activeError}</div>
+          <div className="flex-1 leading-relaxed">
+            <p>{activeError}</p>
+
+            {/* 401 Helper: Link to register */}
+            {is401Error && (
+              <p className="mt-1.5 font-medium">
+                Chưa có tài khoản?{" "}
+                <Link
+                  href="/register"
+                  className="font-bold underline hover:text-[#07241A]"
+                >
+                  Đăng ký tài khoản mới ngay
+                </Link>
+              </p>
+            )}
+
+            {/* 403 Helper: Link to verify OTP */}
+            {isUnverified403 && (
+              <p className="mt-1.5 font-medium">
+                <Link
+                  href={`/verify-otp?email=${encodeURIComponent(email.trim())}`}
+                  className="inline-flex items-center gap-1 rounded-lg bg-[#99462A] px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs hover:bg-[#7D341D]"
+                >
+                  <span>Chuyển tới xác thực OTP</span>
+                  <span>→</span>
+                </Link>
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => {
               setLocalError(null);
+              setIs401Error(false);
+              setIsUnverified403(false);
+              setIsDeactivated403(false);
               clearError();
             }}
             className="text-[#99462A]/60 hover:text-[#99462A]"
@@ -126,7 +272,7 @@ export default function LoginForm() {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          disabled={isGoogleLoading}
+          disabled={isGoogleLoading || isSubmitting}
           className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#EFEEEB] bg-white px-4 py-2.5 text-xs font-semibold text-[#1B1C1A] shadow-sm transition hover:bg-[#F5F3F0] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isGoogleLoading ? (
@@ -265,13 +411,43 @@ export default function LoginForm() {
         <div className="pt-2">
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1E3A2F] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-sm transition hover:bg-[#07241A]"
+            disabled={isSubmitting || isGoogleLoading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1E3A2F] px-4 py-3 text-xs font-semibold tracking-wide text-white shadow-sm transition hover:bg-[#07241A] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span>Log In</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
+            {isSubmitting ? (
+              <>
+                <svg
+                  className="h-4 w-4 animate-spin text-white"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="opacity-25"
+                  />
+                  <path
+                    d="M4 12a8 8 0 018-8"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    className="opacity-75"
+                  />
+                </svg>
+                <span>Đang đăng nhập...</span>
+              </>
+            ) : (
+              <>
+                <span>Log In</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </>
+            )}
           </button>
         </div>
       </form>

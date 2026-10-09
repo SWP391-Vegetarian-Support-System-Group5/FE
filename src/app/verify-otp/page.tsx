@@ -1,41 +1,41 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import LoginForm from "@/components/LoginForm";
+import VerifyOtpForm from "@/components/VerifyOtpForm";
 
 export const metadata: Metadata = {
-  title: "Đăng nhập | VeggieMate",
-  description: "Đăng nhập vào hệ thống VeggieMate để lưu công thức và nhận gợi ý bữa ăn thuần chay thông minh.",
+  title: "Xác thực email | VeggieMate",
+  description: "Xác thực tài khoản VeggieMate qua mã OTP để kích hoạt tài khoản của bạn.",
 };
 
-export default function LoginPage() {
+export default function VerifyOtpPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between bg-[#FBF9F6] p-6 sm:p-10">
-      {/* Top Bar with Home return */}
+      {/* Top Bar with Login return */}
       <div className="w-full max-w-5xl flex items-center justify-start">
         <Link
-          href="/"
+          href="/login"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E3A2F] hover:underline"
         >
           <span>←</span>
-          <span>Back to Home</span>
+          <span>Back to Login</span>
         </Link>
       </div>
 
-      {/* Main Login Card */}
+      {/* Main Verify Card */}
       <div className="my-auto py-8">
         <Suspense
           fallback={
             <div className="w-full max-w-[460px] rounded-3xl border border-[#EFEEEB] bg-white p-10 text-center text-sm text-[#727974]">
-              Đang tải biểu mẫu...
+              Đang tải biểu mẫu xác thực...
             </div>
           }
         >
-          <LoginForm />
+          <VerifyOtpForm />
         </Suspense>
       </div>
 
-      {/* Benefits Footer row from Figma */}
+      {/* Benefits Footer row */}
       <div className="w-full max-w-2xl border-t border-[#EFEEEB] pt-6 pb-2">
         <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 text-xs font-medium text-[#424844]">
           <div className="flex items-center gap-2">

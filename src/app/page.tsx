@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import VeggieAIWidget from "@/components/VeggieAIWidget";
 
 export default function HomePage() {
   return (
@@ -410,6 +411,7 @@ export default function HomePage() {
       </main>
 
       <Footer />
+      <VeggieAIWidget />
     </div>
   );
 }

@@ -9,19 +9,41 @@ import React, {
   useMemo,
 } from "react";
 import {
-  User,
+  User as FirebaseUser,
   onAuthStateChanged,
   signInWithPopup,
-  signOut,
+  signOut as firebaseSignOut,
   AuthError,
 } from "firebase/auth";
 import { auth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
+import {
+  BackendUser,
+  LoginResponse,
+  loginWithApi,
+  logoutWithApi,
+  getStoredUser,
+  getStoredToken,
+  clearStoredAuth,
+} from "@/lib/auth";
+
+export interface AppUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  fullName?: string | null;
+  photoURL?: string | null;
+  role?: string;
+  userId?: number;
+  backendUser?: BackendUser;
+  getIdToken?: (forceRefresh?: boolean) => Promise<string | null>;
+}
 
 export interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   loading: boolean;
   error: string | null;
-  signInWithGoogle: () => Promise<User | null>;
+  signInWithGoogle: () => Promise<FirebaseUser | null>;
+  loginWithCredentials: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => Promise<void>;
   getIdToken: (forceRefresh?: boolean) => Promise<string | null>;
   clearError: () => void;
@@ -61,37 +83,63 @@ function mapFirebaseAuthError(error: unknown): string {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  // initial loading state prevents flickering when reloading page
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Listen to Firebase auth state changes
+    // 1. Restore backend user from localStorage
+    const savedUser = getStoredUser();
+    if (savedUser) {
+      setBackendUser(savedUser);
+    }
+
+    // 2. Listen to Firebase auth state changes
+    let isSubscribed = true;
     const unsubscribe = onAuthStateChanged(
       auth,
-      (currentUser) => {
-        setUser(currentUser);
+      (currentFirebaseUser) => {
+        if (!isSubscribed) return;
+        setFirebaseUser(currentFirebaseUser);
         setLoading(false);
       },
       (err) => {
+        if (!isSubscribed) return;
         setError(mapFirebaseAuthError(err));
         setLoading(false);
       }
     );
 
-    // Clean up subscription on unmount
-    return () => unsubscribe();
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
   }, []);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const signInWithGoogle = useCallback(async (): Promise<User | null> => {
+  const loginWithCredentials = useCallback(
+    async (email: string, password: string): Promise<LoginResponse> => {
+      setError(null);
+      try {
+        const res = await loginWithApi(email, password);
+        setBackendUser(res.user);
+        return res;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Đăng nhập thất bại.";
+        setError(msg);
+        throw err;
+      }
+    },
+    []
+  );
+
+  const signInWithGoogle = useCallback(async (): Promise<FirebaseUser | null> => {
     setError(null);
 
-    // Validate if real Firebase configuration has been supplied
     if (!isFirebaseConfigured()) {
       const msg =
         "Firebase chưa được cấu hình. Vui lòng cập nhật các biến NEXT_PUBLIC_FIREBASE_* trong file .env.local.";
@@ -101,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      setUser(result.user);
+      setFirebaseUser(result.user);
       return result.user;
     } catch (err: unknown) {
       const friendlyMessage = mapFirebaseAuthError(err);
@@ -113,24 +161,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async (): Promise<void> => {
     setError(null);
     try {
-      await signOut(auth);
-      setUser(null);
-    } catch (err: unknown) {
-      const friendlyMessage = mapFirebaseAuthError(err);
-      setError(friendlyMessage);
-      throw err;
+      // If we have a backend session, call backend logout API
+      await logoutWithApi();
+    } catch {
+      // Ignore errors during API logout
+    } finally {
+      clearStoredAuth();
+      setBackendUser(null);
+    }
+
+    try {
+      if (auth.currentUser) {
+        await firebaseSignOut(auth);
+      }
+      setFirebaseUser(null);
+    } catch {
+      setFirebaseUser(null);
     }
   }, []);
 
   const getIdToken = useCallback(
     async (forceRefresh: boolean = false): Promise<string | null> => {
-      if (!user) {
-        return null;
+      if (firebaseUser) {
+        return firebaseUser.getIdToken(forceRefresh);
       }
-      return user.getIdToken(forceRefresh);
+      return getStoredToken();
     },
-    [user]
+    [firebaseUser]
   );
+
+  const user: AppUser | null = useMemo(() => {
+    if (backendUser) {
+      return {
+        uid: String(backendUser.userId),
+        userId: backendUser.userId,
+        email: backendUser.email,
+        displayName: backendUser.fullName || backendUser.email,
+        fullName: backendUser.fullName,
+        photoURL: null,
+        role: backendUser.role,
+        backendUser,
+        getIdToken: async () => getStoredToken(),
+      };
+    }
+    if (firebaseUser) {
+      return {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        fullName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        getIdToken: firebaseUser.getIdToken.bind(firebaseUser),
+      };
+    }
+    return null;
+  }, [backendUser, firebaseUser]);
 
   const contextValue = useMemo(
     () => ({
@@ -138,11 +223,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       error,
       signInWithGoogle,
+      loginWithCredentials,
       logout,
       getIdToken,
       clearError,
     }),
-    [user, loading, error, signInWithGoogle, logout, getIdToken, clearError]
+    [
+      user,
+      loading,
+      error,
+      signInWithGoogle,
+      loginWithCredentials,
+      logout,
+      getIdToken,
+      clearError,
+    ]
   );
 
   return (
