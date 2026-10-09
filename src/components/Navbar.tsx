@@ -92,8 +92,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     { label: "Home", href: "/" },
     { label: "Explore", href: "/explore" },
     { label: "Vegan Places", href: "/vegan-places" },
-    { label: "Meal Planner", href: "/#cta" },
+    { label: "Meal Planner", href: "/meal-planner" },
     { label: "AI Chatbox", href: "/ai-chatbox" },
+    { label: "My Content", href: "/my-content" },
   ];
 
   const isLinkActive = (href: string) => {
@@ -287,6 +288,17 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   </div>
                   <div className="py-1">
                     <Link
+                      href="/create-content"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#07241A] font-semibold hover:bg-[#D9E6DC]/40 transition"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                      <span>Create Content</span>
+                    </Link>
+                    <Link
                       href="/profile"
                       onClick={() => setShowProfileMenu(false)}
                       className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#424844] hover:bg-[#F5F3F0] transition"
@@ -298,14 +310,14 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                       <span>My Profile</span>
                     </Link>
                     <Link
-                      href="/explore"
+                      href="/bookmarks"
                       onClick={() => setShowProfileMenu(false)}
                       className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#424844] hover:bg-[#F5F3F0] transition"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
                       </svg>
-                      <span>Saved Places</span>
+                      <span>Bookmark</span>
                     </Link>
                     <button
                       type="button"
@@ -379,6 +391,13 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
           {user ? (
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
               <Link
+                href="/create-content"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#07241A] bg-[#D9E6DC]/40"
+              >
+                Create Content
+              </Link>
+              <Link
                 href="/profile"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40"
@@ -386,11 +405,11 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                 My Profile
               </Link>
               <Link
-                href="/explore"
+                href="/bookmarks"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40"
               >
-                Saved Places
+                Bookmark
               </Link>
               <button
                 type="button"

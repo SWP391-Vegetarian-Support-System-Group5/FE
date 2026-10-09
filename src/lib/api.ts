@@ -5,10 +5,20 @@
  * in a single place via the NEXT_PUBLIC_API_BASE_URL environment variable.
  */
 
-const API_BASE_URL: string =
+export const API_BASE_URL: string =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ||
   "https://localhost:7058";
+
+export function getMediaUrl(path: string | null | undefined): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:")) {
+    return path;
+  }
+  const base = API_BASE_URL.replace(/\/+$/, "");
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${normalized}`;
+}
 
 /**
  * Thin wrapper around the native `fetch` that automatically prepends the
@@ -27,8 +37,12 @@ export async function apiFetch(
   const url = `${base}${normalizedPath}`;
 
   const headers = new Headers(options.headers);
-  // Default to JSON content-type if not already set and body is present
-  if (options.body && !headers.has("Content-Type")) {
+  // Default to JSON content-type if not already set, body is present, and not FormData
+  if (
+    options.body &&
+    !(typeof FormData !== "undefined" && options.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
 
