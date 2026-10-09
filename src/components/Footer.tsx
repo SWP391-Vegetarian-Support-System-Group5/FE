@@ -39,22 +39,22 @@ export default function Footer() {
             </h4>
             <ul className="mt-4 space-y-2.5 text-xs text-[#424844]">
               <li>
-                <Link href="/#recipes" className="transition hover:text-[#07241A]">
+                <Link href="/explore?tab=recipes" className="transition hover:text-[#07241A]">
                   Recipes & Seasons
                 </Link>
               </li>
               <li>
-                <Link href="/#recipes" className="transition hover:text-[#07241A]">
+                <Link href="/explore?tab=recipes" className="transition hover:text-[#07241A]">
                   Culinary Videos
                 </Link>
               </li>
               <li>
-                <Link href="/#restaurants" className="transition hover:text-[#07241A]">
+                <Link href="/explore?tab=restaurants" className="transition hover:text-[#07241A]">
                   Restaurant Reviews
                 </Link>
               </li>
               <li>
-                <Link href="/#restaurants" className="transition hover:text-[#07241A]">
+                <Link href="/vegan-places" className="transition hover:text-[#07241A]">
                   Vegan Places Guide
                 </Link>
               </li>
