@@ -1,0 +1,37 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.0
+2 info using node@v22.12.0
+3 silly config load:file:C:\Users\ASUS\AppData\Roaming\nvm\v22.12.0\node_modules\npm\npmrc
+4 silly config load:file:E:\FPTU Material\Semester 5\SWP391_Vegetarian_System\FE\.fig-tools\.npmrc
+5 silly config load:file:C:\Users\ASUS\.npmrc
+6 silly config load:file:E:\FPTU Material\Semester 5\SWP391_Vegetarian_System\FE\.fig-tools\etc\npmrc
+7 verbose title npm install kiwi-schema fzstd
+8 verbose argv "install" "kiwi-schema" "fzstd" "--prefix" ".fig-tools" "--no-save" "--package-lock" "false" "--offline" "false" "--cache" ".fig-tools/cache" "--no-audit" "--no-fund" "--fetch-retries" "0" "--fetch-timeout" "20000"
+9 verbose logfile logs-max:10 dir:E:\FPTU Material\Semester 5\SWP391_Vegetarian_System\FE\.fig-tools\cache\_logs\2026-10-10T13_47_29_589Z-
+10 verbose logfile E:\FPTU Material\Semester 5\SWP391_Vegetarian_System\FE\.fig-tools\cache\_logs\2026-10-10T13_47_29_589Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 silly idealTree buildDeps
+14 silly fetch manifest kiwi-schema@*
+15 silly packumentCache full:https://registry.npmjs.org/kiwi-schema cache-miss
+16 http fetch GET 200 https://registry.npmjs.org/kiwi-schema 288ms (cache miss)
+17 silly packumentCache full:https://registry.npmjs.org/kiwi-schema set size:undefined disposed:false
+18 silly fetch manifest fzstd@*
+19 silly packumentCache full:https://registry.npmjs.org/fzstd cache-miss
+20 http fetch GET 200 https://registry.npmjs.org/fzstd 234ms (cache miss)
+21 silly packumentCache full:https://registry.npmjs.org/fzstd set size:undefined disposed:false
+22 silly placeDep ROOT fzstd@0.1.1 OK for:  want: *
+23 silly placeDep ROOT kiwi-schema@0.5.0 OK for:  want: *
+24 silly reify moves {}
+25 silly tarball no local data for kiwi-schema@https://registry.npmjs.org/kiwi-schema/-/kiwi-schema-0.5.0.tgz. Extracting by manifest.
+26 silly tarball no local data for fzstd@https://registry.npmjs.org/fzstd/-/fzstd-0.1.1.tgz. Extracting by manifest.
+27 http fetch GET 200 https://registry.npmjs.org/kiwi-schema/-/kiwi-schema-0.5.0.tgz 106ms (cache miss)
+28 http fetch GET 200 https://registry.npmjs.org/fzstd/-/fzstd-0.1.1.tgz 214ms (cache miss)
+29 silly ADD node_modules/kiwi-schema
+30 silly ADD node_modules/fzstd
+31 verbose cwd E:\FPTU Material\Semester 5\SWP391_Vegetarian_System\FE
+32 verbose os Windows_NT 10.0.22631
+33 verbose node v22.12.0
+34 verbose npm  v10.9.0
+35 verbose exit 0
+36 info ok
