@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getStoredToken } from "@/lib/auth";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   ChatMessageItem,
   createChatSession,
@@ -11,10 +12,10 @@ import {
   getUserChatSessions,
   sendChatMessage,
   getStoredGuestSession,
-  saveStoredGuestSession,
 } from "@/lib/chat-api";
 
 export default function VeggieAIWidget() {
+  const { t } = useLanguage();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
@@ -28,6 +29,7 @@ export default function VeggieAIWidget() {
   const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const sessionAttemptedRef = useRef(false);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -85,15 +87,16 @@ export default function VeggieAIWidget() {
         }
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Không thể khởi tạo hội thoại";
+      const msg = err instanceof Error ? err.message : t("Could not start the conversation", "Không thể khởi tạo hội thoại");
       setError(msg);
     } finally {
       setIsLoadingSession(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
-    if (isOpen && sessionId === null && !isLoadingSession) {
+    if (isOpen && sessionId === null && !isLoadingSession && !sessionAttemptedRef.current) {
+      sessionAttemptedRef.current = true;
       initSession();
     }
   }, [isOpen, sessionId, isLoadingSession, initSession]);
@@ -109,7 +112,7 @@ export default function VeggieAIWidget() {
       setMessages([]);
       setRemainingGuestMessages(null);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Không thể tạo hội thoại mới";
+      const msg = err instanceof Error ? err.message : t("Could not create a new conversation", "Không thể tạo hội thoại mới");
       setError(msg);
     } finally {
       setIsLoadingSession(false);
@@ -122,7 +125,7 @@ export default function VeggieAIWidget() {
     if (!content || isThinking) return;
 
     if (content.length > 1000) {
-      setError("Tin nhắn không được vượt quá 1000 ký tự.");
+      setError(t("Messages must be 1,000 characters or fewer.", "Tin nhắn không được vượt quá 1000 ký tự."));
       return;
     }
 
@@ -162,7 +165,7 @@ export default function VeggieAIWidget() {
       const aiMsg: ChatMessageItem = {
         chatMessageId: res.chatMessageId,
         sender: "AI",
-        content: res.answer || "Không nhận được phản hồi từ AI.",
+        content: res.answer || t("No response received from AI.", "Không nhận được phản hồi từ AI."),
         createdAt: new Date().toISOString(),
         relatedRecipes: res.relatedRecipes,
         sources: res.sources,
@@ -174,7 +177,7 @@ export default function VeggieAIWidget() {
       if (errorObj?.signupRequired) {
         setSignupRequired(true);
       }
-      setError(errorObj?.message || "Lỗi khi gửi tin nhắn. Vui lòng thử lại.");
+      setError(errorObj?.message || t("Could not send your message. Please try again.", "Lỗi khi gửi tin nhắn. Vui lòng thử lại."));
     } finally {
       setIsThinking(false);
     }
@@ -199,7 +202,7 @@ export default function VeggieAIWidget() {
                   VeggieAI
                 </span>
                 <span className="text-[11px] text-[#86A496]">
-                  Culinary &amp; Nutrition Guide
+                  {t("Culinary & Nutrition Guide", "Trợ lý ẩm thực & Dinh dưỡng")}
                 </span>
               </div>
             </div>
@@ -207,7 +210,7 @@ export default function VeggieAIWidget() {
               {/* Button to open full page */}
               <Link
                 href="/ai-chatbox"
-                title="Mở toàn màn hình"
+                title={t("Open full screen", "Mở toàn màn hình")}
                 className="rounded p-1.5 text-[#86A496] transition hover:bg-white/10 hover:text-white"
               >
                 <svg
@@ -230,7 +233,7 @@ export default function VeggieAIWidget() {
               <button
                 type="button"
                 onClick={handleStartNewChat}
-                title="Cuộc trò chuyện mới"
+                title={t("New conversation", "Cuộc trò chuyện mới")}
                 disabled={isLoadingSession}
                 className="rounded p-1.5 text-[#86A496] transition hover:bg-white/10 hover:text-white"
               >
@@ -253,7 +256,7 @@ export default function VeggieAIWidget() {
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="rounded p-1.5 text-[#86A496] transition hover:bg-white/10 hover:text-white"
-                aria-label="Close"
+                aria-label={t("Close chat", "Đóng trò chuyện")}
               >
                 <svg
                   width="12"
@@ -275,7 +278,7 @@ export default function VeggieAIWidget() {
           {/* Guest message notice if applicable */}
           {remainingGuestMessages !== null && !signupRequired && (
             <div className="bg-[#EFEEEB] px-3 py-1 text-center text-[11px] text-[#727974] border-b border-[#E4E2DF]">
-              Còn lại {remainingGuestMessages} câu hỏi cho phiên khách này
+              {t(`${remainingGuestMessages} questions left in this guest session`, `Còn lại ${remainingGuestMessages} câu hỏi cho phiên khách này`)}
             </div>
           )}
 
@@ -285,17 +288,17 @@ export default function VeggieAIWidget() {
               <div className="flex h-full items-center justify-center text-xs text-[#727974]">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#1E3A2F] border-t-transparent" />
-                  <span>Đang kết nối VeggieAI...</span>
+                  <span>{t("Connecting to VeggieAI…", "Đang kết nối VeggieAI…")}</span>
                 </div>
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col gap-2 rounded-xl bg-white p-3.5 shadow-sm border border-[#EFEEEB]">
                 <div className="flex items-center gap-2 text-xs font-semibold text-[#07241A]">
                   <span>🤖</span>
-                  <span>Xin chào!</span>
+                  <span>{t("Hello there!", "Xin chào!")}</span>
                 </div>
                 <p className="text-xs leading-relaxed text-[#424844]">
-                  Tôi là VeggieAI, trợ lý dinh dưỡng và ẩm thực chay. Hãy hỏi tôi về dinh dưỡng thực vật, thực đơn lành mạnh hoặc thay thế nguyên liệu nhé!
+                  {t("I’m VeggieAI, your vegetarian cooking and nutrition assistant. Ask me about plant-based nutrition, healthy menus or ingredient swaps!", "Tôi là VeggieAI, trợ lý dinh dưỡng và ẩm thực chay. Hãy hỏi tôi về dinh dưỡng thực vật, thực đơn lành mạnh hoặc thay thế nguyên liệu nhé!")}
                 </p>
               </div>
             ) : null}
@@ -364,7 +367,7 @@ export default function VeggieAIWidget() {
               <div className="flex items-start gap-2">
                 <span className="mt-0.5 text-sm shrink-0">🤖</span>
                 <div className="rounded-[2px_12px_12px_12px] bg-[#F5F3F0] px-3.5 py-2 text-[12px] text-[#727974] flex items-center gap-1.5 border border-[#EFEEEB]">
-                  <span>Thinking</span>
+                  <span>{t("Thinking", "Đang suy nghĩ")}</span>
                   <span className="flex gap-0.5">
                     <span className="h-1 w-1 rounded-full bg-[#727974] animate-bounce [animation-delay:-0.3s]" />
                     <span className="h-1 w-1 rounded-full bg-[#727974] animate-bounce [animation-delay:-0.15s]" />
@@ -378,6 +381,7 @@ export default function VeggieAIWidget() {
             {error && (
               <div className="rounded-lg bg-red-50 p-2.5 text-xs text-red-600 border border-red-200">
                 {error}
+                {sessionId === null && <button type="button" disabled={isLoadingSession} onClick={() => void initSession()} className="ml-2 font-semibold underline disabled:opacity-50">{t("Retry", "Thử lại")}</button>}
               </div>
             )}
 
@@ -387,24 +391,24 @@ export default function VeggieAIWidget() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm">🔒</span>
                   <span className="text-xs font-semibold text-[#99462A]">
-                    Giới hạn lượt hỏi khách
+                    {t("Guest message limit", "Giới hạn lượt hỏi khách")}
                   </span>
                 </div>
                 <p className="mt-1.5 text-[12px] leading-relaxed text-[#424844]">
-                  Bạn đã dùng hết số câu hỏi cho phiên khách. Vui lòng đăng nhập hoặc tạo tài khoản để trò chuyện không giới hạn và lưu lịch sử nhé!
+                  {t("You’ve used your guest questions. Sign in or create an account to keep chatting and save your history.", "Bạn đã dùng hết số câu hỏi cho phiên khách. Vui lòng đăng nhập hoặc tạo tài khoản để tiếp tục trò chuyện và lưu lịch sử nhé!")}
                 </p>
                 <div className="mt-2.5 flex items-center gap-2">
                   <Link
                     href="/login"
                     className="rounded-lg bg-[#07241A] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1E3A2F]"
                   >
-                    Đăng nhập
+                    {t("Sign in", "Đăng nhập")}
                   </Link>
                   <Link
                     href="/register"
                     className="rounded-lg bg-[#E4E2DF] px-3 py-1.5 text-xs font-semibold text-[#1B1C1A] transition hover:bg-[#D5D3D0]"
                   >
-                    Đăng ký
+                    {t("Sign up", "Đăng ký")}
                   </Link>
                 </div>
               </div>
@@ -426,8 +430,8 @@ export default function VeggieAIWidget() {
               maxLength={1000}
               placeholder={
                 signupRequired
-                  ? "Vui lòng đăng nhập để tiếp tục..."
-                  : "Hỏi VeggieAI về dinh dưỡng, công thức..."
+                  ? t("Sign in to continue…", "Vui lòng đăng nhập để tiếp tục…")
+                  : t("Ask VeggieAI about nutrition, recipes…", "Hỏi VeggieAI về dinh dưỡng, công thức…")
               }
               className="flex-1 rounded-xl bg-[#F5F3F0] px-3 py-2 text-[13px] text-[#1B1C1A] outline-none placeholder:text-[#727974] focus:ring-1 focus:ring-[#1E3A2F] disabled:opacity-60"
             />
@@ -435,7 +439,7 @@ export default function VeggieAIWidget() {
               type="submit"
               disabled={isThinking || !inputValue.trim() || signupRequired}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#07241A] text-white transition hover:bg-[#1E3A2F] disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Gửi tin nhắn"
+              aria-label={t("Send message", "Gửi tin nhắn")}
             >
               <svg
                 width="13"
@@ -459,12 +463,14 @@ export default function VeggieAIWidget() {
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
+        aria-expanded={isOpen}
+        aria-label={t("Open or close VeggieAI chat", "Mở hoặc đóng trò chuyện VeggieAI")}
         className="flex items-center gap-2 rounded-full bg-[#07241A] px-4 py-3 text-sm font-semibold tracking-[0.01em] text-white shadow-[0_8px_24px_rgba(30,58,47,0.18)] transition hover:bg-[#1E3A2F]"
       >
         <span className="text-base font-bold">🤖</span>
         <span>VeggieAI</span>
         <span className="rounded-full bg-[#99462A] px-1.5 py-0.5 text-[10px] font-semibold text-white">
-          New
+          {t("New", "Mới")}
         </span>
       </button>
     </div>
