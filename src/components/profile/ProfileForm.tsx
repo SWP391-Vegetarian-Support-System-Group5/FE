@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import SearchableLocationSelect from "@/components/SearchableLocationSelect";
 import {
   computeBmi,
   classifyBmi,
@@ -16,6 +18,7 @@ import {
   getProvinces,
   getAreas,
   getAddressSuggestions,
+  geocodeAddress,
   reverseGeocode,
   type BackendUserProfile,
   type DietTypeItem,
@@ -26,6 +29,13 @@ import {
   type UpdateProfilePayload,
 } from "@/lib/profile-api";
 import { getStoredToken } from "@/lib/auth";
+
+const ProfileLeafletMap = dynamic(() => import("@/components/profile/ProfileLeafletMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-56 w-full rounded-xl bg-[#EAE8E5] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]" />
+  ),
+});
 
 // ─── Draft shape — only fields the backend actually supports ─────────────────
 
@@ -154,6 +164,9 @@ export default function ProfileForm() {
 
         setDraft(d);
         setSavedDraft({ ...d });
+        if (profile.latitude != null && profile.longitude != null) {
+          setSelectedCoords({ lat: profile.latitude, lng: profile.longitude });
+        }
 
         // userAllergens may come as array or wrapped object — normalize
         const rawAllergens: unknown = userAllergenList;
@@ -242,10 +255,15 @@ export default function ProfileForm() {
   // ── Province selection → load areas ──────────────────────────────────────
   const handleProvinceSelect = useCallback(
     async (code: string) => {
+      const province = provinces.find((item) => item.code === code);
       setSelectedProvinceCode(code);
       setSelectedAreaCode("");
       setAreas([]);
       setShowProvinceDropdown(false);
+      setAddressQuery("");
+      if (province?.latitude != null && province.longitude != null) {
+        setSelectedCoords({ lat: province.latitude, lng: province.longitude });
+      }
       try {
         const areaList = await getAreas(code);
         setAreas(areaList);
@@ -253,8 +271,27 @@ export default function ProfileForm() {
         console.error("Failed to load areas", err);
       }
     },
-    [],
+    [provinces],
   );
+
+  const handleAreaSelect = useCallback(async (area: AreaItem) => {
+    setSelectedAreaCode(area.code);
+    setShowAreaDropdown(false);
+
+    if (area.latitude != null && area.longitude != null) {
+      setSelectedCoords({ lat: area.latitude, lng: area.longitude });
+      return;
+    }
+
+    const provinceName = provinces.find((p) => p.code === selectedProvinceCode)?.name ?? "";
+    try {
+      const result = await geocodeAddress(`${area.name}, ${provinceName}, Việt Nam`);
+      setSelectedCoords({ lat: result.latitude, lng: result.longitude });
+      setAddressQuery(result.formattedAddress);
+    } catch {
+      setToastMessage("Could not find coordinates for this area. Try typing a detailed address.");
+    }
+  }, [provinces, selectedProvinceCode]);
 
   // ── Address search ───────────────────────────────────────────────────────
   const addressSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -272,6 +309,8 @@ export default function ProfileForm() {
         const suggestions = await getAddressSuggestions(query);
         setAddressSuggestions(suggestions);
         setShowAddressSuggestions(suggestions.length > 0);
+        const first = suggestions[0];
+        if (first) setSelectedCoords({ lat: first.latitude, lng: first.longitude });
       } catch {
         setAddressSuggestions([]);
       }
@@ -593,7 +632,7 @@ export default function ProfileForm() {
                 </svg>
               </button>
               {showSexDropdown && (
-                <div className="absolute left-0 top-full z-30 mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
+                <div className="absolute left-0 top-full z-[1000] mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
                   {([
                     { value: null as "MALE" | "FEMALE" | null, label: "Not specified" },
                     { value: "MALE" as const, label: "Male" },
@@ -737,7 +776,7 @@ export default function ProfileForm() {
               </svg>
             </button>
             {showDietDropdown && (
-              <div className="absolute left-0 top-full z-30 mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB] max-h-60 overflow-y-auto">
+              <div className="absolute left-0 top-full z-[1000] mt-1 w-full overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB] max-h-60 overflow-y-auto">
                 {dietTypes.map((dt) => (
                   <button
                     key={dt.dietTypeId}
@@ -907,7 +946,7 @@ export default function ProfileForm() {
                 Add Allergy
               </button>
               {showAllergenDropdown && (
-                <div className="absolute left-0 top-full z-30 mt-1 w-52 max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
+                <div className="absolute left-0 top-full z-[1000] mt-1 w-52 max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
                   {allAllergens.length === 0 && (
                     <div className="px-4 py-3 text-xs text-[#727974]">
                       No allergens available
@@ -1025,117 +1064,26 @@ export default function ProfileForm() {
 
         {/* Row 1: Province & Area dropdowns */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* Province */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              City / Province
-            </label>
-            <div ref={provinceDropdownRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setShowProvinceDropdown((v) => !v)}
-                className="flex w-full items-center justify-between rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-left text-[15px] leading-6 text-[#1B1C1A] outline-none transition focus:ring-2 focus:ring-[#1E3A2F]/20"
-              >
-                <span className={selectedProvince ? "" : "text-[#727974]"}>
-                  {selectedProvince?.name ?? "Select province"}
-                </span>
-                <svg
-                  width="9"
-                  height="6"
-                  viewBox="0 0 9 6"
-                  fill="none"
-                  className={`text-[#727974] transition ${showProvinceDropdown ? "rotate-180" : ""}`}
-                >
-                  <path
-                    d="M1 1L4.5 4.5L8 1"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {showProvinceDropdown && (
-                <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
-                  {provinces.map((p) => (
-                    <button
-                      key={p.code}
-                      type="button"
-                      onClick={() => handleProvinceSelect(p.code)}
-                      className={`flex w-full px-4 py-2.5 text-left text-sm transition hover:bg-[#F5F3F0] ${
-                        selectedProvinceCode === p.code
-                          ? "bg-[#F5F3F0] font-semibold text-[#07241A]"
-                          : "text-[#424844]"
-                      }`}
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Area */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              District / Area
-            </label>
-            <div ref={areaDropdownRef} className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  if (areas.length > 0) setShowAreaDropdown((v) => !v);
-                }}
-                disabled={areas.length === 0}
-                className="flex w-full items-center justify-between rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-left text-[15px] leading-6 text-[#1B1C1A] outline-none transition focus:ring-2 focus:ring-[#1E3A2F]/20 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span className={selectedArea ? "" : "text-[#727974]"}>
-                  {selectedArea?.name ?? (selectedProvinceCode ? "Select area" : "Select province first")}
-                </span>
-                <svg
-                  width="9"
-                  height="6"
-                  viewBox="0 0 9 6"
-                  fill="none"
-                  className={`text-[#727974] transition ${showAreaDropdown ? "rotate-180" : ""}`}
-                >
-                  <path
-                    d="M1 1L4.5 4.5L8 1"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {showAreaDropdown && areas.length > 0 && (
-                <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
-                  {areas.map((a) => (
-                    <button
-                      key={a.code}
-                      type="button"
-                      onClick={() => {
-                        setSelectedAreaCode(a.code);
-                        setShowAreaDropdown(false);
-                        // Use area coordinates if available
-                        if (a.latitude != null && a.longitude != null) {
-                          setSelectedCoords({ lat: a.latitude, lng: a.longitude });
-                        }
-                      }}
-                      className={`flex w-full px-4 py-2.5 text-left text-sm transition hover:bg-[#F5F3F0] ${
-                        selectedAreaCode === a.code
-                          ? "bg-[#F5F3F0] font-semibold text-[#07241A]"
-                          : "text-[#424844]"
-                      }`}
-                    >
-                      {a.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <SearchableLocationSelect
+            label="City / Province"
+            value={selectedProvinceCode}
+            options={provinces}
+            placeholder="Select province"
+            searchPlaceholder="Search province..."
+            onSelect={(code) => void handleProvinceSelect(code)}
+          />
+          <SearchableLocationSelect
+            label="District / Area"
+            value={selectedAreaCode}
+            options={areas}
+            placeholder={selectedProvinceCode ? "Select area" : "Select province first"}
+            searchPlaceholder="Search district / area..."
+            disabled={areas.length === 0}
+            onSelect={(code) => {
+              const area = areas.find((item) => item.code === code);
+              if (area) void handleAreaSelect(area);
+            }}
+          />
         </div>
 
         {/* Row 2: Address search with suggestions */}
@@ -1169,7 +1117,7 @@ export default function ProfileForm() {
               placeholder="Type to search for an address…"
             />
             {showAddressSuggestions && addressSuggestions.length > 0 && (
-              <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
+              <div className="absolute left-0 top-full z-[1000] mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
                 {addressSuggestions.map((s) => (
                   <button
                     key={s.id}
@@ -1190,10 +1138,9 @@ export default function ProfileForm() {
           )}
         </div>
 
-        {/* Map Preview Container */}
-        <MapPreview
-          provinceName={selectedProvince?.name}
-          areaName={selectedArea?.name}
+        <ProfileLeafletMap
+          coordinates={selectedCoords}
+          areaLabel={selectedArea?.name ?? selectedProvince?.name ?? "your area"}
         />
       </section>
 
@@ -1259,73 +1206,5 @@ export default function ProfileForm() {
         </button>
       </div>
     </>
-  );
-}
-
-// ─── MapPreview sub-component ───────────────────────────────────────────────
-
-/**
- * Map preview placeholder — ready for integration with a 3rd-party map provider.
- * Currently shows the Figma illustration image as a demo placeholder.
- *
- * TODO: Integrate with a map service (e.g. Mapbox, Google Maps) when API key is available.
- * This component does NOT request GPS permission or perform real geocoding.
- */
-function MapPreview({
-  provinceName,
-  areaName,
-}: {
-  provinceName?: string;
-  areaName?: string;
-}) {
-  const areaLabel =
-    areaName && provinceName
-      ? `${areaName}, ${provinceName}`
-      : areaName || provinceName || "your area";
-
-  return (
-    <div className="relative h-56 w-full overflow-hidden rounded-xl bg-[#EAE8E5] shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
-      {/* Figma illustration image — demo only */}
-      <Image
-        src="/images/map-preview.png"
-        alt="Map preview (illustration only — not a live map)"
-        fill
-        className="object-cover"
-      />
-
-      {/* Gradient scrim */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#07241A]/60 via-transparent to-transparent" />
-
-      {/* Bottom-left pill */}
-      <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-semibold tracking-[0.02em] text-[#07241A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] backdrop-blur-md">
-        <span className="inline-block h-2 w-2 rounded-full bg-[#99462A]" />
-        <span>Active radius: 5.0 km around {areaLabel}</span>
-      </div>
-
-      {/* Top-right badge — demo illustration */}
-      <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1 shadow-[0_1px_2px_rgba(0,0,0,0.05)] backdrop-blur-md">
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#07241A"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-        <span className="font-serif text-sm font-medium text-[#1B1C1A]">
-          18 Plant Cafés nearby
-        </span>
-      </div>
-
-      {/* Demo indicator */}
-      <div className="absolute bottom-3 right-3 rounded bg-black/40 px-2 py-0.5 text-[10px] text-white/70 backdrop-blur">
-        Illustration only
-      </div>
-    </div>
   );
 }

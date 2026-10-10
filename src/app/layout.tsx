@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 const newsreader = Newsreader({
