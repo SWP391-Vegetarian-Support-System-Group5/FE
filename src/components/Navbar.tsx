@@ -95,7 +95,6 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     { label: t("Vegan Places", "Địa điểm chay"), href: "/vegan-places" },
     { label: t("Meal Planner", "Thực đơn"), href: "/meal-planner" },
     { label: t("AI Chatbox", "Trợ lý AI"), href: "/ai-chatbox" },
-    { label: t("My Content", "Bài viết của tôi"), href: "/my-content" },
   ];
 
   const isLinkActive = (href: string) => {
@@ -112,9 +111,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#EFEEEB] bg-[#FBF9F6]/90 backdrop-blur-md transition-all">
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6 xl:px-8 2xl:px-10">
+      <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6 xl:gap-6 xl:px-8">
         {/* Brand Logo & Main Nav */}
-        <div className="flex min-w-0 items-center gap-5 xl:gap-6">
+        <div className="flex min-w-0 items-center gap-5 xl:gap-7 2xl:gap-9">
           <Link href="/" className="group flex shrink-0 items-center gap-2.5 whitespace-nowrap">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1E3A2F] text-white shadow-sm transition group-hover:bg-[#07241A] sm:h-9 sm:w-9">
               <svg
@@ -137,13 +136,13 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
           </Link>
 
           {/* Navigation Links */}
-          <nav aria-label={t("Main navigation", "Điều hướng chính")} className="hidden shrink-0 items-center gap-0.5 xl:flex">
+          <nav aria-label={t("Main navigation", "Điều hướng chính")} className="hidden shrink-0 items-center gap-1 xl:flex 2xl:gap-2">
             {navLinks.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
                 aria-current={isLinkActive(link.href) ? "page" : undefined}
-                className={`whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold transition ${
+                className={`whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-semibold transition 2xl:px-4 2xl:text-[15px] ${
                   isLinkActive(link.href)
                     ? "bg-[#1E3A2F] text-white shadow-sm"
                     : "text-[#424844] hover:bg-[#D9E6DC]/40 hover:text-[#07241A]"
@@ -168,10 +167,10 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder={t("Search recipes, foods, places...", "Tìm công thức, món ăn, địa điểm...")}
               aria-label={t("Search VeggieMate", "Tìm kiếm trên VeggieMate")}
-              className="w-full rounded-full border border-[#EFEEEB] bg-[#F5F3F0] py-1.5 pl-9 pr-4 text-xs text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
+              className="w-full rounded-full border border-[#EFEEEB] bg-[#F5F3F0] py-2 pl-9 pr-4 text-sm text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
             />
             <svg
-              className="absolute left-3 top-2 text-[#727974]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#727974]"
               width="14"
               height="14"
               viewBox="0 0 24 24"
@@ -189,7 +188,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             <button
               type="button"
               onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-2 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
               title={t("Select language", "Chọn ngôn ngữ")}
               aria-expanded={showLanguageDropdown}
               aria-controls="navbar-languages"
@@ -272,11 +271,11 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   </div>
                 )}
                 <div className="hidden flex-col text-left sm:flex">
-                  <span className="max-w-[110px] truncate text-[11px] font-semibold leading-tight text-[#07241A]">
+                  <span className="max-w-[110px] truncate text-[13px] font-semibold leading-tight text-[#07241A]">
                     {userName}
                   </span>
                   {user.email && (
-                    <span className="max-w-[110px] truncate text-[10px] font-normal text-[#727974]">
+                    <span className="max-w-[110px] truncate text-[11px] font-normal text-[#727974]">
                       {user.email}
                     </span>
                   )}
@@ -294,6 +293,15 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     )}
                   </div>
                   <div className="py-1">
+                    <Link
+                      href="/my-content"
+                      onClick={() => setShowProfileMenu(false)}
+                      aria-current={pathname.startsWith("/my-content") ? "page" : undefined}
+                      className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#424844] hover:bg-[#F5F3F0] transition"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 7h8M8 12h8M8 17h5" /></svg>
+                      <span>{t("My Content", "Bài viết của tôi")}</span>
+                    </Link>
                     <Link
                       href="/create-content"
                       onClick={() => setShowProfileMenu(false)}
@@ -402,6 +410,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
           {user ? (
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
+              <Link href="/my-content" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
+                {t("My Content", "Bài viết của tôi")}
+              </Link>
               <Link
                 href="/create-content"
                 onClick={() => setIsMobileMenuOpen(false)}
