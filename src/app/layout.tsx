@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import { AdminModerationProvider } from "@/context/AdminModerationContext";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -41,7 +42,9 @@ export default function RootLayout({
       className={`${newsreader.variable} ${plusJakartaSans.variable}`}
     >
       <body className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased selection:bg-[#D9E6DC] selection:text-[#07241A]">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <AdminModerationProvider>{children}</AdminModerationProvider>
+        </AuthProvider>
       </body>
     </html>
   );
