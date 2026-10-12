@@ -9,6 +9,8 @@ export interface BackendUser {
   heightCm?: number;
   weightKg?: number;
   dietTypeId?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   isActive: boolean;
 }
 
@@ -214,6 +216,41 @@ export async function logoutWithApi(): Promise<void> {
   } finally {
     clearStoredAuth();
   }
+}
+
+export async function updateCurrentUserLocation(
+  latitude: number,
+  longitude: number,
+): Promise<BackendUser> {
+  const res = await apiFetch("/api/users/me/location", {
+    method: "PUT",
+    body: JSON.stringify({ latitude, longitude }),
+  });
+
+  if (!res.ok) {
+    let errorMessage = "Không thể lưu vị trí hiện tại.";
+    let errData: any = null;
+    try {
+      errData = await res.json();
+      errorMessage =
+        errData.message ||
+        errData.error ||
+        errData.title ||
+        (typeof errData === "string" ? errData : JSON.stringify(errData));
+    } catch {
+      const text = await res.text();
+      if (text && text.trim().length > 0) {
+        errorMessage = text;
+      }
+    }
+    throw new ApiError(errorMessage, res.status, errData);
+  }
+
+  const user = (await res.json()) as BackendUser;
+  if (typeof window !== "undefined") {
+    localStorage.setItem("user", JSON.stringify(user));
+  }
+  return user;
 }
 
 export function getStoredUser(): BackendUser | null {

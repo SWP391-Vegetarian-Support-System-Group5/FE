@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  getAddressSuggestions,
-  hasGoogleMapsKey,
-  resolveAddressSuggestion,
-  type AddressSuggestion,
-} from "@/lib/google-maps";
+import { locationApi } from "@/lib/location-api";
 import type { Coordinates } from "@/types/location";
+
+type AddressSuggestion = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+};
 
 type Props = {
   value: string;
@@ -23,10 +25,10 @@ export default function AddressAutocomplete({ value, center, onChange, onSelect,
   const requestId = useRef(0);
 
   useEffect(() => {
-    if (!hasGoogleMapsKey() || value.trim().length < 3 || !open) return;
+    if (value.trim().length < 3 || !open) return;
     const currentRequest = ++requestId.current;
     const timer = window.setTimeout(() => {
-      getAddressSuggestions(value.trim(), center)
+      locationApi.addressSuggestions(value.trim(), center.lat, center.lng)
         .then((items) => currentRequest === requestId.current && setSuggestions(items))
         .catch(() => currentRequest === requestId.current && setSuggestions([]));
     }, 350);
@@ -36,12 +38,11 @@ export default function AddressAutocomplete({ value, center, onChange, onSelect,
   const choose = async (suggestion: AddressSuggestion) => {
     setOpen(false);
     setSuggestions([]);
-    try {
-      onSelect(await resolveAddressSuggestion(suggestion));
-    } catch {
-      onChange(suggestion.label);
-      onSearch();
-    }
+    onSelect({
+      lat: suggestion.latitude,
+      lng: suggestion.longitude,
+      formattedAddress: suggestion.label,
+    });
   };
 
   return (

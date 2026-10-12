@@ -4,11 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useAdminModeration } from "@/context/AdminModerationContext";
-
-// ADMIN ROLE BYPASS FLAG FOR TESTING: Set to true to test admin features without restrictions
-export const BYPASS_ADMIN_ROLE = false;
-//==================================
+import { useAdminModeration, BYPASS_ADMIN_ROLE } from "@/context/AdminModerationContext";
 
 export default function AdminLayout({
   children,

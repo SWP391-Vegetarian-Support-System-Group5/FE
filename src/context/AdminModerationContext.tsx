@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 
+// ADMIN ROLE BYPASS FLAG FOR TESTING: Set to true to test admin features without restrictions
+export const BYPASS_ADMIN_ROLE = false;
+
 export interface FlaggedItem {
   id: string;
   category: "Recipe & Video" | "Restaurant Review" | "Comment";

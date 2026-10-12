@@ -1,0 +1,78 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
+import { detailRecipes, type DetailRecipe } from "@/lib/content-detail-data";
+import ContentDialog from "./ContentDialog";
+import ContentIcon from "./ContentIcon";
+
+export default function ContentDetail({ recipe }: { recipe: DetailRecipe }) {
+  const { t } = useLanguage();
+  const [saved, setSaved] = useState(false);
+  const [dialog, setDialog] = useState<"rating" | "video" | null>(null);
+  const [selection, setSelection] = useState(0);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [comments, setComments] = useState<string[]>([]);
+  const average = rating ? ((recipe.rating * recipe.ratingCount + rating) / (recipe.ratingCount + 1)).toFixed(1) : recipe.rating.toFixed(1);
+  const heading = "font-serif text-2xl sm:text-3xl tracking-tight";
+  const panel = "rounded-3xl border border-[#E5E7DF] bg-white p-6 sm:p-8";
+  return (
+    <main className="bg-[#FBF9F6] text-[#07241A]">
+      <article className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-12">
+        <nav aria-label={t("Breadcrumb", "Đường dẫn")} className="flex flex-wrap items-center gap-2 text-xs text-[#727974]">
+          <Link href="/" className="hover:text-[#BC4B22]">{t("Home", "Trang chủ")}</Link><span>/</span><Link href="/#recipes">{t("Video & Recipes", "Video & công thức")}</Link><span>/</span><span>{t(...recipe.title)}</span>
+        </nav>
+        <header className="py-7 sm:py-9">
+          <p className="mb-3 text-[10px] font-semibold tracking-[0.2em] text-[#BC4B22]">{t(...recipe.category)}</p>
+          <h1 className="font-serif text-4xl leading-tight tracking-tight sm:text-5xl lg:text-6xl">{t(...recipe.title)}</h1>
+          <p className="mt-3 font-serif text-xl italic text-[#727974]">{recipe.subtitle}</p>
+          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-[#727974]">
+            <span className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E5EBDD] text-xs font-semibold text-[#254B38]">{recipe.author.split(" ").map(n => n[0]).join("")}</span><span>{t("by", "bởi")} <strong className="font-medium text-[#07241A]">{recipe.author}</strong></span></span>
+            <span>{t("Published 3 days ago", "Đăng 3 ngày trước")}</span>
+            <span className="flex items-center gap-1.5"><ContentIcon name="clock" />{recipe.prep + recipe.cook} {t("mins", "phút")}</span>
+          </div>
+        </header>
+        <div className="relative aspect-video overflow-hidden rounded-3xl bg-[#193B2E]">
+          <Image src={recipe.image} alt={t(...recipe.title)} fill priority sizes="(max-width: 1280px) 100vw, 1184px" className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-black/20" />
+          <span className="absolute left-5 top-5 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-semibold tracking-widest sm:left-8 sm:top-8">{t("COOKING MASTERCLASS", "CÙNG VÀO BẾP")}</span>
+          <button onClick={() => setDialog("video")} aria-label={t("Open video preview", "Mở xem trước video")} className="absolute inset-0 m-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/70 bg-white/20 text-white backdrop-blur-sm transition hover:scale-110 hover:bg-white/30 sm:h-20 sm:w-20"><svg width="27" height="27" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 4 13 8-13 8z" /></svg></button>
+          <div className="absolute bottom-5 left-5 right-5 text-white sm:bottom-8 sm:left-8 sm:right-8"><p className="font-serif text-lg sm:text-3xl">{t(...recipe.title)}</p><div className="mt-3 flex items-center gap-3 text-xs"><ContentIcon name="video" /><span>{t("Video preview", "Xem trước video")}</span><span className="ml-auto">{recipe.duration}</span></div></div>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7DF] py-5">
+          <div className="flex flex-wrap items-center gap-4 text-sm"><span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{average} / 5</strong><span className="ml-2 text-[#727974]">· {recipe.ratingCount + (rating ? 1 : 0)} {t("ratings", "đánh giá")}</span></span><button onClick={() => { setSelection(rating); setDialog("rating"); }} className="font-medium text-[#BC4B22] underline underline-offset-4">{rating ? t("Edit your rating", "Sửa đánh giá") : t("Rate this post", "Đánh giá bài viết")}</button></div>
+          <div className="flex items-center gap-5 text-sm"><a href="#comments" className="hover:text-[#BC4B22]">{recipe.commentCount + comments.length} {t("Comments", "bình luận")}</a><button onClick={() => setSaved(!saved)} aria-pressed={saved} className="flex items-center gap-2 font-medium"><ContentIcon name={saved ? "check" : "draft"} />{saved ? t("Bookmarked", "Đã lưu") : t("Bookmark", "Lưu bài")}</button></div>
+        </div>
+        <p className="mt-4 text-xs text-[#727974]" role="status">{t("Preview with sample data. Ratings, bookmarks and new comments are kept only while this page is open.", "Bản xem thử với dữ liệu mẫu. Đánh giá, lưu bài và bình luận mới chỉ giữ khi trang này đang mở.")}</p>
+        <div className="mt-8 grid items-start gap-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="space-y-7">
+            <section className={panel}><h2 className={heading}>{t("About This Recipe", "Về món ăn này")}</h2><p className="mt-4 text-sm leading-7 text-[#59635C]">{t(...recipe.about)}</p><div className="mt-6 flex flex-wrap gap-3 border-t border-[#E5E7DF] pt-5 text-xs"><span>{t("Prep", "Chuẩn bị")}: {recipe.prep} {t("mins", "phút")} · {t("Cook", "Nấu")}: {recipe.cook} {t("mins", "phút")}</span><span>· {recipe.servings} {t("servings", "phần ăn")}</span><span className="flex items-center gap-1 text-[#43734D]"><ContentIcon name="leaf" width="14" height="14" />{t("100% Plant-Based", "100% thực vật")}</span></div></section>
+            <section className={panel}>
+              <h2 className={heading}>{t("Full Recipe & Method", "Công thức & cách chế biến")}</h2>
+              <div className="my-6 rounded-2xl bg-[#F1F4EC] p-4"><p className="mb-3 text-[10px] font-semibold tracking-widest text-[#727974]">{t("SUITABLE FOR", "PHÙ HỢP VỚI")}</p><div className="flex flex-wrap gap-2">{[["Vegan", "Thuần chay"], ["Lacto-Ovo Vegetarian", "Chay có trứng & sữa"], ["Lacto Vegetarian", "Chay có sữa"], ["Ovo Vegetarian", "Chay có trứng"], ["Flexitarian", "Chay linh hoạt"]].map(([en, vi]) => <span key={en} className="rounded-full border border-[#D5DECC] bg-white px-3 py-1.5 text-xs text-[#416348]">{t(en, vi)}</span>)}</div></div>
+              <h3 className="font-serif text-xl">{t("Ingredients for", "Nguyên liệu cho")} {recipe.servings} {t("servings", "phần ăn")}</h3><p className="mt-1 text-xs text-[#727974]">{t("Pantry & fresh produce checklist", "Đánh dấu những nguyên liệu bạn đã chuẩn bị")}</p>
+              <ul className="mt-5 divide-y divide-[#EFEEEB]">{recipe.ingredients.map((ingredient, i) => <li key={i}><label className="flex cursor-pointer items-center gap-3 py-3 text-sm"><input type="checkbox" className="h-4 w-4 accent-[#254B38]" /><span className="flex-1">{t(...ingredient.name)}</span><span className="text-right text-[#727974]">{t(...ingredient.amount)}</span></label></li>)}</ul>
+              <h3 className="mt-9 border-t border-[#E5E7DF] pt-7 font-serif text-2xl">{t("Step-by-Step", "Các bước thực hiện")}</h3>
+              <ol className="mt-6 space-y-7">{recipe.steps.map((step, i) => <li key={i} className="flex gap-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E8EDE2] font-serif text-lg">{String(i + 1).padStart(2, "0")}</span><div><h4 className="font-serif text-xl">{t(...step.title)}</h4><p className="mt-2 text-sm leading-7 text-[#59635C]">{t(...step.instruction)}</p><span className="mt-2 inline-flex items-center gap-1 text-xs text-[#BC4B22]"><ContentIcon name="clock" width="13" height="13" />{t("In the video", "Trong video")}: {step.time}</span></div></li>)}</ol>
+            </section>
+            <section id="comments" className={`${panel} scroll-mt-28`}><div className="flex flex-wrap items-center justify-between gap-2"><h2 className={heading}>{t("Community Thoughts", "Góc chia sẻ")}</h2><span className="text-xs text-[#727974]">{recipe.commentCount + comments.length} {t("conversations", "bình luận")}</span></div>
+              <form className="mt-6" onSubmit={event => { event.preventDefault(); if (comment.trim()) { setComments([...comments, comment.trim()]); setComment(""); } }}><label htmlFor="recipe-comment" className="sr-only">{t("Write a comment", "Viết bình luận")}</label><textarea id="recipe-comment" value={comment} onChange={e => setComment(e.target.value)} maxLength={1000} rows={3} placeholder={t("Share your cooking experience or ask a question…", "Chia sẻ trải nghiệm nấu ăn hoặc đặt câu hỏi…")} className="w-full resize-y rounded-2xl border border-[#DDE2D7] bg-[#FBF9F6] p-4 text-sm outline-none focus:border-[#43734D]" /><div className="mt-3 flex justify-end"><button disabled={!comment.trim()} className="rounded-full bg-[#254B38] px-6 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40">{t("Post comment", "Gửi bình luận")}</button></div></form>
+              <div className="mt-7 space-y-6">{comments.map((text, i) => <div key={i} className="border-t border-[#EFEEEB] pt-5"><p className="text-sm font-semibold">{t("You", "Bạn")} <span className="ml-2 text-xs font-normal text-[#727974]">{t("Just now · Preview", "Vừa xong · Xem thử")}</span></p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#59635C]">{text}</p></div>)}{recipe.comments.map(item => <div key={item.id} className="flex gap-3 border-t border-[#EFEEEB] pt-5"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ECE9E1] text-xs">{item.initials}</span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{item.name} <span className="ml-2 text-xs font-normal text-[#727974]">{t(...item.date)}</span></p><p className="mt-2 text-sm leading-6 text-[#59635C]">{t(...item.text)}</p>{item.reply && <div className="mt-4 rounded-xl bg-[#F5F6F0] p-4"><p className="text-xs font-semibold">{recipe.author} <span className="ml-2 text-[#BC4B22]">{t("Author", "Tác giả")}</span></p><p className="mt-2 text-sm leading-6 text-[#59635C]">{t(...item.reply)}</p></div>}</div></div>)}</div>
+            </section>
+          </div>
+          <aside className="space-y-6">
+            <section className="rounded-3xl bg-[#254B38] p-7 text-white"><ContentIcon name="leaf" width="28" height="28" className="text-[#DCE8BC]" /><p className="mt-5 text-[10px] tracking-[0.18em] text-[#DCE8BC]">{t("CHEF’S PANTRY SECRET", "BÍ QUYẾT TỪ CĂN BẾP")}</p><h2 className="mt-3 font-serif text-2xl">{t("A little care, a lot of flavour", "Chút tỉ mỉ, trọn vị ngon")}</h2><p className="mt-4 text-sm leading-7 text-white/80">{t(...recipe.tip)}</p><div className="mt-6 border-t border-white/20 pt-5"><p className="text-[10px] tracking-widest text-[#DCE8BC]">{t("PAIRS BEAUTIFULLY WITH", "ĂN KÈM THẬT NGON VỚI")}</p><p className="mt-2 text-sm leading-6">{t(...recipe.pairing)}</p></div></section>
+            <section className="rounded-3xl border border-[#E7DCC8] bg-[#F4EFE3] p-7"><p className="text-[10px] tracking-widest text-[#93733C]">{t("SEASONAL INSPIRATION", "CẢM HỨNG THEO MÙA")}</p><h2 className="mt-3 font-serif text-2xl">{t(...recipe.season.title)}</h2><p className="mt-3 text-sm leading-7 text-[#72705E]">{t(...recipe.season.text)}</p></section>
+            <section className={panel}><h2 className="font-serif text-xl">{saved ? t("Saved for this visit", "Đã lưu trong lần xem này") : t("Make it part of your week", "Thêm món ngon vào tuần mới")}</h2><p className="mt-3 text-sm leading-6 text-[#727974]">{t("Explore your weekly meal planner and find space for a nourishing homemade meal.", "Khám phá lịch ăn hàng tuần và dành chỗ cho một bữa ăn tự nấu đầy dinh dưỡng.")}</p><Link href="/meal-planner" className="mt-5 flex items-center justify-between rounded-full border border-[#254B38] px-4 py-3 text-xs font-semibold">{t("Open Meal Planner", "Mở lịch ăn uống")}<ContentIcon name="arrow" /></Link></section>
+          </aside>
+        </div>
+        <section className="py-12 sm:py-16"><h2 className={heading}>{t("Related Plant-Forward Recipes", "Thêm món chay bạn có thể thích")}</h2><p className="mt-2 text-sm text-[#727974]">{t("More inspiration from our community kitchen.", "Thêm cảm hứng từ căn bếp cộng đồng.")}</p><div className="mt-7 grid gap-5 sm:grid-cols-3">{detailRecipes.filter(item => item.slug !== recipe.slug).map(item => <Link key={item.slug} href={`/view-detail/${item.slug}`} className="group overflow-hidden rounded-2xl border border-[#E5E7DF] bg-white transition hover:-translate-y-1 hover:shadow-md"><div className="relative aspect-[16/10]"><Image src={item.image} alt={t(...item.title)} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" /><span className="absolute bottom-3 right-3 rounded-md bg-black/60 px-2 py-1 text-xs text-white">{item.duration}</span></div><div className="p-5"><h3 className="font-serif text-xl leading-snug group-hover:text-[#BC4B22]">{t(...item.title)}</h3><p className="mt-2 text-xs text-[#727974]">{t("by", "bởi")} {item.author}</p><p className="mt-4 border-t border-[#EFEEEB] pt-3 text-xs"><span className="text-[#CB8520]">★</span> {item.rating} / 5 · {item.ratingCount} {t("ratings", "đánh giá")}</p></div></Link>)}</div></section>
+      </article>
+      {dialog === "video" && <ContentDialog title={t("Video preview", "Xem trước video")} onClose={() => setDialog(null)}><div className="p-6"><p className="text-sm leading-7 text-[#59635C]">{t("This preview currently includes the recipe photo and instructions. A playable video will be added when the content API or video file is available.", "Bản xem thử hiện có ảnh món ăn và hướng dẫn. Video sẽ phát được khi có API nội dung hoặc tệp video.")}</p><button onClick={() => setDialog(null)} className="mt-5 rounded-full bg-[#254B38] px-5 py-2.5 text-sm text-white">{t("Read the recipe", "Xem công thức")}</button></div></ContentDialog>}
+      {dialog === "rating" && <ContentDialog title={t("How was this recipe?", "Bạn thấy món này thế nào?")} onClose={() => setDialog(null)}><form className="p-6" onSubmit={event => { event.preventDefault(); if (selection) { setRating(selection); setDialog(null); } }}><fieldset><legend className="text-sm text-[#727974]">{t("Choose your star rating", "Chọn số sao đánh giá")}</legend><div className="mt-5 flex justify-center gap-3">{[1, 2, 3, 4, 5].map(star => <label key={star} className="cursor-pointer"><input type="radio" name="recipe-rating" value={star} checked={selection === star} onChange={() => setSelection(star)} aria-label={`${star} ${t("stars", "sao")}`} className="peer sr-only" /><span className={`block rounded-lg text-4xl peer-focus-visible:outline-2 peer-focus-visible:outline-[#254B38] ${star <= selection ? "text-[#CB8520]" : "text-[#D8DCD2]"}`}>★</span></label>)}</div></fieldset><p className="mt-5 text-center text-xs text-[#727974]">{t("Your rating is for this preview session only.", "Đánh giá chỉ áp dụng trong phiên xem thử này.")}</p><button disabled={!selection} className="mt-6 w-full rounded-full bg-[#254B38] py-3 text-sm font-medium text-white disabled:opacity-40">{t("Submit rating", "Gửi đánh giá")}</button></form></ContentDialog>}
+    </main>
+  );
+}

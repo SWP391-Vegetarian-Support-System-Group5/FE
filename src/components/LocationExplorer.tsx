@@ -1,20 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
-import GoogleRestaurantMap from "@/components/GoogleRestaurantMap";
-import {
-  geocodeAddress,
-  hasGoogleMapsKey,
-  reverseGeocodeLocation,
-  searchVegetarianPlaces,
-} from "@/lib/google-maps";
+import SearchableLocationSelect from "@/components/SearchableLocationSelect";
 import { readLivingLocation, saveLivingLocation } from "@/lib/living-location";
 import { locationApi } from "@/lib/location-api";
 import { provinceCenters } from "@/lib/location-data";
 import type { Area, Coordinates, Province, Restaurant } from "@/types/location";
 
 const defaultCenter = { lat: 10.8496, lng: 106.7537 };
+const LeafletRestaurantMap = dynamic(() => import("@/components/LeafletRestaurantMap"), {
+  ssr: false,
+  loading: () => <div className="min-h-[390px] bg-[#e8eee9]" />,
+});
 
 function normalizeLocationName(value: string) {
   return value
@@ -64,15 +63,7 @@ export default function LocationExplorer() {
     filters = { provinceCode, areaCode },
   ) => {
     setLoading(true);
-    let data = await locationApi.restaurants(filters.provinceCode, filters.areaCode, coordinates.lat, coordinates.lng);
-    // Google Places fills the gap while the project's restaurant database is empty.
-    if (data.length === 0 && hasGoogleMapsKey()) {
-      try {
-        data = await searchVegetarianPlaces(coordinates, filters.provinceCode, filters.areaCode);
-      } catch {
-        // A disabled Places API must not break address and map features.
-      }
-    }
+    const data = await locationApi.restaurants(filters.provinceCode, filters.areaCode, coordinates.lat, coordinates.lng);
     setRestaurants(data);
     setSelected(data[0]);
     setLoading(false);
@@ -108,7 +99,7 @@ export default function LocationExplorer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaCode, provinceCode]);
 
-  const changeProvince = (nextProvinceCode: string) => {
+  const changeProvince = async (nextProvinceCode: string) => {
     setLoading(true);
     setProvinceCode(nextProvinceCode);
     setAreaCode("all");
@@ -121,6 +112,7 @@ export default function LocationExplorer() {
       : provinceCenters[nextProvinceCode] ?? center;
     setCenter(nextCenter);
     saveLivingLocation({ provinceCode: nextProvinceCode, areaCode: "all", address: "", center: nextCenter });
+    await loadRestaurants(nextCenter, { provinceCode: nextProvinceCode, areaCode: "all" });
   };
 
   const changeArea = async (nextAreaCode: string) => {
@@ -132,10 +124,11 @@ export default function LocationExplorer() {
     if (nextArea?.latitude != null && nextArea.longitude != null) {
       nextCenter = { lat: nextArea.latitude, lng: nextArea.longitude };
       setCenter(nextCenter);
-    } else if (nextArea && nextAreaCode !== "all" && hasGoogleMapsKey()) {
+    } else if (nextArea && nextAreaCode !== "all") {
       try {
-        const result = await geocodeAddress(`${nextArea.name}, ${province?.name ?? ""}, Việt Nam`);
-        nextCenter = { lat: result.lat, lng: result.lng };
+        const result = await locationApi.geocode(`${nextArea.name}, ${province?.name ?? ""}, Việt Nam`);
+        if (!result) throw new Error("Area was not found.");
+        nextCenter = { lat: result.latitude, lng: result.longitude };
         setCenter(nextCenter);
         setMessage(`Đã xác định vị trí ${nextArea.name} trên bản đồ.`);
       } catch {
@@ -152,14 +145,10 @@ export default function LocationExplorer() {
       setMessage("Vui lòng nhập địa chỉ sinh sống.");
       return;
     }
-    if (!hasGoogleMapsKey()) {
-      setMessage("Cần Google Maps API key để xác định tọa độ. Bộ lọc khu vực vẫn đang hoạt động với dữ liệu mẫu.");
-      await loadRestaurants();
-      return;
-    }
     try {
-      const result = await geocodeAddress(`${address}, ${area?.name ?? ""}, ${province?.name ?? ""}, Việt Nam`);
-      const nextCenter = { lat: result.lat, lng: result.lng };
+      const result = await locationApi.geocode(`${address}, ${area?.name ?? ""}, ${province?.name ?? ""}, Việt Nam`);
+      if (!result) throw new Error("Address was not found.");
+      const nextCenter = { lat: result.latitude, lng: result.longitude };
       const filters = await syncAdministrativeSelection(result.formattedAddress);
       setAddress(result.formattedAddress);
       setCenter(nextCenter);
@@ -185,13 +174,14 @@ export default function LocationExplorer() {
     setCenter(nextCenter);
     setMessage("Đang xác định địa chỉ trên bản đồ…");
     let nextAddress = address;
-    if (hasGoogleMapsKey()) {
-      try {
-        nextAddress = await reverseGeocodeLocation(nextCenter);
+    try {
+      const result = await locationApi.reverseGeocode(nextCenter.lat, nextCenter.lng);
+      if (result?.formattedAddress) {
+        nextAddress = result.formattedAddress;
         setAddress(nextAddress);
-      } catch {
-        setMessage("Đã chọn tọa độ nhưng Google không trả về địa chỉ.");
       }
+    } catch {
+      setMessage("Đã chọn tọa độ nhưng chưa tìm được địa chỉ.");
     }
     const filters = await syncAdministrativeSelection(nextAddress);
     saveLivingLocation({ ...filters, address: nextAddress, center: nextCenter });
@@ -210,13 +200,14 @@ export default function LocationExplorer() {
         const nextCenter = { lat: coords.latitude, lng: coords.longitude };
         setCenter(nextCenter);
         let nextAddress = address;
-        if (hasGoogleMapsKey()) {
-          try {
-            nextAddress = await reverseGeocodeLocation(nextCenter);
+        try {
+          const result = await locationApi.reverseGeocode(nextCenter.lat, nextCenter.lng);
+          if (result?.formattedAddress) {
+            nextAddress = result.formattedAddress;
             setAddress(nextAddress);
-          } catch {
-            // Browser coordinates remain useful even when reverse geocoding fails.
           }
+        } catch {
+          // Browser coordinates remain useful even when reverse geocoding fails.
         }
         const filters = await syncAdministrativeSelection(nextAddress);
         saveLivingLocation({ ...filters, address: nextAddress, center: nextCenter });
@@ -252,18 +243,23 @@ export default function LocationExplorer() {
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <label className="text-xs font-semibold text-[#274537]">
-              City / Province
-              <select value={provinceCode} onChange={(event) => changeProvince(event.target.value)} className="mt-2 w-full appearance-none rounded-xl border-0 bg-[#f5f3f0] px-4 py-3.5 text-sm font-normal text-[#18372a] outline-none ring-[#356d54] focus:ring-2">
-                {provinces.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
-              </select>
-            </label>
-            <label className="text-xs font-semibold text-[#274537]">
-              Ward / Commune / Area
-              <select value={areaCode} onChange={(event) => void changeArea(event.target.value)} className="mt-2 w-full appearance-none rounded-xl border-0 bg-[#f5f3f0] px-4 py-3.5 text-sm font-normal text-[#18372a] outline-none ring-[#356d54] focus:ring-2">
-                {areas.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
-              </select>
-            </label>
+            <SearchableLocationSelect
+              label="City / Province"
+              value={provinceCode}
+              options={provinces}
+              placeholder="Select province"
+              searchPlaceholder="Search province..."
+              onSelect={(code) => void changeProvince(code)}
+            />
+            <SearchableLocationSelect
+              label="Ward / Commune / Area"
+              value={areaCode}
+              options={areas}
+              placeholder={provinceCode ? "Select area" : "Select province first"}
+              searchPlaceholder="Search ward / commune..."
+              disabled={areas.length === 0}
+              onSelect={(code) => void changeArea(code)}
+            />
           </div>
 
           <label className="mt-4 block text-xs font-semibold text-[#274537]">
@@ -278,13 +274,13 @@ export default function LocationExplorer() {
         </div>
 
         <div className="grid border-t border-[#edeae5] lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
-          <GoogleRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
+          <LeafletRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
           <aside className="max-h-[510px] overflow-y-auto bg-[#fbfaf8] p-5">
             <div className="mb-4 flex items-end justify-between">
-              <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">Places nearby</h3><p className="mt-1 text-xs text-[#788079]">Trong bán kính tối đa 15 km</p></div>
+              <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">Places nearby</h3><p className="mt-1 text-xs text-[#788079]">Trong bán kính tối đa 5 km</p></div>
               <span className="rounded-full bg-[#e4eee7] px-2.5 py-1 text-xs font-bold text-[#24543d]">{restaurants.length}</span>
             </div>
-            {loading ? <p className="py-10 text-center text-sm text-[#788079]">Đang tìm địa điểm…</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">Chưa có dữ liệu nhà hàng cho khu vực này. Hãy chọn “Tất cả khu vực” hoặc bổ sung dữ liệu từ Google Places/DB.</p> : (
+            {loading ? <p className="py-10 text-center text-sm text-[#788079]">Đang tìm địa điểm…</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">Không tìm thấy nhà hàng chay thật trong bán kính 5 km quanh địa chỉ này. Hãy thử địa chỉ khác hoặc mở rộng dữ liệu nhà hàng trong DB/OpenStreetMap.</p> : (
               <div className="space-y-3">{restaurants.map((restaurant) => (
                 <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setCenter({ lat: restaurant.latitude, lng: restaurant.longitude }); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
                   <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{restaurant.category}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.rating > 0 ? `★ ${restaurant.rating}` : "Mới"}</span></div>

@@ -18,6 +18,8 @@ export interface BackendUserProfile {
   heightCm: number | null;
   weightKg: number | null;
   dietTypeId: number | null;
+  latitude: number | null;
+  longitude: number | null;
   isActive: boolean;
 }
 
@@ -71,6 +73,14 @@ export interface AddressSuggestion {
   longitude: number;
 }
 
+type BackendCatalogItem = {
+  id?: number;
+  dietTypeId?: number;
+  allergenId?: number;
+  name: string;
+  description?: string;
+};
+
 // ─── API functions ──────────────────────────────────────────────────────────
 
 /** Fetch the authenticated user's profile */
@@ -84,18 +94,34 @@ export function updateProfile(payload: UpdateProfilePayload) {
 }
 
 /** Fetch all available diet types */
-export function getDietTypes() {
-  return apiGet<DietTypeItem[]>("/api/diet-types");
+export async function getDietTypes() {
+  const items = await apiGet<BackendCatalogItem[]>("/api/diet-types");
+  return items.map((item) => ({
+    dietTypeId: item.dietTypeId ?? item.id ?? 0,
+    name: item.name,
+    description: item.description,
+  })).filter((item) => item.dietTypeId > 0);
 }
 
 /** Fetch all available allergens */
-export function getAllAllergens() {
-  return apiGet<AllergenItem[]>("/api/allergens");
+export async function getAllAllergens() {
+  const items = await apiGet<BackendCatalogItem[]>("/api/allergens");
+  return items.map((item) => ({
+    allergenId: item.allergenId ?? item.id ?? 0,
+    name: item.name,
+  })).filter((item) => item.allergenId > 0);
 }
 
 /** Fetch the current user's selected allergens */
-export function getUserAllergens() {
-  return apiGet<AllergenItem[]>("/api/users/me/allergens");
+export async function getUserAllergens() {
+  const response = await apiGet<BackendCatalogItem[] | { allergens?: BackendCatalogItem[] }>(
+    "/api/users/me/allergens",
+  );
+  const items = Array.isArray(response) ? response : response.allergens ?? [];
+  return items.map((item) => ({
+    allergenId: item.allergenId ?? item.id ?? 0,
+    name: item.name,
+  })).filter((item) => item.allergenId > 0);
 }
 
 /** Update the current user's allergen selections */
@@ -120,9 +146,17 @@ export function getAddressSuggestions(query: string) {
   );
 }
 
+/** Geocode a free-form address into coordinates */
+export function geocodeAddress(address: string) {
+  return apiGet<{ latitude: number; longitude: number; formattedAddress: string }>(
+    `/api/locations/geocode?address=${encodeURIComponent(address)}`
+  );
+}
+
 /** Reverse-geocode coordinates to an address */
 export function reverseGeocode(latitude: number, longitude: number) {
   return apiGet<AddressSuggestion>(
     `/api/locations/reverse-geocode?latitude=${latitude}&longitude=${longitude}`
   );
 }
+
