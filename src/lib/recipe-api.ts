@@ -63,6 +63,7 @@ export interface RecipeResponse {
   compatibleDietTypeIds: number[];
   categoryId?: number | null;
   videoUrl?: string | null;
+  thumbnailUrl?: string | null;
   prepMinutes?: number | null;
   cookMinutes?: number | null;
   tagIds?: number[];

@@ -73,6 +73,28 @@ export function saveManualContent(owner: string, draft: ManualRecipeDraft) {
   });
 }
 
+export function getVideoThumbnailUrl(videoUrl?: string | null) {
+  if (!videoUrl || !/^https?:\/\//i.test(videoUrl)) return undefined;
+
+  try {
+    const url = new URL(videoUrl);
+    if (!url.hostname.endsWith("cloudinary.com")) return undefined;
+
+    const marker = "/video/upload/";
+    const markerIndex = url.pathname.indexOf(marker);
+    if (markerIndex < 0) return undefined;
+
+    const prefix = url.pathname.slice(0, markerIndex + marker.length);
+    const assetPath = url.pathname.slice(markerIndex + marker.length);
+    const imagePath = assetPath.replace(/\.[a-z0-9]+$/i, ".jpg");
+    url.pathname = `${prefix}c_fill,w_900,h_506,q_auto,so_auto/${imagePath}`;
+    url.search = "";
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export function removeManualContent(owner: string) {
   // Published posts are deliberately not deleted here: there is no delete API yet.
   const items = readMyContent(owner);
@@ -90,9 +112,11 @@ export function removeManualContent(owner: string) {
 
 export function rememberPublishedContent(owner: string, recipe: RecipeResponse, kind: MyContentItem["kind"]) {
   const now = new Date().toISOString();
+  const image = recipe.thumbnailUrl || getVideoThumbnailUrl(recipe.videoUrl);
   saveContentItem(owner, {
     id: `recipe-${recipe.postId}`, title: recipe.title, description: recipe.content,
     kind, status: "published", createdAt: now, updatedAt: now,
+    image,
     minutes: (recipe.prepMinutes || 0) + (recipe.cookMinutes || 0), recipe,
   });
 }
