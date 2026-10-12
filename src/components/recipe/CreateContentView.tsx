@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getStoredToken } from "@/lib/auth";
 import { getMediaUrl } from "@/lib/api";
+import { readMyContent, saveManualContent, removeManualContent, rememberPublishedContent } from "@/lib/my-content";
 import {
   CategoryItem,
   AllergenItem,
@@ -37,14 +38,13 @@ const DIETARY_GROUPS: { value: DietaryGroup; label: string; desc: string }[] = [
   { value: "HONEY", label: "Mật ong (Honey)", desc: "Mật ong tự nhiên" },
 ];
 
+const subscribeHydration = () => () => {};
+
 export default function CreateContentView() {
   const router = useRouter();
-  const { user } = useAuth();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const { user, loading: authLoading } = useAuth();
+  const contentOwner = user?.uid || "guest";
+  const isMounted = useSyncExternalStore(subscribeHydration, () => true, () => false);
 
   const token = typeof window !== "undefined" ? getStoredToken() : null;
   const isLoggedIn = isMounted && (!!user || !!token);
@@ -56,9 +56,9 @@ export default function CreateContentView() {
   // Master data
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [allergens, setAllergens] = useState<AllergenItem[]>([]);
-  const [tags, setTags] = useState<TagItem[]>([]);
+  const [, setTags] = useState<TagItem[]>([]);
   const [dietTypes, setDietTypes] = useState<DietTypeItem[]>([]);
-  const [isLoadingMasterData, setIsLoadingMasterData] = useState(true);
+  const [, setIsLoadingMasterData] = useState(true);
 
   // Form fields
   const [title, setTitle] = useState("");
@@ -130,6 +130,30 @@ export default function CreateContentView() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const restoredDraftRef = useRef(false);
+
+  useEffect(() => {
+    if (authLoading || restoredDraftRef.current || new URLSearchParams(window.location.search).get("draft") !== "manual") return;
+    let cancelled = false;
+    // Load the browser draft after hydration, without blocking the first render.
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      const draft = readMyContent(contentOwner).find((item) => item.id === "manual-draft")?.draft;
+      if (!draft) return;
+      restoredDraftRef.current = true;
+      setCreationMode("manual");
+      setTitle(draft.title);
+      setContent(draft.content);
+      setCategoryId(draft.categoryId);
+      setPrepMinutes(draft.prepMinutes);
+      setCookMinutes(draft.cookMinutes);
+      setServings(draft.servings);
+      setIngredients(draft.ingredients);
+      setSteps(draft.steps);
+      setSelectedTagIds(draft.selectedTagIds);
+    });
+    return () => { cancelled = true; };
+  }, [authLoading, contentOwner]);
 
   // Load master data on mount
   useEffect(() => {
@@ -147,7 +171,7 @@ export default function CreateContentView() {
         setTags(tagData);
         setDietTypes(dietData);
 
-        if (catData.length > 0) {
+        if (catData.length > 0 && !restoredDraftRef.current) {
           setCategoryId(catData[0].id);
         }
       } catch {
@@ -215,7 +239,7 @@ export default function CreateContentView() {
             pollIntervalRef.current = null;
           }
         }
-      } catch (err: unknown) {
+      } catch {
         // Polling failure
       }
     },
@@ -332,10 +356,10 @@ export default function CreateContentView() {
     ]);
   };
 
-  const handleUpdateIngredient = (
+  const handleUpdateIngredient = <Field extends keyof RecipeIngredientPayload>(
     index: number,
-    field: keyof RecipeIngredientPayload,
-    value: any
+    field: Field,
+    value: RecipeIngredientPayload[Field]
   ) => {
     setIngredients((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
@@ -428,6 +452,7 @@ export default function CreateContentView() {
       };
       try {
         localStorage.setItem("veggie_manual_recipe_draft", JSON.stringify(manualDraft));
+        saveManualContent(contentOwner, manualDraft);
         setStatusMessage({
           type: "success",
           text: "Đã lưu bản nháp công thức vào bộ nhớ trình duyệt!",
@@ -512,6 +537,7 @@ export default function CreateContentView() {
         });
 
         setPublishedResult(published);
+        try { rememberPublishedContent(contentOwner, published, "video"); } catch { /* Publishing already succeeded. */ }
         setStatusMessage({
           type: "success",
           text: `Chúc mừng! Công thức "${published.title}" đã được xuất bản thành công (Mã bài viết: #${published.postId})!`,
@@ -533,6 +559,10 @@ export default function CreateContentView() {
 
         const res = await createRecipe(payload);
         setPublishedResult(res);
+        try {
+          rememberPublishedContent(contentOwner, res, "recipe");
+          removeManualContent(contentOwner);
+        } catch { /* Publishing already succeeded. */ }
         // Clear local manual draft
         localStorage.removeItem("veggie_manual_recipe_draft");
 
@@ -630,7 +660,7 @@ export default function CreateContentView() {
             </div>
             {publishedResult && (
               <Link
-                href={`/explore`}
+                href="/my-content"
                 className="underline font-bold hover:text-black ml-4"
               >
                 Xem bài viết

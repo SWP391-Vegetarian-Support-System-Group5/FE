@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
@@ -42,7 +43,7 @@ export default function RootLayout({
       className={`${newsreader.variable} ${plusJakartaSans.variable}`}
     >
       <body className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased selection:bg-[#D9E6DC] selection:text-[#07241A]">
-        <AuthProvider>{children}</AuthProvider>
+        <LanguageProvider><AuthProvider>{children}</AuthProvider></LanguageProvider>
       </body>
     </html>
   );
