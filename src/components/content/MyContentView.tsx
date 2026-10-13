@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
-import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { MY_CONTENT_EVENT, getMyContentSnapshot, parseMyContent, removeManualContent, sampleContent, type MyContentItem } from "@/lib/my-content";
+import { getRecipeById } from "@/lib/recipe-api";
+import { MY_CONTENT_EVENT, getMyContentSnapshot, getVideoThumbnailUrl, parseMyContent, removeManualContent, sampleContent, saveContentItem, type MyContentItem } from "@/lib/my-content";
 import ContentDialog from "./ContentDialog";
 import ContentIcon, { type ContentIconName } from "./ContentIcon";
 
@@ -23,6 +23,16 @@ function subscribeContent(callback: () => void) {
 
 function displayText(item: MyContentItem, language: string) {
   return language === "vi" && item.translations ? item.translations : { title: item.title, description: item.description };
+}
+
+function itemThumbnail(item: MyContentItem) {
+  return item.image || item.recipe?.thumbnailUrl || getVideoThumbnailUrl(item.recipe?.videoUrl);
+}
+
+function recipeIdFromItem(item: MyContentItem) {
+  if (typeof item.recipe?.postId === "number") return item.recipe.postId;
+  const match = /^recipe-(\d+)$/.exec(item.id);
+  return match ? Number(match[1]) : null;
 }
 
 export default function MyContentView() {
@@ -45,6 +55,41 @@ export default function MyContentView() {
   const [action, setAction] = useState<ContentAction | null>(null);
   const [notice, setNotice] = useState<{ en: string; vi: string } | null>(null);
   const [storageError, setStorageError] = useState(false);
+  const hydratedRecipeIds = useRef(new Set<number>());
+
+  useEffect(() => {
+    if (sampleMode) return;
+    const targets = savedItems.filter((item) => {
+      const recipeId = recipeIdFromItem(item);
+      return item.status === "published" && recipeId && !itemThumbnail(item) && !hydratedRecipeIds.current.has(recipeId);
+    });
+    if (targets.length === 0) return;
+
+    let cancelled = false;
+    targets.slice(0, 4).forEach(async (item) => {
+      const recipeId = recipeIdFromItem(item);
+      if (!recipeId) return;
+      hydratedRecipeIds.current.add(recipeId);
+      try {
+        const recipe = await getRecipeById(recipeId);
+        if (cancelled) return;
+        const image = recipe.thumbnailUrl || getVideoThumbnailUrl(recipe.videoUrl);
+        saveContentItem(owner, {
+          ...item,
+          title: recipe.title || item.title,
+          description: recipe.content || item.description,
+          recipe,
+          image: image || item.image,
+          minutes: (recipe.prepMinutes || 0) + (recipe.cookMinutes || 0) || item.minutes,
+          updatedAt: item.updatedAt,
+        });
+      } catch {
+        // Keep the existing local card when the API is unreachable.
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [owner, sampleMode, savedItems]);
 
   const counts = {
     all: items.length,
@@ -148,9 +193,10 @@ export default function MyContentView() {
             {visibleItems.map((item) => {
               const text = displayText(item, language);
               const canEdit = sampleMode || item.status === "draft";
+              const thumbnail = itemThumbnail(item);
               return <article key={item.id} className={`group overflow-hidden rounded-2xl border border-[#E5E7DF] bg-white transition duration-200 hover:border-[#BBCAB7] hover:shadow-[0_8px_28px_#1E3A2F08] ${layout === "list" ? "flex flex-col sm:flex-row" : "flex flex-col"}`}>
                 <button type="button" onClick={() => setAction({ type: "preview", item })} aria-label={`${t("Preview", "Xem trước")}: ${text.title}`} className={`relative shrink-0 overflow-hidden bg-[#E8EDE4] ${layout === "list" ? "h-48 w-full sm:h-auto sm:min-h-44 sm:w-56" : "aspect-[16/9] w-full"}`}>
-                  {item.image ? <Image src={item.image} alt={text.title} fill sizes={layout === "list" ? "(max-width: 640px) 100vw, 224px" : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"} className="object-cover transition duration-500 group-hover:scale-[1.03]" /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,#D9E6DC,transparent)]"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="64" height="64" className="text-[#8AA18B]" /></div>}
+                  {thumbnail ? <img src={thumbnail} alt={text.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,#D9E6DC,transparent)]"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="64" height="64" className="text-[#8AA18B]" /></div>}
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#FBF9F6]/95 px-2.5 py-1.5 text-[10px] font-semibold text-[#1E3A2F] shadow-sm"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="12" height="12" />{item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")}</span>
                   {item.kind === "video" && <span className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-[#1E3A2F] shadow-sm backdrop-blur-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m9 5 12 7-12 7z" /></svg></span>}
                 </button>
@@ -177,7 +223,10 @@ export default function MyContentView() {
 
       <aside className="mt-10 flex flex-col justify-between gap-5 rounded-2xl border border-[#DFE5D7] bg-[#ECF0E5] p-6 sm:flex-row sm:items-center sm:p-7"><div className="flex items-start gap-4"><span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#D0DAC5] text-[#658266] sm:flex"><ContentIcon name="leaf" width="24" height="24" /></span><div><p className="font-serif text-2xl">{t("Every recipe has a story. What’s yours?", "Mỗi công thức là một câu chuyện. Của bạn là gì?")}</p><p className="mt-2 text-xs leading-6 text-[#727974]">{t("Turn a favorite dish into a little inspiration for someone else’s table.", "Biến món ăn yêu thích thành cảm hứng cho một bữa cơm khác.")}</p></div></div><Link href="/create-content" className="inline-flex shrink-0 items-center gap-2 self-start text-xs font-semibold text-[#1E3A2F] hover:underline">{t("Share something delicious", "Chia sẻ một món ngon")}<ContentIcon name="arrow" width="16" height="16" /></Link></aside>
 
-      {action?.type === "preview" && <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6">{action.item.image && <div className="relative mb-5 aspect-video overflow-hidden rounded-2xl"><Image src={action.item.image} alt={displayText(action.item, language).title} fill sizes="560px" className="object-cover" /></div>}<span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {ingredient.amount} {ingredient.ingredientName}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{step.instruction}</li>)}</ol></>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>}
+      {action?.type === "preview" && (() => {
+        const previewImage = itemThumbnail(action.item);
+        return <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={previewImage} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {ingredient.amount} {ingredient.ingredientName}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{step.instruction}</li>)}</ol></>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>;
+      })()}
 
       {action?.type === "edit" && <SampleEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSave={(next) => { setSamples((current) => current.map((item) => item.id === next.id ? next : item)); setAction(null); setNotice({ en: "Sample changes saved for this preview session.", vi: "Đã lưu thay đổi bài mẫu trong phiên xem trước này." }); }} />}
 

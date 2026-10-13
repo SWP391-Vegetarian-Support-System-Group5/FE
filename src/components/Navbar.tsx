@@ -154,7 +154,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   isLinkActive(link.href)
                     ? "bg-[#1E3A2F] text-white shadow-sm"
                     : "text-[#424844] hover:bg-[#D9E6DC]/40 hover:text-[#07241A]"
-                }`}
+                  }`}
               >
                 {link.label}
               </Link>
@@ -240,7 +240,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     language === "vi"
                       ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
                       : "text-[#424844] hover:bg-[#F5F3F0]"
-                  }`}
+                    }`}
                 >
                   Tiếng Việt (VI)
                 </button>
@@ -475,11 +475,10 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               key={link.label}
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`block rounded-lg px-4 py-2 text-xs font-semibold ${
-                isLinkActive(link.href)
+              className={`block rounded-lg px-4 py-2 text-xs font-semibold ${isLinkActive(link.href)
                   ? "bg-[#07241A] text-white"
                   : "text-[#424844] hover:bg-[#D9E6DC]/40"
-              }`}
+                }`}
             >
               {link.label}
             </Link>
