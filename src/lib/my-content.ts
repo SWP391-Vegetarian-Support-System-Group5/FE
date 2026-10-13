@@ -10,6 +10,7 @@ export interface ManualRecipeDraft {
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
   selectedTagIds: number[];
+  selectedDietTypeIds?: number[];
   savedAt: string;
 }
 

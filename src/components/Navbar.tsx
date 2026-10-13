@@ -1,5 +1,10 @@
 "use client";
 
+import UiText from "@/components/UiText";
+
+
+
+
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -94,6 +99,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
   const navLinks = [
     { label: t("Home", "Trang chủ"), href: "/" },
     { label: t("Explore", "Khám phá"), href: "/explore" },
+    { label: t("Community", "Cộng đồng"), href: "/community" },
     { label: t("Vegan Places", "Địa điểm chay"), href: "/vegan-places" },
     { label: t("Meal Planner", "Thực đơn"), href: "/meal-planner" },
     { label: t("AI Chatbox", "Trợ lý AI"), href: "/ai-chatbox" },
@@ -223,9 +229,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                       ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
                       : "text-[#424844] hover:bg-[#F5F3F0]"
                     }`}
-                >
-                  English (EN)
-                </button>
+                ><UiText text={"English (EN)"} /></button>
                 <button
                   type="button"
                   onClick={() => {
@@ -309,7 +313,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <rect width="7" height="9" x="14" y="12" rx="1" />
                             <rect width="7" height="5" x="3" y="16" rx="1" />
                           </svg>
-                          <span>Admin Dashboard</span>
+                          <span><UiText text={"Admin Dashboard"} /></span>
                         </Link>
                         <Link
                           href="/admin/members"
@@ -322,7 +326,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                           </svg>
-                          <span>Members</span>
+                          <span><UiText text={"Members"} /></span>
                         </Link>
                         <Link
                           href="/admin/content"
@@ -334,7 +338,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <path d="M6 6h10" />
                             <path d="M6 10h10" />
                           </svg>
-                          <span>Content & Categories</span>
+                          <span><UiText text={"Content & Categories"} /></span>
                         </Link>
                         <Link
                           href="/admin/flagged"
@@ -346,7 +350,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                               <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                               <line x1="4" x2="4" y1="22" y2="15" />
                             </svg>
-                            <span>AI Flagged</span>
+                            <span><UiText text={"AI Flagged"} /></span>
                           </div>
                           {flaggedCount > 0 && (
                             <span className="rounded-full bg-[#F97316] px-1.5 py-0.2 text-[10px] font-bold text-white">
@@ -420,7 +424,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   href="/admin/content"
                   className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
                 >
-                  <span>🛠️ Admin Test</span>
+                  <span><UiText text={"🛠️ Admin Test"} /></span>
                 </Link>
               )}
               <Link

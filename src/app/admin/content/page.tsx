@@ -1,5 +1,9 @@
 "use client";
 
+import { LanguageSwitch } from "@/components/UiText";
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -47,6 +51,7 @@ const PREDEFINED_CATEGORIES = [
 ];
 
 export default function AdminContentPage() {
+  const ui = useUiText();
   const { user } = useAuth();
   const { flaggedCount } = useAdminModeration();
 
@@ -434,7 +439,7 @@ export default function AdminContentPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
             </svg>
-            <span>Admin Area</span>
+            <span><UiText text={"Admin Area"} /></span>
           </div>
         </div>
 
@@ -443,7 +448,7 @@ export default function AdminContentPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search admin..."
+              placeholder={ui("Search admin...")}
               className="w-60 rounded-full border border-[#EFEEEB] bg-white py-1.5 pl-8 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-sm focus:border-[#1E3A2F] focus:outline-none"
             />
             <svg
@@ -460,15 +465,7 @@ export default function AdminContentPage() {
             </svg>
           </div>
 
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-xl border border-[#EFEEEB] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#07241A] shadow-sm hover:bg-gray-50"
-          >
-            <span>EN</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
+          <LanguageSwitch />
 
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-[#1E3A2F] text-white flex items-center justify-center text-xs font-bold shadow-sm">
@@ -476,7 +473,7 @@ export default function AdminContentPage() {
             </div>
             <div className="text-left leading-tight hidden sm:block">
               <p className="text-xs font-bold text-[#07241A]">{user?.displayName || user?.fullName || "Admin"}</p>
-              <p className="text-[10px] text-[#727974]">Supervisor</p>
+              <p className="text-[10px] text-[#727974]"><UiText text={"Supervisor"} /></p>
             </div>
           </div>
         </div>
@@ -492,15 +489,11 @@ export default function AdminContentPage() {
               <path d="M6 6h10" />
               <path d="M6 10h10" />
             </svg>
-            <span className="text-[11px] font-bold tracking-wider uppercase">Editorial Desk</span>
+            <span className="text-[11px] font-bold tracking-wider uppercase"><UiText text={"Editorial Desk"} /></span>
           </div>
 
-          <h1 className="font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]">
-            Content Management
-          </h1>
-          <p className="mt-1 text-xs text-[#727974]">
-            Manage recipes, restaurant reviews, and community discourse.
-          </p>
+          <h1 className="font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]"><UiText text={"Content Management"} /></h1>
+          <p className="mt-1 text-xs text-[#727974]"><UiText text={"Manage recipes, restaurant reviews, and community discourse."} /></p>
         </div>
 
         {/* Stat Badges */}
@@ -509,9 +502,7 @@ export default function AdminContentPage() {
           <div className="flex items-center gap-3 rounded-2xl border border-[#EFEEEB] bg-white px-4 py-3 shadow-sm min-w-[130px]">
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-[#727974] flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#F97316]" />
-                Total Library
-              </span>
+                <span className="h-2 w-2 rounded-full bg-[#F97316]" /><UiText text={"Total Library"} /></span>
               <span className="font-serif text-2xl font-bold text-[#07241A]">486</span>
             </div>
           </div>
@@ -520,9 +511,7 @@ export default function AdminContentPage() {
           <div className="flex items-center gap-3 rounded-2xl border border-[#EFEEEB] bg-white px-4 py-3 shadow-sm min-w-[130px]">
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-[#727974] flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#10B981]" />
-                Pending Moderation
-              </span>
+                <span className="h-2 w-2 rounded-full bg-[#10B981]" /><UiText text={"Pending Moderation"} /></span>
               <span className="font-serif text-2xl font-bold text-[#07241A]">14</span>
             </div>
           </div>
@@ -539,7 +528,7 @@ export default function AdminContentPage() {
               <path d="M6 6h10" />
               <path d="M6 10h10" />
             </svg>
-            <span>All Published Content</span>
+            <span><UiText text={"All Published Content"} /></span>
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
               486
             </span>
@@ -557,7 +546,7 @@ export default function AdminContentPage() {
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" y2="3" />
             </svg>
-            <span>Export CSV</span>
+            <span><UiText text={"Export CSV"} /></span>
           </button>
 
           <button
@@ -568,7 +557,7 @@ export default function AdminContentPage() {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>Create Entry</span>
+            <span><UiText text={"Create Entry"} /></span>
           </button>
         </div>
       </div>
@@ -584,9 +573,7 @@ export default function AdminContentPage() {
                 ? "bg-[#07241A] text-white shadow-sm"
                 : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
             }`}
-          >
-            All (486)
-          </button>
+          ><UiText text={"All (486)"} /></button>
           <button
             onClick={() => setTypeFilter("Video & Recipe")}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
@@ -594,9 +581,7 @@ export default function AdminContentPage() {
                 ? "bg-[#07241A] text-white shadow-sm"
                 : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
             }`}
-          >
-            Video & Recipes (312)
-          </button>
+          ><UiText text={"Video & Recipes (312)"} /></button>
           <button
             onClick={() => setTypeFilter("Restaurant Review")}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
@@ -604,9 +589,7 @@ export default function AdminContentPage() {
                 ? "bg-[#07241A] text-white shadow-sm"
                 : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
             }`}
-          >
-            Restaurant Reviews (174)
-          </button>
+          ><UiText text={"Restaurant Reviews (174)"} /></button>
         </div>
 
         {/* Search, Status & Refresh */}
@@ -614,7 +597,7 @@ export default function AdminContentPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search content by title or author..."
+              placeholder={ui("Search content by title or author...")}
               value={searchContentQuery}
               onChange={(e) => setSearchContentQuery(e.target.value)}
               className="w-64 rounded-full border border-[#EFEEEB] bg-white py-1.5 pl-8 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-sm focus:border-[#1E3A2F] focus:outline-none"
@@ -640,9 +623,9 @@ export default function AdminContentPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="appearance-none rounded-xl border border-[#EFEEEB] bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-[#07241A] shadow-sm focus:border-[#1E3A2F] focus:outline-none cursor-pointer"
             >
-              <option value="All">Status: All</option>
-              <option value="Published">Status: Published</option>
-              <option value="Draft">Status: Draft</option>
+              <option value="All"><UiText text={"Status: All"} /></option>
+              <option value="Published"><UiText text={"Status: Published"} /></option>
+              <option value="Draft"><UiText text={"Status: Draft"} /></option>
             </select>
             <svg
               className="pointer-events-none absolute right-2.5 top-2.5 text-[#727974]"
@@ -660,7 +643,7 @@ export default function AdminContentPage() {
           {/* Refresh Button */}
           <button
             onClick={handleRefresh}
-            title="Refresh content list"
+            title={ui("Refresh content list")}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-[#EFEEEB] bg-white text-[#727974] shadow-sm hover:bg-gray-50 hover:text-[#07241A] transition"
           >
             <svg
@@ -695,11 +678,9 @@ export default function AdminContentPage() {
                   <line x1="3" y1="12" x2="3.01" y2="12" />
                   <line x1="3" y1="18" x2="3.01" y2="18" />
                 </svg>
-                <h2 className="font-serif text-base font-bold text-[#07241A]">Published Stories & Guides</h2>
+                <h2 className="font-serif text-base font-bold text-[#07241A]"><UiText text={"Published Stories & Guides"} /></h2>
               </div>
-              <span className="text-xs text-[#727974]">
-                Showing {filteredContents.length} of 486 entries
-              </span>
+              <span className="text-xs text-[#727974]"><UiText text={"Showing"} />{" "}{filteredContents.length}{" "}<UiText text={"of 486 entries"} /></span>
             </div>
 
             {/* Table */}
@@ -707,18 +688,16 @@ export default function AdminContentPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-[#EFEEEB] text-[10px] font-bold uppercase tracking-wider text-[#727974]">
-                    <th className="py-3 font-bold">TITLE & THUMBNAIL</th>
-                    <th className="py-3 font-bold">TYPE</th>
-                    <th className="py-3 font-bold">AUTHOR</th>
-                    <th className="py-3 font-bold">STATUS</th>
+                    <th className="py-3 font-bold"><UiText text={"TITLE & THUMBNAIL"} /></th>
+                    <th className="py-3 font-bold"><UiText text={"TYPE"} /></th>
+                    <th className="py-3 font-bold"><UiText text={"AUTHOR"} /></th>
+                    <th className="py-3 font-bold"><UiText text={"STATUS"} /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EFEEEB]/60 text-xs">
                   {filteredContents.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-8 text-center text-[#727974]">
-                        Không tìm thấy bài viết phù hợp.
-                      </td>
+                      <td colSpan={4} className="py-8 text-center text-[#727974]"><UiText text={"Không tìm thấy bài viết phù hợp."} /></td>
                     </tr>
                   ) : (
                     filteredContents.map((item) => {
@@ -766,7 +745,7 @@ export default function AdminContentPage() {
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                   <polygon points="5 3 19 12 5 21 5 3" />
                                 </svg>
-                                <span>Video & Recipe</span>
+                                <span><UiText text={"Video & Recipe"} /></span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FDF2F0] px-2.5 py-1 text-[11px] font-semibold text-[#C2410C]">
@@ -774,7 +753,7 @@ export default function AdminContentPage() {
                                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                                   <polyline points="9 22 9 12 15 12 15 22" />
                                 </svg>
-                                <span>Restaurant Review</span>
+                                <span><UiText text={"Restaurant Review"} /></span>
                               </span>
                             )}
                           </td>
@@ -822,7 +801,7 @@ export default function AdminContentPage() {
 
             {/* Pagination */}
             <div className="mt-4 flex items-center justify-between pt-4 border-t border-[#EFEEEB] text-xs text-[#727974]">
-              <span>Page 1 of 123</span>
+              <span><UiText text={"Page 1 of 123"} /></span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
@@ -878,12 +857,12 @@ export default function AdminContentPage() {
                       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                       <line x1="4" x2="4" y1="22" y2="15" />
                     </svg>
-                    <span className="text-[11px] font-bold tracking-wider uppercase">Moderation Stream</span>
+                    <span className="text-[11px] font-bold tracking-wider uppercase"><UiText text={"Moderation Stream"} /></span>
                   </div>
 
                   <button
                     onClick={() => setShowModerationStream(false)}
-                    title="Hide moderation panel"
+                    title={ui("Hide moderation panel")}
                     className="rounded-lg p-1 text-[#727974] hover:bg-gray-100 hover:text-[#07241A] transition"
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -894,24 +873,21 @@ export default function AdminContentPage() {
                 </div>
 
                 {/* Subject Heading */}
-                <h3 className="font-serif text-lg font-bold text-[#07241A]">
-                  Comments on: {selectedContent.fullTitle || selectedContent.title}
+                <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Comments on:"} />{" "}{selectedContent.fullTitle || selectedContent.title}
                 </h3>
 
                 {/* Sub-counter and live sync */}
                 <div className="mt-1 flex items-center gap-3 text-xs">
                   <span className="rounded-md bg-[#FDF2F0] px-2 py-0.5 font-semibold text-[#C2410C]">
-                    {selectedContent.commentsCount} Total Comments
-                  </span>
+                    {selectedContent.commentsCount}{" "}<UiText text={"Total Comments"} /></span>
                   <span className="flex items-center gap-1.5 text-[11px] text-[#727974]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse" />
-                    Live sync {isThreadMuted && "• (Muted)"}
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse" /><UiText text={"Live sync"} />{" "}{isThreadMuted && "• (Muted)"}
                   </span>
                 </div>
 
                 {/* Filter Pills */}
                 <div className="mt-3.5 flex items-center gap-2 border-b border-[#EFEEEB] pb-3 text-xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#727974]">FILTER</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#727974]"><UiText text={"FILTER"} /></span>
                   <button
                     onClick={() => setCommentFilter("All")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
@@ -919,9 +895,7 @@ export default function AdminContentPage() {
                         ? "bg-[#EFEEEB] text-[#07241A]"
                         : "text-[#727974] hover:text-[#07241A]"
                     }`}
-                  >
-                    All
-                  </button>
+                  ><UiText text={"All"} /></button>
                   <button
                     onClick={() => setCommentFilter("Flagged")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
@@ -929,9 +903,7 @@ export default function AdminContentPage() {
                         ? "bg-[#FEE2E2] text-[#B91C1C]"
                         : "text-[#727974] hover:text-[#07241A]"
                     }`}
-                  >
-                    Flagged (1)
-                  </button>
+                  ><UiText text={"Flagged (1)"} /></button>
                   <button
                     onClick={() => setCommentFilter("Hidden")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
@@ -939,17 +911,13 @@ export default function AdminContentPage() {
                         ? "bg-[#EFEEEB] text-[#07241A]"
                         : "text-[#727974] hover:text-[#07241A]"
                     }`}
-                  >
-                    Hidden
-                  </button>
+                  ><UiText text={"Hidden"} /></button>
                 </div>
 
                 {/* Comment Cards List */}
                 <div className="mt-3.5 space-y-3 max-h-[380px] overflow-y-auto pr-1">
                   {filteredComments.length === 0 ? (
-                    <div className="py-6 text-center text-xs text-[#727974]">
-                      Không có bình luận nào theo bộ lọc này.
-                    </div>
+                    <div className="py-6 text-center text-xs text-[#727974]"><UiText text={"Không có bình luận nào theo bộ lọc này."} /></div>
                   ) : (
                     filteredComments.map((c) => (
                       <div
@@ -995,7 +963,7 @@ export default function AdminContentPage() {
                               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
                               <line x1="1" y1="1" x2="23" y2="23" />
                             </svg>
-                            <span>{c.isHidden ? "Unhide" : "Hide"}</span>
+                            <span>{c.isHidden ? ui("Unhide") : ui("Hide")}</span>
                           </button>
                           <button
                             type="button"
@@ -1006,7 +974,7 @@ export default function AdminContentPage() {
                               <polyline points="3 6 5 6 21 6" />
                               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                             </svg>
-                            <span>Remove</span>
+                            <span><UiText text={"Remove"} /></span>
                           </button>
                         </div>
                       </div>
@@ -1017,22 +985,20 @@ export default function AdminContentPage() {
 
               {/* Bulk Action Footer */}
               <div className="mt-4 pt-3.5 border-t border-[#EFEEEB] flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#727974]">Bulk Action:</span>
+                <span className="text-[11px] font-bold text-[#727974]"><UiText text={"Bulk Action:"} /></span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleMuteThread}
                     className="rounded-xl border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-gray-50 transition"
                   >
-                    {isThreadMuted ? "Unmute Thread" : "Mute Thread"}
+                    {isThreadMuted ? ui("Unmute Thread") : ui("Mute Thread")}
                   </button>
                   <button
                     type="button"
                     onClick={handleApproveAllComments}
                     className="rounded-xl bg-[#1E3A2F] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#152A22] transition"
-                  >
-                    Approve All
-                  </button>
+                  ><UiText text={"Approve All"} /></button>
                 </div>
               </div>
             </div>
@@ -1045,7 +1011,7 @@ export default function AdminContentPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl border border-[#EFEEEB] bg-white p-6 shadow-xl space-y-4 animate-fade-in">
             <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
-              <h3 className="font-serif text-lg font-bold text-[#07241A]">Create Content Entry</h3>
+              <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Create Content Entry"} /></h3>
               <button
                 onClick={() => setShowCreateEntryModal(false)}
                 className="text-[#727974] hover:text-[#07241A]"
@@ -1056,11 +1022,11 @@ export default function AdminContentPage() {
 
             <form onSubmit={handleCreateEntry} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-semibold text-[#07241A] mb-1">Tiêu đề bài viết / Review</label>
+                <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Tiêu đề bài viết / Review"} /></label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Canh Rong Biển Hạt Sen"
+                  placeholder={ui("e.g. Canh Rong Biển Hạt Sen")}
                   value={newEntryTitle}
                   onChange={(e) => setNewEntryTitle(e.target.value)}
                   className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
@@ -1068,10 +1034,10 @@ export default function AdminContentPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-[#07241A] mb-1">Mô tả phụ / Thông tin tóm tắt</label>
+                <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Mô tả phụ / Thông tin tóm tắt"} /></label>
                 <input
                   type="text"
-                  placeholder="e.g. Món canh dưỡng sinh • 20 phút"
+                  placeholder={ui("e.g. Món canh dưỡng sinh • 20 phút")}
                   value={newEntrySubtitle}
                   onChange={(e) => setNewEntrySubtitle(e.target.value)}
                   className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
@@ -1080,19 +1046,19 @@ export default function AdminContentPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#07241A] mb-1">Loại định dạng</label>
+                  <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Loại định dạng"} /></label>
                   <select
                     value={newEntryType}
                     onChange={(e) => setNewEntryType(e.target.value as any)}
                     className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
                   >
-                    <option value="Video & Recipe">Video & Recipe</option>
-                    <option value="Restaurant Review">Restaurant Review</option>
+                    <option value="Video & Recipe"><UiText text={"Video & Recipe"} /></option>
+                    <option value="Restaurant Review"><UiText text={"Restaurant Review"} /></option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-[#07241A] mb-1">Phân loại ẩm thực</label>
+                  <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Phân loại ẩm thực"} /></label>
                   <select
                     value={newEntryCategory}
                     onChange={(e) => setNewEntryCategory(e.target.value)}
@@ -1109,7 +1075,7 @@ export default function AdminContentPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#07241A] mb-1">Tác giả</label>
+                  <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Tác giả"} /></label>
                   <input
                     type="text"
                     value={newEntryAuthor}
@@ -1119,20 +1085,20 @@ export default function AdminContentPage() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-[#07241A] mb-1">Trạng thái xuất bản</label>
+                  <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Trạng thái xuất bản"} /></label>
                   <select
                     value={newEntryStatus}
                     onChange={(e) => setNewEntryStatus(e.target.value as any)}
                     className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
                   >
-                    <option value="Published">Published (Công khai)</option>
-                    <option value="Draft">Draft (Bản nháp)</option>
+                    <option value="Published"><UiText text={"Published (Công khai)"} /></option>
+                    <option value="Draft"><UiText text={"Draft (Bản nháp)"} /></option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-[#07241A] mb-1">URL Ảnh minh họa</label>
+                <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"URL Ảnh minh họa"} /></label>
                 <input
                   type="url"
                   value={newEntryImage}
@@ -1146,15 +1112,11 @@ export default function AdminContentPage() {
                   type="button"
                   onClick={() => setShowCreateEntryModal(false)}
                   className="rounded-xl border border-[#EFEEEB] bg-white px-4 py-2 text-xs font-semibold text-[#727974] hover:bg-gray-50"
-                >
-                  Hủy bỏ
-                </button>
+                ><UiText text={"Hủy bỏ"} /></button>
                 <button
                   type="submit"
                   className="rounded-xl bg-[#1E3A2F] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#152A22]"
-                >
-                  Lưu bài viết
-                </button>
+                ><UiText text={"Lưu bài viết"} /></button>
               </div>
             </form>
           </div>

@@ -1,5 +1,8 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -31,6 +34,7 @@ async function captureLocationAfterLogin() {
 }
 
 export default function LoginForm() {
+  const ui = useUiText();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signInWithGoogle, loginWithCredentials, user, error: authError, clearError } = useAuth();
@@ -193,12 +197,8 @@ export default function LoginForm() {
             VeggieMate
           </span>
         </Link>
-        <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]">
-          Welcome to VeggieMate
-        </h1>
-        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]">
-          Sign in to save recipes, join mindful discussions, and access personalized plant-based nutrition.
-        </p>
+        <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]"><UiText text={"Welcome to VeggieMate"} /></h1>
+        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"Sign in to save recipes, join mindful discussions, and access personalized plant-based nutrition."} /></p>
       </div>
 
       {/* Verified Success Banner */}
@@ -206,16 +206,14 @@ export default function LoginForm() {
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
           <span className="text-sm font-bold text-emerald-700">✓</span>
           <div className="flex-1 leading-relaxed">
-            <p className="font-semibold">Email verified successfully. Please log in.</p>
-            <p className="text-[11px] text-[#526359] mt-0.5">
-              Tài khoản của bạn đã được kích hoạt thành công. Hãy nhập mật khẩu để đăng nhập.
-            </p>
+            <p className="font-semibold"><UiText text={"Email verified successfully. Please log in."} /></p>
+            <p className="text-[11px] text-[#526359] mt-0.5"><UiText text={"Tài khoản của bạn đã được kích hoạt thành công. Hãy nhập mật khẩu để đăng nhập."} /></p>
           </div>
           <button
             type="button"
             onClick={() => setVerifiedSuccess(false)}
             className="text-[#07241A]/60 hover:text-[#07241A]"
-            title="Đóng thông báo"
+            title={ui("Đóng thông báo")}
           >
             ✕
           </button>
@@ -226,15 +224,12 @@ export default function LoginForm() {
       {user && (
         <div className="mt-4 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
           <div className="flex items-center justify-between">
-            <span>
-              Đã đăng nhập: <strong>{user.displayName || user.email}</strong>
+            <span><UiText text={"Đã đăng nhập:"} />{" "}<strong>{user.displayName || user.email}</strong>
             </span>
             <Link
               href="/"
               className="font-semibold text-[#1E3A2F] underline hover:text-[#07241A]"
-            >
-              Về trang chủ
-            </Link>
+            ><UiText text={"Về trang chủ"} /></Link>
           </div>
         </div>
       )}
@@ -254,18 +249,15 @@ export default function LoginForm() {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <div className="flex-1 leading-relaxed">
-            <p>{activeError}</p>
+            <p><UiText text={activeError} /></p>
 
             {/* 401 Helper: Link to register */}
             {is401Error && (
-              <p className="mt-1.5 font-medium">
-                Chưa có tài khoản?{" "}
+              <p className="mt-1.5 font-medium"><UiText text={"Chưa có tài khoản?"} />{" "}
                 <Link
                   href="/register"
                   className="font-bold underline hover:text-[#07241A]"
-                >
-                  Đăng ký tài khoản mới ngay
-                </Link>
+                ><UiText text={"Đăng ký tài khoản mới ngay"} /></Link>
               </p>
             )}
 
@@ -276,7 +268,7 @@ export default function LoginForm() {
                   href={`/verify-otp?email=${encodeURIComponent(email.trim())}`}
                   className="inline-flex items-center gap-1 rounded-lg bg-[#99462A] px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs hover:bg-[#7D341D]"
                 >
-                  <span>Chuyển tới xác thực OTP</span>
+                  <span><UiText text={"Chuyển tới xác thực OTP"} /></span>
                   <span>→</span>
                 </Link>
               </p>
@@ -292,7 +284,7 @@ export default function LoginForm() {
               clearError();
             }}
             className="text-[#99462A]/60 hover:text-[#99462A]"
-            title="Đóng thông báo"
+            title={ui("Đóng thông báo")}
           >
             ✕
           </button>
@@ -350,7 +342,7 @@ export default function LoginForm() {
             </svg>
           )}
           <span>
-            {isGoogleLoading ? "Connecting to Google..." : "Continue with Google"}
+            {isGoogleLoading ? ui("Connecting to Google...") : ui("Continue with Google")}
           </span>
         </button>
       </div>
@@ -358,9 +350,7 @@ export default function LoginForm() {
       {/* Divider */}
       <div className="relative my-6 flex items-center justify-center">
         <div className="w-full border-t border-[#EFEEEB]" />
-        <span className="absolute bg-white px-3 text-xs font-medium text-[#727974]">
-          or
-        </span>
+        <span className="absolute bg-white px-3 text-xs font-medium text-[#727974]"><UiText text={"or"} /></span>
       </div>
 
       {/* Form Fields */}
@@ -369,9 +359,7 @@ export default function LoginForm() {
           <label
             htmlFor="email"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          >
-            Email address
-          </label>
+          ><UiText text={"Email address"} /></label>
           <div className="relative">
             <input
               id="email"
@@ -396,15 +384,11 @@ export default function LoginForm() {
             <label
               htmlFor="password"
               className="block text-xs font-semibold text-[#07241A]"
-            >
-              Password
-            </label>
+            ><UiText text={"Password"} /></label>
             <a
               href="#forgot-password"
               className="text-[11px] font-semibold text-[#99462A] hover:underline"
-            >
-              Forgot password?
-            </a>
+            ><UiText text={"Forgot password?"} /></a>
           </div>
           <div className="relative">
             <input
@@ -420,7 +404,7 @@ export default function LoginForm() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3.5 top-2.5 text-[#727974] hover:text-[#07241A]"
-              title={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? ui("Hide password") : ui("Show password")}
             >
               {showPassword ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -469,11 +453,11 @@ export default function LoginForm() {
                     className="opacity-75"
                   />
                 </svg>
-                <span>Đang đăng nhập...</span>
+                <span><UiText text={"Đang đăng nhập..."} /></span>
               </>
             ) : (
               <>
-                <span>Log In</span>
+                <span><UiText text={"Log In"} /></span>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
@@ -486,21 +470,17 @@ export default function LoginForm() {
 
       {/* Switch to Register */}
       <div className="mt-5 text-center text-xs text-[#424844]">
-        <span>Don&apos;t have an account? </span>
+        <span><UiText text={"Don't have an account?"} />{" "}</span>
         <Link
           href="/register"
           className="font-semibold text-[#07241A] underline underline-offset-2 hover:text-[#1E3A2F]"
-        >
-          Create New Account
-        </Link>
+        ><UiText text={"Create New Account"} /></Link>
       </div>
 
       {/* Terms & Privacy */}
-      <p className="mt-6 text-center font-serif text-[11px] leading-tight text-[#727974]">
-        By continuing, you agree to VeggieMate&apos;s{" "}
-        <a href="#terms" className="underline hover:text-[#07241A]">Terms of Service</a>{" "}
-        and{" "}
-        <a href="#privacy" className="underline hover:text-[#07241A]">Privacy Policy</a>.
+      <p className="mt-6 text-center font-serif text-[11px] leading-tight text-[#727974]"><UiText text={"By continuing, you agree to VeggieMate's"} />{" "}
+        <a href="#terms" className="underline hover:text-[#07241A]"><UiText text={"Terms of Service"} /></a>{" "}<UiText text={"and"} />{" "}
+        <a href="#privacy" className="underline hover:text-[#07241A]"><UiText text={"Privacy Policy"} /></a>.
       </p>
     </div>
   );

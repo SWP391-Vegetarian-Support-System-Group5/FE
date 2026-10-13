@@ -1,5 +1,8 @@
 "use client";
 
+import UiText from "@/components/UiText";
+
+
 import { useEffect, useState } from "react";
 import { Circle, CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import type { Coordinates, Restaurant } from "@/types/location";
@@ -126,8 +129,7 @@ export default function LeafletRestaurantMap({ center, restaurants, selectedId, 
         ))}
       </MapContainer>
       <div className="absolute left-4 top-4 z-[400] rounded-full bg-white px-3 py-2 text-xs font-semibold text-[#234637] shadow-md">
-        {restaurants.length} địa điểm chay trong 5km
-      </div>
+        {restaurants.length}{" "}<UiText text={"địa điểm chay trong 5km"} /></div>
     </div>
   );
 }

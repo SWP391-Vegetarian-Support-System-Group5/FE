@@ -1,5 +1,9 @@
 "use client";
 
+import { LanguageSwitch } from "@/components/UiText";
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAdminModeration } from "@/context/AdminModerationContext";
 
 export default function AdminDashboardPage() {
+  const ui = useUiText();
   const { user } = useAuth();
   const { flaggedCount, recipesCount, reviewsCount, commentsCount } = useAdminModeration();
   const [searchAdmin, setSearchAdmin] = useState("");
@@ -119,7 +124,7 @@ export default function AdminDashboardPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
             </svg>
-            <span>Admin Area</span>
+            <span><UiText text={"Admin Area"} /></span>
           </div>
         </div>
 
@@ -130,7 +135,7 @@ export default function AdminDashboardPage() {
               type="text"
               value={searchAdmin}
               onChange={(e) => setSearchAdmin(e.target.value)}
-              placeholder="Search admin..."
+              placeholder={ui("Search admin...")}
               className="w-60 rounded-full border border-[#EFEEEB] bg-white py-1.5 pl-8 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-sm focus:border-[#1E3A2F] focus:outline-none"
             />
             <svg
@@ -147,22 +152,14 @@ export default function AdminDashboardPage() {
             </svg>
           </div>
 
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-xl border border-[#EFEEEB] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#07241A] shadow-sm hover:bg-gray-50"
-          >
-            <span>EN</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
+          <LanguageSwitch />
 
           <div className="flex items-center gap-2 pl-2">
             <div className="text-right">
               <p className="text-xs font-bold text-[#07241A] leading-tight">
                 {user?.fullName || "Admin"}
               </p>
-              <p className="text-[10px] text-[#727974] leading-tight">Supervisor</p>
+              <p className="text-[10px] text-[#727974] leading-tight"><UiText text={"Supervisor"} /></p>
             </div>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white shadow-sm">
               AD
@@ -179,21 +176,17 @@ export default function AdminDashboardPage() {
               <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
               <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
             </svg>
-            <span>OVERVIEW & MODERATION</span>
+            <span><UiText text={"OVERVIEW & MODERATION"} /></span>
           </div>
-          <h1 className="mt-1 font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]">
-            Administration
-          </h1>
-          <p className="mt-1 text-xs text-[#727974]">
-            Keep the VeggieMate community healthy and organized.
-          </p>
+          <h1 className="mt-1 font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]"><UiText text={"Administration"} /></h1>
+          <p className="mt-1 text-xs text-[#727974]"><UiText text={"Keep the VeggieMate community healthy and organized."} /></p>
         </div>
 
         {/* Operational Status & Preferences */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-[#EFEEEB] bg-white px-3.5 py-1.5 text-xs text-[#424844] shadow-sm">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>System Operational · Editorial Edition</span>
+            <span><UiText text={"System Operational · Editorial Edition"} /></span>
           </div>
 
           <button
@@ -204,7 +197,7 @@ export default function AdminDashboardPage() {
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            <span>Preferences</span>
+            <span><UiText text={"Preferences"} /></span>
           </button>
         </div>
       </div>
@@ -214,7 +207,7 @@ export default function AdminDashboardPage() {
         {/* Card 1: Members */}
         <div className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider text-[#727974] uppercase">MEMBERS</span>
+            <span className="text-[11px] font-bold tracking-wider text-[#727974] uppercase"><UiText text={"MEMBERS"} /></span>
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F3F0] text-[#727974]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -223,13 +216,13 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <p className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#07241A]">1,248</p>
-          <p className="mt-1 text-xs text-[#727974]">Registered members</p>
+          <p className="mt-1 text-xs text-[#727974]"><UiText text={"Registered members"} /></p>
         </div>
 
         {/* Card 2: Content */}
         <div className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider text-[#727974] uppercase">CONTENT</span>
+            <span className="text-[11px] font-bold tracking-wider text-[#727974] uppercase"><UiText text={"CONTENT"} /></span>
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F3F0] text-[#727974]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
@@ -239,29 +232,29 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <p className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#07241A]">486</p>
-          <p className="mt-1 text-xs text-[#727974]">Published recipes & reviews</p>
+          <p className="mt-1 text-xs text-[#727974]"><UiText text={"Published recipes & reviews"} /></p>
         </div>
 
         {/* Card 3: Needs Review */}
         <div className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider text-[#727974] uppercase">NEEDS REVIEW</span>
+            <span className="text-[11px] font-bold tracking-wider text-[#727974] uppercase"><UiText text={"NEEDS REVIEW"} /></span>
             <span className="flex items-center gap-1 rounded-full bg-[#FFEDD5] px-2 py-0.5 text-[10px] font-bold text-[#C2410C]">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                 <line x1="4" x2="4" y1="22" y2="15" />
               </svg>
-              <span>Priority</span>
+              <span><UiText text={"Priority"} /></span>
             </span>
           </div>
           <p className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#C2410C]">{flaggedCount}</p>
-          <p className="mt-1 text-xs text-[#727974]">Items needing review</p>
+          <p className="mt-1 text-xs text-[#727974]"><UiText text={"Items needing review"} /></p>
         </div>
 
         {/* Card 4: Discourse */}
         <div className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider text-[#727974] uppercase">DISCOURSE</span>
+            <span className="text-[11px] font-bold tracking-wider text-[#727974] uppercase"><UiText text={"DISCOURSE"} /></span>
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F5F3F0] text-[#727974]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -269,7 +262,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <p className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#07241A]">2,941</p>
-          <p className="mt-1 text-xs text-[#727974]">Total community comments</p>
+          <p className="mt-1 text-xs text-[#727974]"><UiText text={"Total community comments"} /></p>
         </div>
       </div>
 
@@ -285,10 +278,10 @@ export default function AdminDashboardPage() {
                 <path d="M15 18h-5" />
                 <path d="M10 6h8v4h-8V6Z" />
               </svg>
-              <h2 className="font-bold text-sm text-[#07241A]">Recent Activity</h2>
+              <h2 className="font-bold text-sm text-[#07241A]"><UiText text={"Recent Activity"} /></h2>
             </div>
             <Link href="/admin/content" className="text-xs font-semibold text-[#2D5A46] hover:underline flex items-center gap-1">
-              <span>View ledger</span>
+              <span><UiText text={"View ledger"} /></span>
               <span>→</span>
             </Link>
           </div>
@@ -334,11 +327,10 @@ export default function AdminDashboardPage() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#C2410C]">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                 </svg>
-                <h2 className="font-bold text-sm text-[#07241A]">Moderation Attention</h2>
+                <h2 className="font-bold text-sm text-[#07241A]"><UiText text={"Moderation Attention"} /></h2>
               </div>
               <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] font-bold text-[#C2410C]">
-                {flaggedCount} Pending
-              </span>
+                {flaggedCount}{" "}<UiText text={"Pending"} /></span>
             </div>
 
             {/* Alert Banner */}
@@ -355,19 +347,15 @@ export default function AdminDashboardPage() {
                   <path d="m5.64 5.64 2.12 2.12" />
                 </svg>
                 <div>
-                  <h3 className="text-xs font-bold text-[#9A3412]">{flaggedCount} items need review</h3>
-                  <p className="mt-1 text-[11px] text-[#9A3412]/80 leading-relaxed">
-                    VeggieAI has flagged content for administrator review to protect ingredient authenticity and respectful dialogue.
-                  </p>
+                  <h3 className="text-xs font-bold text-[#9A3412]">{flaggedCount}{" "}<UiText text={"items need review"} /></h3>
+                  <p className="mt-1 text-[11px] text-[#9A3412]/80 leading-relaxed"><UiText text={"VeggieAI has flagged content for administrator review to protect ingredient authenticity and respectful dialogue."} /></p>
                 </div>
               </div>
             </div>
 
             {/* Pending Decision Queue */}
             <div className="mt-4">
-              <p className="text-[10px] font-bold tracking-wider text-[#727974] uppercase mb-2">
-                PENDING DECISION QUEUE
-              </p>
+              <p className="text-[10px] font-bold tracking-wider text-[#727974] uppercase mb-2"><UiText text={"PENDING DECISION QUEUE"} /></p>
               <div className="space-y-2">
                 <Link
                   href="/admin/flagged"
@@ -379,7 +367,7 @@ export default function AdminDashboardPage() {
                       <path d="m6 16 6-6" />
                       <path d="M2 14v8" />
                     </svg>
-                    <span>Community Recipes</span>
+                    <span><UiText text={"Community Recipes"} /></span>
                   </div>
                   <div className="flex items-center gap-1 text-[#727974]">
                     <span className="font-bold text-[#07241A]">{recipesCount}</span>
@@ -397,7 +385,7 @@ export default function AdminDashboardPage() {
                       <path d="M5 21V7l8-4v18" />
                       <path d="M19 21V11l-6-3" />
                     </svg>
-                    <span>Restaurant Reviews</span>
+                    <span><UiText text={"Restaurant Reviews"} /></span>
                   </div>
                   <div className="flex items-center gap-1 text-[#727974]">
                     <span className="font-bold text-[#07241A]">{reviewsCount}</span>
@@ -413,7 +401,7 @@ export default function AdminDashboardPage() {
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#727974]">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
-                    <span>Comments & Discussions</span>
+                    <span><UiText text={"Comments & Discussions"} /></span>
                   </div>
                   <div className="flex items-center gap-1 text-[#727974]">
                     <span className="font-bold text-[#07241A]">{commentsCount}</span>
@@ -432,8 +420,8 @@ export default function AdminDashboardPage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
             </svg>
-            <span>Review Flagged Content</span>
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px]">{flaggedCount} items</span>
+            <span><UiText text={"Review Flagged Content"} /></span>
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px]">{flaggedCount}{" "}<UiText text={"items"} /></span>
           </Link>
         </div>
       </div>
@@ -442,8 +430,8 @@ export default function AdminDashboardPage() {
       <div className="rounded-2xl border border-[#EFEEEB] bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between pb-5">
           <div>
-            <h2 className="font-serif text-lg font-bold text-[#07241A]">Recent Content</h2>
-            <p className="text-xs text-[#727974]">Submissions awaiting audit, curation, or seasonal promotion.</p>
+            <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Recent Content"} /></h2>
+            <p className="text-xs text-[#727974]"><UiText text={"Submissions awaiting audit, curation, or seasonal promotion."} /></p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -455,7 +443,7 @@ export default function AdminDashboardPage() {
                 <line x1="21" x2="7" y1="12" y2="12" />
                 <line x1="21" x2="11" y1="18" y2="18" />
               </svg>
-              <span>All Formats</span>
+              <span><UiText text={"All Formats"} /></span>
             </button>
             <button
               type="button"
@@ -466,7 +454,7 @@ export default function AdminDashboardPage() {
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" x2="12" y1="15" y2="3" />
               </svg>
-              <span>Export Log</span>
+              <span><UiText text={"Export Log"} /></span>
             </button>
           </div>
         </div>
@@ -476,12 +464,12 @@ export default function AdminDashboardPage() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-[#EFEEEB] text-[10px] font-bold uppercase tracking-wider text-[#727974]">
-                <th className="pb-3 font-bold">TITLE</th>
-                <th className="pb-3 font-bold">TYPE</th>
-                <th className="pb-3 font-bold">AUTHOR</th>
-                <th className="pb-3 font-bold">STATUS</th>
-                <th className="pb-3 font-bold">DATE</th>
-                <th className="pb-3 text-right font-bold">ACTIONS</th>
+                <th className="pb-3 font-bold"><UiText text={"TITLE"} /></th>
+                <th className="pb-3 font-bold"><UiText text={"TYPE"} /></th>
+                <th className="pb-3 font-bold"><UiText text={"AUTHOR"} /></th>
+                <th className="pb-3 font-bold"><UiText text={"STATUS"} /></th>
+                <th className="pb-3 font-bold"><UiText text={"DATE"} /></th>
+                <th className="pb-3 text-right font-bold"><UiText text={"ACTIONS"} /></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EFEEEB]/60 text-xs">
@@ -541,12 +529,12 @@ export default function AdminDashboardPage() {
                     {item.status === "Published" ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-[11px] font-bold text-[#15803D]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]" />
-                        <span>Published</span>
+                        <span><UiText text={"Published"} /></span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[#F3F4F6] px-2.5 py-0.5 text-[11px] font-bold text-[#4B5563]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#9CA3AF]" />
-                        <span>Draft</span>
+                        <span><UiText text={"Draft"} /></span>
                       </span>
                     )}
                   </td>
@@ -559,9 +547,7 @@ export default function AdminDashboardPage() {
                     <button
                       type="button"
                       className="rounded-lg border border-[#EFEEEB] bg-white px-3 py-1 text-xs font-semibold text-[#07241A] shadow-sm hover:bg-[#F5F3F0] transition"
-                    >
-                      View
-                    </button>
+                    ><UiText text={"View"} /></button>
                   </td>
                 </tr>
               ))}
@@ -571,7 +557,7 @@ export default function AdminDashboardPage() {
 
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between border-t border-[#EFEEEB] pt-4 text-xs text-[#727974]">
-          <p>Displaying 4 of 486 registered community entries</p>
+          <p><UiText text={"Displaying 4 of 486 registered community entries"} /></p>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -621,13 +607,9 @@ export default function AdminDashboardPage() {
             <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
             <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
           </svg>
-          <span className="italic">
-            “A mindful culinary collective flourishes when seasonal nourishment meets gracious hospitality.” — Editorial Guidelines, Autumn 2026
-          </span>
+          <span className="italic"><UiText text={"“A mindful culinary collective flourishes when seasonal nourishment meets gracious hospitality.” — Editorial Guidelines, Autumn 2026"} /></span>
         </div>
-        <button type="button" className="font-bold text-[#07241A] hover:underline shrink-0">
-          Read Handbook
-        </button>
+        <button type="button" className="font-bold text-[#07241A] hover:underline shrink-0"><UiText text={"Read Handbook"} /></button>
       </div>
     </div>
   );

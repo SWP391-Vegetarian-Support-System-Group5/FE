@@ -1,5 +1,8 @@
 "use client";
 
+import UiText from "@/components/UiText";
+
+
 import { useEffect, useState } from "react";
 import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
 
@@ -108,7 +111,7 @@ export default function ProfileLeafletMap({ coordinates, areaLabel }: Props) {
 
       <div className="absolute bottom-3 left-3 z-[400] flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-semibold tracking-[0.02em] text-[#07241A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] backdrop-blur-md">
         <span className="inline-block h-2 w-2 rounded-full bg-[#99462A]" />
-        <span>Active radius: 5.0 km around {areaLabel}</span>
+        <span><UiText text={"Active radius: 5.0 km around"} />{" "}{areaLabel}</span>
       </div>
     </div>
   );

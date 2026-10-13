@@ -1,5 +1,8 @@
 "use client";
 
+import UiText from "@/components/UiText";
+
+
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -105,7 +108,7 @@ export default function Footer() {
             <div className="mt-2.5 inline-flex items-center gap-2 rounded-xl border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-medium text-[#424844]">
               <span>🌐</span>
               <select aria-label={t("Language", "Ngôn ngữ")} value={language} onChange={(event) => setLanguage(event.target.value as "en" | "vi")} className="bg-transparent outline-none">
-                <option value="en">English (EN)</option>
+                <option value="en"><UiText text={"English (EN)"} /></option>
                 <option value="vi">Tiếng Việt (VI)</option>
               </select>
             </div>

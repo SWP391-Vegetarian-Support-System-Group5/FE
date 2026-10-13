@@ -1,5 +1,8 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
@@ -25,6 +28,7 @@ function normalizeLocationName(value: string) {
 }
 
 export default function LocationExplorer() {
+  const ui = useUiText();
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
   const [provinceCode, setProvinceCode] = useState("hochiminh");
@@ -222,24 +226,24 @@ export default function LocationExplorer() {
   return (
     <div className="mx-auto max-w-7xl px-5 py-10 lg:px-12 lg:py-14">
       <div className="mb-8 max-w-2xl">
-        <span className="rounded-full bg-[#dcebe1] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#22513c]">Vegan places guide</span>
-        <h1 className="mt-4 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl">Find vegetarian places near you</h1>
-        <p className="mt-3 leading-7 text-[#5c645f]">Khám phá nhà hàng, quán cà phê và địa điểm thuần chay dựa trên khu vực sinh sống của bạn.</p>
+        <span className="rounded-full bg-[#dcebe1] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#22513c]"><UiText text={"Vegan places guide"} /></span>
+        <h1 className="mt-4 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl"><UiText text={"Find vegetarian places near you"} /></h1>
+        <p className="mt-3 leading-7 text-[#5c645f]"><UiText text={"Khám phá nhà hàng, quán cà phê và địa điểm thuần chay dựa trên khu vực sinh sống của bạn."} /></p>
       </div>
 
       <section className="overflow-hidden rounded-[24px] border border-[#edeae5] bg-white shadow-[0_12px_40px_rgba(27,58,45,0.07)]">
         <div className="p-5 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="font-serif text-2xl font-semibold text-[#09281d]">Living Location</h2>
-              <p className="mt-1 text-sm text-[#69706b]">Your home base coordinates for organic markets, plant bistros, and localized seasonal harvest.</p>
+              <h2 className="font-serif text-2xl font-semibold text-[#09281d]"><UiText text={"Living Location"} /></h2>
+              <p className="mt-1 text-sm text-[#69706b]"><UiText text={"Your home base coordinates for organic markets, plant bistros, and localized seasonal harvest."} /></p>
             </div>
-            <button type="button" onClick={useCurrentLocation} title="Dùng vị trí hiện tại" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#f3f1ed] text-[#123f2e] transition hover:bg-[#dcebe1]">⌖</button>
+            <button type="button" onClick={useCurrentLocation} title={ui("Dùng vị trí hiện tại")} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#f3f1ed] text-[#123f2e] transition hover:bg-[#dcebe1]">⌖</button>
           </div>
 
           <div className="mt-5 flex gap-3 rounded-2xl bg-[#f1f1ee] p-4 text-xs leading-5 text-[#24342d]">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#cceedd] text-[#006c47]">◎</span>
-            <p>Your location helps VeggieMate recommend vegetarian places near you in the <strong>Vegan Places Guide</strong> and filter neighborhood community dining tables.</p>
+            <p><UiText text={"Your location helps VeggieMate recommend vegetarian places near you in the"} />{" "}<strong><UiText text={"Vegan Places Guide"} /></strong>{" "}<UiText text={"and filter neighborhood community dining tables."} /></p>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -247,7 +251,7 @@ export default function LocationExplorer() {
               label="City / Province"
               value={provinceCode}
               options={provinces}
-              placeholder="Select province"
+              placeholder={ui("Select province")}
               searchPlaceholder="Search province..."
               onSelect={(code) => void changeProvince(code)}
             />
@@ -255,37 +259,35 @@ export default function LocationExplorer() {
               label="Ward / Commune / Area"
               value={areaCode}
               options={areas}
-              placeholder={provinceCode ? "Select area" : "Select province first"}
+              placeholder={provinceCode ? ui("Select area") : ui("Select province first")}
               searchPlaceholder="Search ward / commune..."
               disabled={areas.length === 0}
               onSelect={(code) => void changeArea(code)}
             />
           </div>
 
-          <label className="mt-4 block text-xs font-semibold text-[#274537]">
-            Living Address
-            <span className="mt-2 flex items-center rounded-xl bg-[#f5f3f0] px-4 ring-[#356d54] focus-within:ring-2">
+          <label className="mt-4 block text-xs font-semibold text-[#274537]"><UiText text={"Living Address"} /><span className="mt-2 flex items-center rounded-xl bg-[#f5f3f0] px-4 ring-[#356d54] focus-within:ring-2">
               <span className="mr-3 text-[#a34d32]">⌖</span>
               <AddressAutocomplete value={address} center={center} onChange={setAddress} onSelect={(result) => void selectAddress(result)} onSearch={() => void searchAddress()} />
-              <button type="button" onClick={searchAddress} className="ml-3 rounded-lg bg-[#143f2e] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0a2d20]">Tìm kiếm</button>
+              <button type="button" onClick={searchAddress} className="ml-3 rounded-lg bg-[#143f2e] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0a2d20]"><UiText text={"Tìm kiếm"} /></button>
             </span>
           </label>
-          {message && <p role="status" className="mt-3 text-xs text-[#8b4a34]">{message}</p>}
+          {message && <p role="status" className="mt-3 text-xs text-[#8b4a34]">{<UiText text={message} />}</p>}
         </div>
 
         <div className="grid border-t border-[#edeae5] lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
           <LeafletRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
           <aside className="max-h-[510px] overflow-y-auto bg-[#fbfaf8] p-5">
             <div className="mb-4 flex items-end justify-between">
-              <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">Places nearby</h3><p className="mt-1 text-xs text-[#788079]">Trong bán kính tối đa 5 km</p></div>
+              <div><h3 className="font-serif text-xl font-semibold text-[#09281d]"><UiText text={"Places nearby"} /></h3><p className="mt-1 text-xs text-[#788079]"><UiText text={"Trong bán kính tối đa 5 km"} /></p></div>
               <span className="rounded-full bg-[#e4eee7] px-2.5 py-1 text-xs font-bold text-[#24543d]">{restaurants.length}</span>
             </div>
-            {loading ? <p className="py-10 text-center text-sm text-[#788079]">Đang tìm địa điểm…</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">Không tìm thấy nhà hàng chay thật trong bán kính 5 km quanh địa chỉ này. Hãy thử địa chỉ khác hoặc mở rộng dữ liệu nhà hàng trong DB/OpenStreetMap.</p> : (
+            {loading ? <p className="py-10 text-center text-sm text-[#788079]"><UiText text={"Đang tìm địa điểm…"} /></p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]"><UiText text={"Không tìm thấy nhà hàng chay thật trong bán kính 5 km quanh địa chỉ này. Hãy thử địa chỉ khác hoặc mở rộng dữ liệu nhà hàng trong DB/OpenStreetMap."} /></p> : (
               <div className="space-y-3">{restaurants.map((restaurant) => (
                 <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setCenter({ lat: restaurant.latitude, lng: restaurant.longitude }); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
-                  <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{restaurant.category}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.rating > 0 ? `★ ${restaurant.rating}` : "Mới"}</span></div>
+                  <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{<UiText text={restaurant.category} />}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.rating > 0 ? `★ ${restaurant.rating}` : ui("Mới")}</span></div>
                   <p className="mt-2 text-xs leading-5 text-[#677069]">{restaurant.address}</p>
-                  <p className="mt-2 text-[11px] text-[#8a918c]">{restaurant.reviewCount > 0 ? `${restaurant.reviewCount} đánh giá` : "Chưa có đánh giá"}{restaurant.distanceKm != null ? ` · ${restaurant.distanceKm} km` : ""}</p>
+                  <p className="mt-2 text-[11px] text-[#8a918c]">{restaurant.reviewCount > 0 ? `${restaurant.reviewCount} đánh giá` : ui("Chưa có đánh giá")}{restaurant.distanceKm != null ? ` · ${restaurant.distanceKm} km` : ""}</p>
                 </button>
               ))}</div>
             )}

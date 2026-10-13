@@ -1,5 +1,9 @@
 "use client";
 
+import { LanguageSwitch } from "@/components/UiText";
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,6 +32,7 @@ interface Member {
 }
 
 export default function AdminMembersPage() {
+  const ui = useUiText();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Suspended">("All");
@@ -178,7 +183,7 @@ export default function AdminMembersPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
             </svg>
-            <span>Admin Area</span>
+            <span><UiText text={"Admin Area"} /></span>
           </div>
         </div>
 
@@ -187,7 +192,7 @@ export default function AdminMembersPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search admin..."
+              placeholder={ui("Search admin...")}
               className="w-60 rounded-full border border-[#EFEEEB] bg-white py-1.5 pl-8 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-sm focus:border-[#1E3A2F] focus:outline-none"
             />
             <svg
@@ -204,22 +209,14 @@ export default function AdminMembersPage() {
             </svg>
           </div>
 
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-xl border border-[#EFEEEB] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#07241A] shadow-sm hover:bg-gray-50"
-          >
-            <span>EN</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
+          <LanguageSwitch />
 
           <div className="flex items-center gap-2 pl-2">
             <div className="text-right">
               <p className="text-xs font-bold text-[#07241A] leading-tight">
                 {user?.fullName || "Admin"}
               </p>
-              <p className="text-[10px] text-[#727974] leading-tight">Supervisor</p>
+              <p className="text-[10px] text-[#727974] leading-tight"><UiText text={"Supervisor"} /></p>
             </div>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white shadow-sm">
               AD
@@ -231,16 +228,12 @@ export default function AdminMembersPage() {
       {/* Directory & Members Title Section */}
       <div className="pt-2">
         <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-          <span>DIRECTORY</span>
+          <span><UiText text={"DIRECTORY"} /></span>
           <span>•</span>
-          <span>COMMUNITY ROSTER</span>
+          <span><UiText text={"COMMUNITY ROSTER"} /></span>
         </div>
-        <h1 className="mt-1 font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]">
-          Members
-        </h1>
-        <p className="mt-1 text-xs text-[#727974]">
-          Manage registered VeggieMate community members, monitor flags, and audit contributions.
-        </p>
+        <h1 className="mt-1 font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]"><UiText text={"Members"} /></h1>
+        <p className="mt-1 text-xs text-[#727974]"><UiText text={"Manage registered VeggieMate community members, monitor flags, and audit contributions."} /></p>
       </div>
 
       {/* Search & Filter Toolbar */}
@@ -251,7 +244,7 @@ export default function AdminMembersPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search members by name or email..."
+            placeholder={ui("Search members by name or email...")}
             className="w-full rounded-2xl border border-[#EFEEEB] bg-[#F5F3F0] py-2.5 pl-10 pr-4 text-xs text-[#07241A] placeholder-[#727974] shadow-sm focus:border-[#1E3A2F] focus:bg-white focus:outline-none transition"
           />
           <svg
@@ -273,12 +266,12 @@ export default function AdminMembersPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "All" | "Active" | "Suspended")}
-            aria-label="Filter members by status"
+            aria-label={ui("Filter members by status")}
             className="appearance-none rounded-2xl border border-[#EFEEEB] bg-white py-2.5 pl-9 pr-9 text-xs font-semibold text-[#07241A] shadow-sm hover:bg-gray-50 focus:outline-none cursor-pointer"
           >
-            <option value="All">Status: All Statuses</option>
-            <option value="Active">Status: Active</option>
-            <option value="Suspended">Status: Suspended</option>
+            <option value="All"><UiText text={"Status: All Statuses"} /></option>
+            <option value="Active"><UiText text={"Status: Active"} /></option>
+            <option value="Suspended"><UiText text={"Status: Suspended"} /></option>
           </select>
           <svg
             className="absolute left-3 top-3 text-[#727974] pointer-events-none"
@@ -315,7 +308,7 @@ export default function AdminMembersPage() {
             <path d="m7 15 5 5 5-5" />
             <path d="m7 9 5-5 5 5" />
           </svg>
-          <span>Joined Date: Newest</span>
+          <span><UiText text={"Joined Date: Newest"} /></span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="m6 9 6 6 6-6" />
           </svg>
@@ -324,7 +317,7 @@ export default function AdminMembersPage() {
         {/* Download / Export Button */}
         <button
           type="button"
-          title="Export Members"
+          title={ui("Export Members")}
           className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#EFEEEB] bg-white text-[#07241A] shadow-sm hover:bg-gray-50 transition"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -344,10 +337,10 @@ export default function AdminMembersPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-[#EFEEEB] text-[10px] font-bold uppercase tracking-wider text-[#727974]">
-                    <th className="pb-3 font-bold">MEMBER</th>
-                    <th className="pb-3 font-bold">EMAIL</th>
-                    <th className="pb-3 font-bold">JOINED</th>
-                    <th className="pb-3 font-bold">STATUS</th>
+                    <th className="pb-3 font-bold"><UiText text={"MEMBER"} /></th>
+                    <th className="pb-3 font-bold"><UiText text={"EMAIL"} /></th>
+                    <th className="pb-3 font-bold"><UiText text={"JOINED"} /></th>
+                    <th className="pb-3 font-bold"><UiText text={"STATUS"} /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EFEEEB]/60 text-xs">
@@ -384,13 +377,11 @@ export default function AdminMembersPage() {
                                   {member.name}
                                 </span>
                                 {isSelected && (
-                                  <span className="rounded bg-[#1E3A2F] px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
-                                    VIEWING
-                                  </span>
+                                  <span className="rounded bg-[#1E3A2F] px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider"><UiText text={"VIEWING"} /></span>
                                 )}
                               </div>
                               <div className="flex items-center gap-1.5 text-[11px] text-[#727974] mt-0.5">
-                                <span>Member {member.memberNo}</span>
+                                <span><UiText text={"Member"} />{" "}{member.memberNo}</span>
                                 {member.roleTitle && (
                                   <>
                                     <span>•</span>
@@ -398,8 +389,7 @@ export default function AdminMembersPage() {
                                   </>
                                 )}
                                 {member.flaggedDate && (
-                                  <span className="font-bold text-[#C2410C]">
-                                    • Flagged {member.flaggedDate}
+                                  <span className="font-bold text-[#C2410C]"><UiText text={"• Flagged"} />{" "}{member.flaggedDate}
                                   </span>
                                 )}
                               </div>
@@ -422,12 +412,12 @@ export default function AdminMembersPage() {
                           {member.status === "Active" ? (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-3 py-1 text-[11px] font-bold text-[#15803D]">
                               <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]" />
-                              <span>Active</span>
+                              <span><UiText text={"Active"} /></span>
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FEE2E2] px-3 py-1 text-[11px] font-bold text-[#C2410C]">
                               <span className="h-1.5 w-1.5 rounded-full bg-[#C2410C]" />
-                              <span>Suspended</span>
+                              <span><UiText text={"Suspended"} /></span>
                             </span>
                           )}
                         </td>
@@ -440,10 +430,8 @@ export default function AdminMembersPage() {
 
             {/* Pagination */}
             <div className="mt-4 flex items-center justify-between border-t border-[#EFEEEB] pt-4 text-xs text-[#727974]">
-              <p>
-                Showing <span className="font-bold text-[#07241A]">1–10</span> of{" "}
-                <span className="font-bold text-[#07241A]">1,248</span> members
-              </p>
+              <p><UiText text={"Showing"} />{" "}<span className="font-bold text-[#07241A]">1–10</span>{" "}<UiText text={"of"} />{" "}
+                <span className="font-bold text-[#07241A]">1,248</span>{" "}<UiText text={"members"} /></p>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
@@ -499,7 +487,7 @@ export default function AdminMembersPage() {
                     <circle cx="12" cy="10" r="3" />
                     <path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
                   </svg>
-                  <h2 className="font-serif text-base font-bold text-[#07241A]">Member Profile</h2>
+                  <h2 className="font-serif text-base font-bold text-[#07241A]"><UiText text={"Member Profile"} /></h2>
                 </div>
                 <button
                   type="button"
@@ -543,23 +531,19 @@ export default function AdminMembersPage() {
                     }`}
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${selectedMember.status === "Active" ? "bg-[#15803D]" : "bg-[#C2410C]"}`} />
-                    <span>Account Status: {selectedMember.status}</span>
+                    <span><UiText text={"Account Status:"} />{" "}{selectedMember.status}</span>
                   </span>
                 </div>
 
-                <p className="mt-2 text-[11px] text-[#727974]">
-                  Joined {selectedMember.joinedDate}
+                <p className="mt-2 text-[11px] text-[#727974]"><UiText text={"Joined"} />{" "}{selectedMember.joinedDate}
                 </p>
               </div>
 
               {/* Community Activity */}
               <div>
                 <div className="flex items-center justify-between text-[11px] mb-2.5">
-                  <span className="font-bold tracking-wider text-[#727974] uppercase">
-                    COMMUNITY ACTIVITY
-                  </span>
-                  <span className="text-[#A0A5A1]">
-                    Last active {selectedMember.stats.lastActive}
+                  <span className="font-bold tracking-wider text-[#727974] uppercase"><UiText text={"COMMUNITY ACTIVITY"} /></span>
+                  <span className="text-[#A0A5A1]"><UiText text={"Last active"} />{" "}{selectedMember.stats.lastActive}
                   </span>
                 </div>
 
@@ -567,29 +551,26 @@ export default function AdminMembersPage() {
                   {/* Posts */}
                   <div className="rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] p-2.5">
                     <p className="text-lg font-bold text-[#07241A]">{selectedMember.stats.posts}</p>
-                    <p className="text-[11px] font-semibold text-[#727974]">Posts</p>
+                    <p className="text-[11px] font-semibold text-[#727974]"><UiText text={"Posts"} /></p>
                     <p className="text-[9px] text-[#A0A5A1] mt-1 leading-tight">
-                      {selectedMember.stats.videos} Videos<br />{selectedMember.stats.reviews} Reviews
-                    </p>
+                      {selectedMember.stats.videos}{" "}<UiText text={"Videos"} /><br />{selectedMember.stats.reviews}{" "}<UiText text={"Reviews"} /></p>
                   </div>
 
                   {/* Comments */}
                   <div className="rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] p-2.5">
                     <p className="text-lg font-bold text-[#07241A]">{selectedMember.stats.comments}</p>
-                    <p className="text-[11px] font-semibold text-[#727974]">Comments</p>
+                    <p className="text-[11px] font-semibold text-[#727974]"><UiText text={"Comments"} /></p>
                     <p className="text-[9px] text-[#A0A5A1] mt-1 leading-tight flex items-center justify-center gap-0.5">
                       <span>👍</span>
-                      <span>{selectedMember.stats.helpfulRate}% Helpful</span>
+                      <span>{selectedMember.stats.helpfulRate}<UiText text={"% Helpful"} /></span>
                     </p>
                   </div>
 
                   {/* Saved */}
                   <div className="rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] p-2.5">
                     <p className="text-lg font-bold text-[#07241A]">{selectedMember.stats.saved}</p>
-                    <p className="text-[11px] font-semibold text-[#727974]">Saved</p>
-                    <p className="text-[9px] text-[#A0A5A1] mt-1 leading-tight">
-                      In Recipe Box
-                    </p>
+                    <p className="text-[11px] font-semibold text-[#727974]"><UiText text={"Saved"} /></p>
+                    <p className="text-[9px] text-[#A0A5A1] mt-1 leading-tight"><UiText text={"In Recipe Box"} /></p>
                   </div>
                 </div>
               </div>
@@ -597,7 +578,7 @@ export default function AdminMembersPage() {
               {/* 30-Day Contribution Cadence (Area Chart) */}
               <div className="rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] p-3.5">
                 <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-bold text-[#07241A]">30-Day Contribution Cadence</span>
+                  <span className="font-bold text-[#07241A]"><UiText text={"30-Day Contribution Cadence"} /></span>
                   <span className="font-bold text-[#15803D]">{selectedMember.stats.trend}</span>
                 </div>
                 {/* SVG Curve Graphic */}
@@ -629,11 +610,9 @@ export default function AdminMembersPage() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                   </svg>
-                  <span>Member Privacy Guarded</span>
+                  <span><UiText text={"Member Privacy Guarded"} /></span>
                 </div>
-                <p className="leading-relaxed text-[10px]">
-                  Admin view strictly omits private biometric data and physical addresses.
-                </p>
+                <p className="leading-relaxed text-[10px]"><UiText text={"Admin view strictly omits private biometric data and physical addresses."} /></p>
               </div>
 
               {/* Action Buttons */}
@@ -646,7 +625,7 @@ export default function AdminMembersPage() {
                     <rect width="20" height="16" x="2" y="4" rx="2" />
                     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                   </svg>
-                  <span>Send Notification / Email</span>
+                  <span><UiText text={"Send Notification / Email"} /></span>
                 </button>
 
                 <button
@@ -657,7 +636,7 @@ export default function AdminMembersPage() {
                     <circle cx="12" cy="12" r="10" />
                     <line x1="4.93" x2="19.07" y1="4.93" y2="19.07" />
                   </svg>
-                  <span>Suspend Member</span>
+                  <span><UiText text={"Suspend Member"} /></span>
                 </button>
               </div>
             </div>

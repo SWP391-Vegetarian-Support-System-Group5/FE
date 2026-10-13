@@ -1,5 +1,8 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -39,6 +42,7 @@ const SAMPLE_PROMPTS = [
 ];
 
 export default function AIChatboxView() {
+  const ui = useUiText();
   const { user } = useAuth();
 
   // Sessions and active conversation state
@@ -334,9 +338,7 @@ export default function AIChatboxView() {
           <div className="flex flex-col min-h-0 flex-1">
             {/* Mobile close button */}
             <div className="flex items-center justify-between pb-3 md:hidden">
-              <span className="font-serif text-lg font-bold text-[#07241A]">
-                Lịch sử hội thoại
-              </span>
+              <span className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Lịch sử hội thoại"} /></span>
               <button
                 type="button"
                 onClick={() => setIsMobileSidebarOpen(false)}
@@ -368,7 +370,7 @@ export default function AIChatboxView() {
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              <span>New Chat</span>
+              <span><UiText text={"New Chat"} /></span>
             </button>
 
             {/* History Groupings List */}
@@ -381,14 +383,12 @@ export default function AIChatboxView() {
                     <div className="h-8 animate-pulse rounded-xl bg-[#E4E2DF]" />
                   </div>
                 ) : groupedSessions.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[#727974]">
-                    Chưa có cuộc trò chuyện nào. Bấm "New Chat" để bắt đầu!
-                  </div>
+                  <div className="py-8 text-center text-xs text-[#727974]"><UiText text={"Chưa có cuộc trò chuyện nào. Bấm \"New Chat\" để bắt đầu!"} /></div>
                 ) : (
                   groupedSessions.map((group) => (
                     <div key={group.category} className="space-y-1">
                       <div className="px-2 text-[11px] font-semibold tracking-wider text-[#727974]">
-                        {group.category}
+                        {<UiText text={group.category} />}
                       </div>
                       <div className="space-y-0.5">
                         {group.sessions.map((item) => {
@@ -435,16 +435,14 @@ export default function AIChatboxView() {
                   <div className="rounded-xl bg-white/70 p-3 text-xs leading-relaxed text-[#424844] border border-[#EFEEEB]">
                     <div className="flex items-center gap-1.5 font-semibold text-[#07241A] mb-1">
                       <span>👤</span>
-                      <span>Chế độ khách</span>
-                    </div>
-                    Bạn đang sử dụng phiên khách (tối đa 5 tin nhắn/phiên). Đăng nhập để lưu trữ toàn bộ lịch sử trò chuyện lâu dài!
-                  </div>
+                      <span><UiText text={"Chế độ khách"} /></span>
+                    </div><UiText text={"Bạn đang sử dụng phiên khách (tối đa 5 tin nhắn/phiên). Đăng nhập để lưu trữ toàn bộ lịch sử trò chuyện lâu dài!"} /></div>
                   {activeSessionId && (
                     <div className="rounded-xl bg-[#D9E6DC] px-3 py-2 text-xs font-semibold text-[#07241A] flex items-center gap-2 shadow-xs">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
-                      <span className="truncate">Hội thoại khách hiện tại</span>
+                      <span className="truncate"><UiText text={"Hội thoại khách hiện tại"} /></span>
                     </div>
                   )}
                 </div>
@@ -459,9 +457,7 @@ export default function AIChatboxView() {
                 <Link
                   href="/login"
                   className="flex w-full items-center justify-center rounded-xl bg-[#07241A] py-2 text-xs font-semibold text-white transition hover:bg-[#1E3A2F]"
-                >
-                  Đăng nhập để lưu lịch sử
-                </Link>
+                ><UiText text={"Đăng nhập để lưu lịch sử"} /></Link>
               </div>
             ) : (
               <div className="flex items-center gap-2.5 px-1 text-xs text-[#727974]">
@@ -494,7 +490,7 @@ export default function AIChatboxView() {
                 type="button"
                 onClick={() => setIsMobileSidebarOpen(true)}
                 className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E4E2DF] bg-white text-[#07241A] md:hidden"
-                aria-label="Open chat history"
+                aria-label={ui("Open chat history")}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="3" y1="12" x2="21" y2="12" />
@@ -530,13 +526,11 @@ export default function AIChatboxView() {
                   <h1 className="font-serif text-xl font-bold leading-tight text-[#07241A]">
                     VeggieAI
                   </h1>
-                  <span className="hidden text-xs text-[#727974] sm:inline">
-                    · Culinary &amp; Nutrition Guide
-                  </span>
+                  <span className="hidden text-xs text-[#727974] sm:inline"><UiText text={"· Culinary & Nutrition Guide"} /></span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-[#424844]">
                   <span className="h-2 w-2 rounded-full bg-[#16a34a]" />
-                  <span>Active · Tailored to vegetarian nutrition</span>
+                  <span><UiText text={"Active · Tailored to vegetarian nutrition"} /></span>
                 </div>
               </div>
             </div>
@@ -546,7 +540,7 @@ export default function AIChatboxView() {
               {/* Guest remaining messages badge */}
               {remainingGuestMessages !== null && !isLoggedIn && (
                 <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-white border border-[#E4E2DF] px-3 py-1 text-xs font-semibold text-[#727974] shadow-xs">
-                  <span>Còn {remainingGuestMessages} câu hỏi khách</span>
+                  <span><UiText text={"Còn"} />{" "}{remainingGuestMessages}{" "}<UiText text={"câu hỏi khách"} /></span>
                 </span>
               )}
 
@@ -554,7 +548,7 @@ export default function AIChatboxView() {
               <button
                 type="button"
                 onClick={handleNewChat}
-                title="Tạo hội thoại mới"
+                title={ui("Tạo hội thoại mới")}
                 disabled={isLoadingSession}
                 className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E4E2DF] bg-white text-[#07241A] transition hover:bg-[#F5F3F0] cursor-pointer"
               >
@@ -572,7 +566,7 @@ export default function AIChatboxView() {
               <div className="flex h-full items-center justify-center text-sm text-[#727974]">
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#1E3A2F] border-t-transparent" />
-                  <span>Đang kết nối VeggieAI...</span>
+                  <span><UiText text={"Đang kết nối VeggieAI..."} /></span>
                 </div>
               </div>
             ) : messages.length === 0 ? (
@@ -582,28 +576,22 @@ export default function AIChatboxView() {
                   <span className="text-3xl">🤖</span>
                 </div>
                 <div className="space-y-2">
-                  <h2 className="font-serif text-2xl font-bold text-[#07241A]">
-                    Xin chào! Tôi có thể giúp gì cho bữa ăn chay của bạn?
-                  </h2>
-                  <p className="text-sm leading-relaxed text-[#424844]">
-                    Hỏi tôi về thành phần dinh dưỡng, gợi ý thay thế đạm thực vật, hoặc lên kế hoạch bữa ăn phù hợp với mục tiêu sức khỏe của bạn.
-                  </p>
+                  <h2 className="font-serif text-2xl font-bold text-[#07241A]"><UiText text={"Xin chào! Tôi có thể giúp gì cho bữa ăn chay của bạn?"} /></h2>
+                  <p className="text-sm leading-relaxed text-[#424844]"><UiText text={"Hỏi tôi về thành phần dinh dưỡng, gợi ý thay thế đạm thực vật, hoặc lên kế hoạch bữa ăn phù hợp với mục tiêu sức khỏe của bạn."} /></p>
                 </div>
 
                 {/* Prompt suggestions chips */}
                 <div className="w-full space-y-2 pt-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[#727974]">
-                    Gợi ý câu hỏi:
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#727974]"><UiText text={"Gợi ý câu hỏi:"} /></p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     {SAMPLE_PROMPTS.map((prompt, i) => (
                       <button
                         key={i}
                         type="button"
-                        onClick={() => handleSendMessage(prompt)}
+                        onClick={() => handleSendMessage(ui(prompt))}
                         className="rounded-xl bg-white border border-[#EFEEEB] p-3 text-left text-xs font-medium text-[#07241A] shadow-xs hover:border-[#1E3A2F] hover:bg-[#F5F3F0] transition cursor-pointer"
                       >
-                        "{prompt}"
+                        "{ui(prompt)}"
                       </button>
                     ))}
                   </div>
@@ -647,7 +635,7 @@ export default function AIChatboxView() {
                           <div className="mt-3 pt-3 border-t border-[#E4E2DF] space-y-2">
                             <div className="flex items-center gap-1.5 text-xs font-semibold text-[#07241A]">
                               <span>🥗</span>
-                              <span>Công thức liên quan:</span>
+                              <span><UiText text={"Công thức liên quan:"} /></span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {msg.relatedRecipes.map((recipe) => (
@@ -671,9 +659,7 @@ export default function AIChatboxView() {
                         {/* Sources if present */}
                         {msg.sources && msg.sources.length > 0 && (
                           <div className="mt-2 pt-2 border-t border-[#E4E2DF] flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-medium text-[#727974]">
-                              Nguồn:
-                            </span>
+                            <span className="text-[11px] font-medium text-[#727974]"><UiText text={"Nguồn:"} /></span>
                             {msg.sources.map((src, i) => (
                               <span
                                 key={i}
@@ -702,7 +688,7 @@ export default function AIChatboxView() {
                   🤖
                 </div>
                 <div className="rounded-[2px_16px_16px_16px] bg-[#F5F3F0] border border-[#EFEEEB] px-4 py-3 text-xs text-[#424844] flex items-center gap-2 shadow-xs">
-                  <span className="font-medium">VeggieAI đang suy nghĩ</span>
+                  <span className="font-medium"><UiText text={"VeggieAI đang suy nghĩ"} /></span>
                   <span className="flex gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A2F] animate-bounce [animation-delay:-0.3s]" />
                     <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A2F] animate-bounce [animation-delay:-0.15s]" />
@@ -715,7 +701,7 @@ export default function AIChatboxView() {
             {/* Error message card */}
             {error && (
               <div className="rounded-xl bg-red-50 border border-red-200 p-3.5 text-xs text-red-700">
-                {error}
+                {<UiText text={error} />}
               </div>
             )}
 
@@ -727,27 +713,19 @@ export default function AIChatboxView() {
                     🔒
                   </div>
                   <div>
-                    <h3 className="font-serif text-lg font-bold text-[#07241A]">
-                      Mở khóa toàn bộ tính năng với tài khoản VeggieMate
-                    </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-[#424844]">
-                      Bạn đã đạt giới hạn 5 tin nhắn dành cho khách. Hãy đăng nhập hoặc đăng ký tài khoản miễn phí để tiếp tục trò chuyện không giới hạn, lưu lịch sử và nhận thực đơn cá nhân hóa!
-                    </p>
+                    <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Mở khóa toàn bộ tính năng với tài khoản VeggieMate"} /></h3>
+                    <p className="mt-1 text-xs leading-relaxed text-[#424844]"><UiText text={"Bạn đã đạt giới hạn 5 tin nhắn dành cho khách. Hãy đăng nhập hoặc đăng ký tài khoản miễn phí để tiếp tục trò chuyện không giới hạn, lưu lịch sử và nhận thực đơn cá nhân hóa!"} /></p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 pt-1">
                   <Link
                     href="/login"
                     className="rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F]"
-                  >
-                    Đăng nhập
-                  </Link>
+                  ><UiText text={"Đăng nhập"} /></Link>
                   <Link
                     href="/register"
                     className="rounded-xl bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] border border-[#EFEEEB] shadow-xs transition hover:bg-[#F5F3F0]"
-                  >
-                    Đăng ký tài khoản
-                  </Link>
+                  ><UiText text={"Đăng ký tài khoản"} /></Link>
                 </div>
               </div>
             )}
@@ -768,8 +746,8 @@ export default function AIChatboxView() {
                   maxLength={1000}
                   placeholder={
                     signupRequired
-                      ? "Vui lòng đăng nhập để tiếp tục trò chuyện..."
-                      : "Ask VeggieAI about nutrition, substitutions, or recipes..."
+                      ? ui("Vui lòng đăng nhập để tiếp tục trò chuyện...")
+                      : ui("Ask VeggieAI about nutrition, substitutions, or recipes...")
                   }
                   className="flex-1 bg-transparent py-2 text-sm text-[#07241A] placeholder-[#727974] outline-none disabled:opacity-60"
                 />
@@ -786,7 +764,7 @@ export default function AIChatboxView() {
                   type="submit"
                   disabled={isThinking || !inputValue.trim() || signupRequired}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#07241A] text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  aria-label="Send message"
+                  aria-label={ui("Send message")}
                 >
                   <svg
                     width="14"
@@ -805,9 +783,7 @@ export default function AIChatboxView() {
               </div>
 
               {/* Disclaimer */}
-              <p className="text-center font-serif text-xs text-[#727974]">
-                VeggieAI provides culinary and general nutritional guidance based on plant-based dietary recommendations.
-              </p>
+              <p className="text-center font-serif text-xs text-[#727974]"><UiText text={"VeggieAI provides culinary and general nutritional guidance based on plant-based dietary recommendations."} /></p>
             </form>
           </footer>
         </section>

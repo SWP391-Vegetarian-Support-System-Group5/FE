@@ -1,5 +1,8 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -205,6 +208,7 @@ const ALTERNATIVE_DISHES: Record<string, Partial<MealItem>> = {
 };
 
 export default function MealPlannerView() {
+  const ui = useUiText();
   const [days, setDays] = useState<DayPlan[]>(INITIAL_DAYS);
   const [allergens, setAllergens] = useState<string[]>([
     "Peanuts",
@@ -301,7 +305,7 @@ export default function MealPlannerView() {
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-[#07241A] px-5 py-3 text-xs font-semibold text-white shadow-xl transition-all animate-fade-in flex items-center gap-2">
           <span>🌿</span>
-          <span>{toastMessage}</span>
+          <span>{<UiText text={toastMessage} />}</span>
         </div>
       )}
 
@@ -310,17 +314,11 @@ export default function MealPlannerView() {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#727974]">
             <span className="h-2 w-2 rounded-full bg-[#16a34a]" />
-            <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[11px] font-bold text-[#07241A]">
-              Week 14 · Autumn Nourishment Table
-            </span>
+            <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[11px] font-bold text-[#07241A]"><UiText text={"Week 14 · Autumn Nourishment Table"} /></span>
           </div>
 
-          <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]">
-            Plan My Week
-          </h1>
-          <p className="mt-1.5 text-sm text-[#424844] max-w-2xl">
-            A bespoke vegetarian harvest tailored to Minh's pantry, thoughtful routines, and curated recipe collection.
-          </p>
+          <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]"><UiText text={"Plan My Week"} /></h1>
+          <p className="mt-1.5 text-sm text-[#424844] max-w-2xl"><UiText text={"A bespoke vegetarian harvest tailored to Minh's pantry, thoughtful routines, and curated recipe collection."} /></p>
         </div>
 
         {/* Action Buttons Top Right */}
@@ -332,13 +330,13 @@ export default function MealPlannerView() {
             className="flex items-center gap-2 rounded-xl bg-white border border-[#EFEEEB] px-4 py-2.5 text-xs font-semibold text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition cursor-pointer"
           >
             <span>✨</span>
-            <span>{isRegenerating ? "Đang tạo lại..." : "Regenerate Plan"}</span>
+            <span>{isRegenerating ? ui("Đang tạo lại...") : ui("Regenerate Plan")}</span>
           </button>
 
           <button
             type="button"
             onClick={() => window.print()}
-            title="In thực đơn"
+            title={ui("In thực đơn")}
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-[#EFEEEB] text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition cursor-pointer"
           >
             <svg
@@ -377,49 +375,35 @@ export default function MealPlannerView() {
                   <h3 className="font-semibold text-sm text-[#07241A]">
                     Minh Tran
                   </h3>
-                  <p className="text-[11px] text-[#727974]">
-                    Intentional Eater · Hanoi Studio
-                  </p>
+                  <p className="text-[11px] text-[#727974]"><UiText text={"Intentional Eater · Hanoi Studio"} /></p>
                 </div>
               </div>
-              <span className="rounded-full bg-[#FDE8E4] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]">
-                Gentle Cut
-              </span>
+              <span className="rounded-full bg-[#FDE8E4] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]"><UiText text={"Gentle Cut"} /></span>
             </div>
 
             {/* Metrics Row */}
             <div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#FBF9F6] p-3.5 border border-[#EFEEEB]">
               <div>
-                <span className="text-[11px] font-medium text-[#727974]">
-                  Body Tempo
-                </span>
+                <span className="text-[11px] font-medium text-[#727974]"><UiText text={"Body Tempo"} /></span>
                 <p className="mt-0.5 text-xs font-bold text-[#07241A]">
-                  22.5 <span className="font-normal text-[#727974]">Norm</span>
+                  22.5 <span className="font-normal text-[#727974]"><UiText text={"Norm"} /></span>
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-medium text-[#727974]">
-                  Focus
-                </span>
-                <p className="mt-0.5 text-xs font-bold text-[#99462A]">
-                  Weight Loss
-                </p>
+                <span className="text-[11px] font-medium text-[#727974]"><UiText text={"Focus"} /></span>
+                <p className="mt-0.5 text-xs font-bold text-[#99462A]"><UiText text={"Weight Loss"} /></p>
               </div>
             </div>
 
             {/* Avoiding Allergens */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold tracking-wider text-[11px] text-[#727974] uppercase">
-                  AVOIDING ALLERGENS
-                </span>
+                <span className="font-bold tracking-wider text-[11px] text-[#727974] uppercase"><UiText text={"AVOIDING ALLERGENS"} /></span>
                 <button
                   type="button"
                   onClick={() => setShowAddAllergen(!showAddAllergen)}
                   className="font-semibold text-xs text-[#07241A] hover:text-[#1E3A2F] cursor-pointer"
-                >
-                  + Add
-                </button>
+                ><UiText text={"+ Add"} /></button>
               </div>
 
               {/* Add allergen inline form */}
@@ -429,16 +413,14 @@ export default function MealPlannerView() {
                     type="text"
                     value={newAllergen}
                     onChange={(e) => setNewAllergen(e.target.value)}
-                    placeholder="Tên chất dị ứng..."
+                    placeholder={ui("Tên chất dị ứng...")}
                     className="flex-1 rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-1.5 text-xs outline-none"
                     autoFocus
                   />
                   <button
                     type="submit"
                     className="rounded-xl bg-[#07241A] px-3 py-1.5 text-xs font-semibold text-white"
-                  >
-                    Lưu
-                  </button>
+                  ><UiText text={"Lưu"} /></button>
                 </form>
               )}
 
@@ -454,7 +436,7 @@ export default function MealPlannerView() {
                       type="button"
                       onClick={() => handleRemoveAllergen(alg)}
                       className="text-[#727974] hover:text-red-600 transition"
-                      title="Gỡ dị ứng"
+                      title={ui("Gỡ dị ứng")}
                     >
                       ✕
                     </button>
@@ -470,7 +452,7 @@ export default function MealPlannerView() {
             >
               <div className="flex items-center gap-2">
                 <span>🔖</span>
-                <span>12 Saved Recipes in Box</span>
+                <span><UiText text={"12 Saved Recipes in Box"} /></span>
               </div>
               <span>→</span>
             </Link>
@@ -480,12 +462,8 @@ export default function MealPlannerView() {
           <div className="rounded-3xl bg-white p-6 border border-[#EFEEEB] shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-serif text-base font-bold text-[#07241A]">
-                  Larder &amp; Fresh Bin
-                </h3>
-                <p className="text-[11px] text-[#727974]">
-                  Used first to prevent culinary waste
-                </p>
+                <h3 className="font-serif text-base font-bold text-[#07241A]"><UiText text={"Larder & Fresh Bin"} /></h3>
+                <p className="text-[11px] text-[#727974]"><UiText text={"Used first to prevent culinary waste"} /></p>
               </div>
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EFEEEB] text-xs font-bold text-[#07241A]">
                 {pantryIngredients.length}
@@ -499,12 +477,12 @@ export default function MealPlannerView() {
                   key={item}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-[#E8F1EC] px-3 py-1.5 text-xs font-medium text-[#07241A] border border-[#D9E6DC]"
                 >
-                  <span>{item}</span>
+                  <span>{<UiText text={item} />}</span>
                   <button
                     type="button"
                     onClick={() => handleRemovePantry(item)}
                     className="text-[#727974] hover:text-red-600 transition"
-                    title="Xóa nguyên liệu"
+                    title={ui("Xóa nguyên liệu")}
                   >
                     ✕
                   </button>
@@ -518,20 +496,16 @@ export default function MealPlannerView() {
                 type="text"
                 value={newPantryItem}
                 onChange={(e) => setNewPantryItem(e.target.value)}
-                placeholder="Add pantry staple (e.g., Lemongrass)"
+                placeholder={ui("Add pantry staple (e.g., Lemongrass)")}
                 className="flex-1 rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs text-[#07241A] outline-none placeholder:text-[#727974] focus:border-[#1E3A2F]"
               />
               <button
                 type="submit"
                 className="rounded-xl bg-[#F5F3F0] border border-[#EFEEEB] px-3 py-2 text-xs font-semibold text-[#07241A] hover:bg-[#D9E6DC]/50 cursor-pointer"
-              >
-                + Add
-              </button>
+              ><UiText text={"+ Add"} /></button>
             </form>
 
-            <p className="text-[11px] text-[#727974] italic">
-              AI prioritizes these ingredients in Monday &amp; Tuesday courses.
-            </p>
+            <p className="text-[11px] text-[#727974] italic"><UiText text={"AI prioritizes these ingredients in Monday & Tuesday courses."} /></p>
 
             {/* Big Action Button */}
             <button
@@ -540,7 +514,7 @@ export default function MealPlannerView() {
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#07241A] py-3 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] cursor-pointer"
             >
               <span>⚡</span>
-              <span>Generate My 7-Day Plan</span>
+              <span><UiText text={"Generate My 7-Day Plan"} /></span>
             </button>
           </div>
 
@@ -548,11 +522,9 @@ export default function MealPlannerView() {
           <div className="rounded-3xl bg-[#FBF9F6] p-5 border border-[#EFEEEB] space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#07241A]">
               <span>🥕</span>
-              <span>Pantry Utilization: 84%</span>
+              <span><UiText text={"Pantry Utilization: 84%"} /></span>
             </div>
-            <p className="text-xs leading-relaxed text-[#727974]">
-              By prioritizing your tofu and mushrooms within 48 hours, you avoid food waste while staying aligned with your light deficit.
-            </p>
+            <p className="text-xs leading-relaxed text-[#727974]"><UiText text={"By prioritizing your tofu and mushrooms within 48 hours, you avoid food waste while staying aligned with your light deficit."} /></p>
           </div>
         </div>
 
@@ -566,15 +538,15 @@ export default function MealPlannerView() {
               <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-2.5">
                 <div className="flex items-baseline gap-2.5">
                   <h2 className="font-serif text-2xl font-bold text-[#07241A]">
-                    {day.dayName}
+                    {<UiText text={day.dayName} />}
                   </h2>
                   <span className="text-xs text-[#727974]">
-                    {day.theme}
+                    {<UiText text={day.theme} />}
                   </span>
                 </div>
                 <span className="text-xs font-medium text-[#727974] flex items-center gap-1">
                   <span>⏱</span>
-                  <span>{day.totalPrep}</span>
+                  <span>{<UiText text={day.totalPrep} />}</span>
                 </span>
               </div>
 
@@ -596,7 +568,7 @@ export default function MealPlannerView() {
                           unoptimized
                         />
                         <span className="absolute bottom-1 left-1 rounded-md bg-black/60 px-1.5 py-0.2 text-[9px] font-semibold text-white">
-                          {meal.timeLabel}
+                          {<UiText text={meal.timeLabel} />}
                         </span>
                       </div>
 
@@ -604,24 +576,22 @@ export default function MealPlannerView() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#727974]">
-                            {meal.slot}
+                            {<UiText text={meal.slot} />}
                           </span>
                           <span className="text-xs text-[#727974]">·</span>
                           <span className="text-[11px] font-medium text-[#727974]">
-                            {meal.durationCalories}
+                            {<UiText text={meal.durationCalories} />}
                           </span>
                           {meal.isSavedInCollection && (
-                            <span className="rounded-full bg-[#FDE8E4] px-2 py-0.2 text-[10px] font-semibold text-[#99462A]">
-                              Saved in Collection
-                            </span>
+                            <span className="rounded-full bg-[#FDE8E4] px-2 py-0.2 text-[10px] font-semibold text-[#99462A]"><UiText text={"Saved in Collection"} /></span>
                           )}
                         </div>
 
                         <h3 className="font-serif text-base font-bold text-[#07241A]">
-                          {meal.title}
+                          {<UiText text={meal.title} />}
                         </h3>
                         <p className="text-xs text-[#727974] line-clamp-1 max-w-md">
-                          {meal.description}
+                          {<UiText text={meal.description} />}
                         </p>
                       </div>
                     </div>
@@ -632,16 +602,14 @@ export default function MealPlannerView() {
                         type="button"
                         onClick={() => setSelectedMealForView(meal)}
                         className="rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-white hover:shadow-xs transition cursor-pointer"
-                      >
-                        View Recipe
-                      </button>
+                      ><UiText text={"View Recipe"} /></button>
                       <button
                         type="button"
                         onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
                         className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition cursor-pointer"
                       >
                         <span>🔄</span>
-                        <span>Replace</span>
+                        <span><UiText text={"Replace"} /></span>
                       </button>
                     </div>
                   </div>
@@ -658,15 +626,11 @@ export default function MealPlannerView() {
               className="flex w-full items-center justify-between text-left cursor-pointer"
             >
               <div className="flex items-baseline gap-2.5">
-                <h2 className="font-serif text-2xl font-bold text-[#07241A]">
-                  Wednesday
-                </h2>
-                <span className="text-xs text-[#727974]">
-                  Day 3 · Clean Greens &amp; Broths
-                </span>
+                <h2 className="font-serif text-2xl font-bold text-[#07241A]"><UiText text={"Wednesday"} /></h2>
+                <span className="text-xs text-[#727974]"><UiText text={"Day 3 · Clean Greens & Broths"} /></span>
               </div>
               <span className="rounded-full bg-[#EFEEEB] px-3 py-1 text-xs font-semibold text-[#07241A] flex items-center gap-1.5">
-                <span>3 Dishes Planned</span>
+                <span><UiText text={"3 Dishes Planned"} /></span>
                 <span className={`transition-transform ${isWednesdayOpen ? "rotate-180" : ""}`}>
                   ⌵
                 </span>
@@ -677,15 +641,9 @@ export default function MealPlannerView() {
               <div className="space-y-3 pt-2 border-t border-[#EFEEEB] animate-fade-in">
                 <div className="flex items-center justify-between rounded-2xl bg-[#FBF9F6] p-4 text-xs">
                   <div>
-                    <span className="font-bold uppercase text-[10px] text-[#727974]">
-                      BREAKFAST · 15 MINS
-                    </span>
-                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5">
-                      Toasted Sourdough with Edamame Herb Mash
-                    </h4>
-                    <p className="text-[11px] text-[#727974]">
-                      Lemony crushed green soybeans, olive oil, and toasted coriander seeds.
-                    </p>
+                    <span className="font-bold uppercase text-[10px] text-[#727974]"><UiText text={"BREAKFAST · 15 MINS"} /></span>
+                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5"><UiText text={"Toasted Sourdough with Edamame Herb Mash"} /></h4>
+                    <p className="text-[11px] text-[#727974]"><UiText text={"Lemony crushed green soybeans, olive oil, and toasted coriander seeds."} /></p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -704,30 +662,20 @@ export default function MealPlannerView() {
                         })
                       }
                       className="px-3 py-1 font-semibold text-[#07241A] hover:underline"
-                    >
-                      View
-                    </button>
+                    ><UiText text={"View"} /></button>
                     <button
                       type="button"
                       onClick={() => showToast("Đã đổi món thứ 4!")}
                       className="px-3 py-1 font-semibold text-[#727974] hover:text-[#07241A]"
-                    >
-                      Replace
-                    </button>
+                    ><UiText text={"Replace"} /></button>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between rounded-2xl bg-[#FBF9F6] p-4 text-xs">
                   <div>
-                    <span className="font-bold uppercase text-[10px] text-[#727974]">
-                      LUNCH · 20 MINS
-                    </span>
-                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5">
-                      Garlic Bok Choy &amp; Glass Noodle Tangle
-                    </h4>
-                    <p className="text-[11px] text-[#727974]">
-                      Wok-tossed farm greens with ginger, light tamari, and roasted sesame.
-                    </p>
+                    <span className="font-bold uppercase text-[10px] text-[#727974]"><UiText text={"LUNCH · 20 MINS"} /></span>
+                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5"><UiText text={"Garlic Bok Choy & Glass Noodle Tangle"} /></h4>
+                    <p className="text-[11px] text-[#727974]"><UiText text={"Wok-tossed farm greens with ginger, light tamari, and roasted sesame."} /></p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -746,30 +694,20 @@ export default function MealPlannerView() {
                         })
                       }
                       className="px-3 py-1 font-semibold text-[#07241A] hover:underline"
-                    >
-                      View
-                    </button>
+                    ><UiText text={"View"} /></button>
                     <button
                       type="button"
                       onClick={() => showToast("Đã đổi món thứ 4!")}
                       className="px-3 py-1 font-semibold text-[#727974] hover:text-[#07241A]"
-                    >
-                      Replace
-                    </button>
+                    ><UiText text={"Replace"} /></button>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between rounded-2xl bg-[#FBF9F6] p-4 text-xs">
                   <div>
-                    <span className="font-bold uppercase text-[10px] text-[#727974]">
-                      DINNER · 30 MINS
-                    </span>
-                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5">
-                      Kabocha Pumpkin &amp; Coconut Gentle Curry
-                    </h4>
-                    <p className="text-[11px] text-[#727974]">
-                      Sweet squash simmered with light coconut nectar, turmeric, and crisp long beans.
-                    </p>
+                    <span className="font-bold uppercase text-[10px] text-[#727974]"><UiText text={"DINNER · 30 MINS"} /></span>
+                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5"><UiText text={"Kabocha Pumpkin & Coconut Gentle Curry"} /></h4>
+                    <p className="text-[11px] text-[#727974]"><UiText text={"Sweet squash simmered with light coconut nectar, turmeric, and crisp long beans."} /></p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -788,16 +726,12 @@ export default function MealPlannerView() {
                         })
                       }
                       className="px-3 py-1 font-semibold text-[#07241A] hover:underline"
-                    >
-                      View
-                    </button>
+                    ><UiText text={"View"} /></button>
                     <button
                       type="button"
                       onClick={() => showToast("Đã đổi món thứ 4!")}
                       className="px-3 py-1 font-semibold text-[#727974] hover:text-[#07241A]"
-                    >
-                      Replace
-                    </button>
+                    ><UiText text={"Replace"} /></button>
                   </div>
                 </div>
               </div>
@@ -807,59 +741,39 @@ export default function MealPlannerView() {
           {/* ── Thursday – Sunday Overview ──────────────────────────────── */}
           <section className="space-y-4">
             <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-2.5">
-              <h2 className="font-serif text-xl font-bold text-[#07241A]">
-                Thursday – Sunday Overview
-              </h2>
-              <span className="text-xs text-[#727974]">
-                4 Days Remaining
-              </span>
+              <h2 className="font-serif text-xl font-bold text-[#07241A]"><UiText text={"Thursday – Sunday Overview"} /></h2>
+              <span className="text-xs text-[#727974]"><UiText text={"4 Days Remaining"} /></span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-[#EFEEEB] shadow-xs">
                 <div>
-                  <span className="text-[10px] font-bold text-[#727974] uppercase">
-                    Thursday · Day 4
-                  </span>
-                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5">
-                    Braised Tofu with Lemongrass &amp; Chili
-                  </p>
+                  <span className="text-[10px] font-bold text-[#727974] uppercase"><UiText text={"Thursday · Day 4"} /></span>
+                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5"><UiText text={"Braised Tofu with Lemongrass & Chili"} /></p>
                 </div>
                 <span className="text-sm text-[#16a34a]">✓</span>
               </div>
 
               <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-[#EFEEEB] shadow-xs">
                 <div>
-                  <span className="text-[10px] font-bold text-[#727974] uppercase">
-                    Friday · Day 5
-                  </span>
-                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5">
-                    Vietnamese Sweet &amp; Sour Tamarind Soup
-                  </p>
+                  <span className="text-[10px] font-bold text-[#727974] uppercase"><UiText text={"Friday · Day 5"} /></span>
+                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5"><UiText text={"Vietnamese Sweet & Sour Tamarind Soup"} /></p>
                 </div>
                 <span className="text-sm text-[#16a34a]">✓</span>
               </div>
 
               <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-[#EFEEEB] shadow-xs">
                 <div>
-                  <span className="text-[10px] font-bold text-[#727974] uppercase">
-                    Saturday · Day 6
-                  </span>
-                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5">
-                    Mushroom &amp; Green Herb Rice Pot
-                  </p>
+                  <span className="text-[10px] font-bold text-[#727974] uppercase"><UiText text={"Saturday · Day 6"} /></span>
+                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5"><UiText text={"Mushroom & Green Herb Rice Pot"} /></p>
                 </div>
                 <span className="text-sm text-[#16a34a]">✓</span>
               </div>
 
               <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-[#EFEEEB] shadow-xs">
                 <div>
-                  <span className="text-[10px] font-bold text-[#727974] uppercase">
-                    Sunday · Day 7
-                  </span>
-                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5">
-                    Family Feast: Mushroom Hotpot Table
-                  </p>
+                  <span className="text-[10px] font-bold text-[#727974] uppercase"><UiText text={"Sunday · Day 7"} /></span>
+                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5"><UiText text={"Family Feast: Mushroom Hotpot Table"} /></p>
                 </div>
                 <span className="text-base">🍲</span>
               </div>
@@ -900,33 +814,29 @@ export default function MealPlannerView() {
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#99462A]">
-                  {selectedMealForView.slot} · {selectedMealForView.durationCalories}
+                  {<UiText text={selectedMealForView.slot} />} · {<UiText text={selectedMealForView.durationCalories} />}
                 </span>
                 <h3 className="mt-1 font-serif text-2xl font-bold text-[#07241A]">
-                  {selectedMealForView.title}
+                  {<UiText text={selectedMealForView.title} />}
                 </h3>
                 <p className="mt-1 text-xs text-[#727974] leading-relaxed">
-                  {selectedMealForView.description}
+                  {<UiText text={selectedMealForView.description} />}
                 </p>
               </div>
 
               {/* Ingredients */}
               <div className="space-y-1.5 border-t border-[#EFEEEB] pt-3">
-                <h4 className="text-xs font-bold text-[#07241A]">
-                  🥗 Nguyên liệu cần chuẩn bị:
-                </h4>
+                <h4 className="text-xs font-bold text-[#07241A]"><UiText text={"🥗 Nguyên liệu cần chuẩn bị:"} /></h4>
                 <ul className="list-disc pl-5 text-xs text-[#424844] space-y-1">
                   {selectedMealForView.ingredients.map((ing, i) => (
-                    <li key={i}>{ing}</li>
+                    <li key={i}>{<UiText text={ing} />}</li>
                   ))}
                 </ul>
               </div>
 
               {/* Steps */}
               <div className="space-y-1.5 border-t border-[#EFEEEB] pt-3">
-                <h4 className="text-xs font-bold text-[#07241A]">
-                  🍳 Hướng dẫn chế biến:
-                </h4>
+                <h4 className="text-xs font-bold text-[#07241A]"><UiText text={"🍳 Hướng dẫn chế biến:"} /></h4>
                 <ol className="list-decimal pl-5 text-xs text-[#424844] space-y-1.5">
                   {selectedMealForView.steps.map((st, i) => (
                     <li key={i}>{st}</li>
@@ -939,9 +849,7 @@ export default function MealPlannerView() {
                   type="button"
                   onClick={() => setSelectedMealForView(null)}
                   className="rounded-xl bg-[#07241A] px-5 py-2 text-xs font-semibold text-white hover:bg-[#1E3A2F]"
-                >
-                  Đóng
-                </button>
+                ><UiText text={"Đóng"} /></button>
               </div>
             </div>
           </div>

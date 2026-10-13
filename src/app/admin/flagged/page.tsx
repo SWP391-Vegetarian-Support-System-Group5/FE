@@ -1,5 +1,9 @@
 "use client";
 
+import { LanguageSwitch } from "@/components/UiText";
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,6 +13,7 @@ import { useAdminModeration } from "@/context/AdminModerationContext";
 type FilterTab = "All" | "Content" | "Comments";
 
 export default function AdminFlaggedPage() {
+  const ui = useUiText();
   const { user } = useAuth();
   const {
     flaggedCount,
@@ -65,7 +70,7 @@ export default function AdminFlaggedPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
             </svg>
-            <span>Admin Area</span>
+            <span><UiText text={"Admin Area"} /></span>
           </div>
         </div>
 
@@ -74,7 +79,7 @@ export default function AdminFlaggedPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search admin..."
+              placeholder={ui("Search admin...")}
               className="w-60 rounded-full border border-[#EFEEEB] bg-white py-1.5 pl-8 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-sm focus:border-[#1E3A2F] focus:outline-none"
             />
             <svg
@@ -91,22 +96,14 @@ export default function AdminFlaggedPage() {
             </svg>
           </div>
 
-          <button
-            type="button"
-            className="flex items-center gap-1 rounded-xl border border-[#EFEEEB] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#07241A] shadow-sm hover:bg-gray-50"
-          >
-            <span>EN</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
+          <LanguageSwitch />
 
           <div className="flex items-center gap-2 pl-2">
             <div className="text-right">
               <p className="text-xs font-bold text-[#07241A] leading-tight">
                 {user?.fullName || "Admin"}
               </p>
-              <p className="text-[10px] text-[#727974] leading-tight">Supervisor</p>
+              <p className="text-[10px] text-[#727974] leading-tight"><UiText text={"Supervisor"} /></p>
             </div>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white shadow-sm">
               AD
@@ -138,18 +135,14 @@ export default function AdminFlaggedPage() {
       <div className="flex items-start justify-between pt-2">
         <div>
           <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-            <span>EDITORIAL MODERATION</span>
+            <span><UiText text={"EDITORIAL MODERATION"} /></span>
             <span>/</span>
             <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[10px] font-bold text-[#C2410C]">
-              {flaggedCount} {flaggedCount === 1 ? "Pending Review" : "Pending Reviews"}
+              {flaggedCount} {flaggedCount === 1 ? ui("Pending Review") : ui("Pending Reviews")}
             </span>
           </div>
-          <h1 className="mt-1 font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]">
-            AI Flagged Content
-          </h1>
-          <p className="mt-1 text-xs text-[#727974] max-w-xl">
-            Review content flagged by VeggieAI before moderation. Administrator makes the final decision.
-          </p>
+          <h1 className="mt-1 font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]"><UiText text={"AI Flagged Content"} /></h1>
+          <p className="mt-1 text-xs text-[#727974] max-w-xl"><UiText text={"Review content flagged by VeggieAI before moderation. Administrator makes the final decision."} /></p>
         </div>
 
         {/* Calm Guardian Active Card */}
@@ -160,8 +153,8 @@ export default function AdminFlaggedPage() {
             </svg>
           </div>
           <div>
-            <p className="text-xs font-bold text-[#9A3412]">Calm Guardian Active</p>
-            <p className="text-[10px] text-[#9A3412]/80">Non-intrusive safety stream</p>
+            <p className="text-xs font-bold text-[#9A3412]"><UiText text={"Calm Guardian Active"} /></p>
+            <p className="text-[10px] text-[#9A3412]/80"><UiText text={"Non-intrusive safety stream"} /></p>
           </div>
         </div>
       </div>
@@ -176,10 +169,8 @@ export default function AdminFlaggedPage() {
             </svg>
           </div>
           <div>
-            <p className="text-xs font-bold text-[#07241A]">Community Care Note</p>
-            <p className="text-[11px] text-[#727974] leading-relaxed">
-              VeggieAI identifies potential issues such as misleading ingredient claims or reported text. Content remains online until reviewed.
-            </p>
+            <p className="text-xs font-bold text-[#07241A]"><UiText text={"Community Care Note"} /></p>
+            <p className="text-[11px] text-[#727974] leading-relaxed"><UiText text={"VeggieAI identifies potential issues such as misleading ingredient claims or reported text. Content remains online until reviewed."} /></p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 text-xs text-[#727974] pl-4">
@@ -187,7 +178,7 @@ export default function AdminFlaggedPage() {
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <span>Average decision time: 4m</span>
+          <span><UiText text={"Average decision time: 4m"} /></span>
         </div>
       </div>
 
@@ -203,8 +194,7 @@ export default function AdminFlaggedPage() {
                 ? "bg-[#1E3A2F] text-white shadow-sm"
                 : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
             }`}
-          >
-            All ({flaggedCount})
+          ><UiText text={"All ("} />{flaggedCount})
           </button>
           <button
             type="button"
@@ -214,8 +204,7 @@ export default function AdminFlaggedPage() {
                 ? "bg-[#1E3A2F] text-white shadow-sm"
                 : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
             }`}
-          >
-            Content ({contentCount})
+          ><UiText text={"Content ("} />{contentCount})
           </button>
           <button
             type="button"
@@ -225,8 +214,7 @@ export default function AdminFlaggedPage() {
                 ? "bg-[#1E3A2F] text-white shadow-sm"
                 : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
             }`}
-          >
-            Comments ({commentsCount})
+          ><UiText text={"Comments ("} />{commentsCount})
           </button>
         </div>
 
@@ -237,7 +225,7 @@ export default function AdminFlaggedPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search flagged content, authors, or reasons..."
+              placeholder={ui("Search flagged content, authors, or reasons...")}
               className="w-72 rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] py-2 pl-9 pr-4 text-xs text-[#07241A] placeholder-[#727974] shadow-sm focus:border-[#1E3A2F] focus:bg-white focus:outline-none transition"
             />
             <svg
@@ -263,7 +251,7 @@ export default function AdminFlaggedPage() {
               <line x1="21" x2="7" y1="12" y2="12" />
               <line x1="21" x2="11" y1="18" y2="18" />
             </svg>
-            <span>Filter</span>
+            <span><UiText text={"Filter"} /></span>
           </button>
         </div>
       </div>
@@ -286,9 +274,7 @@ export default function AdminFlaggedPage() {
                         <span className="font-serif text-2xl font-bold text-[#C2410C] leading-none">
                           “
                         </span>
-                        <span className="rounded bg-white px-2 py-0.5 text-[10px] font-bold text-[#727974] border border-[#EFEEEB]">
-                          Comment
-                        </span>
+                        <span className="rounded bg-white px-2 py-0.5 text-[10px] font-bold text-[#727974] border border-[#EFEEEB]"><UiText text={"Comment"} /></span>
                       </div>
                       <p className="text-xs italic text-[#07241A] leading-relaxed">
                         {item.commentQuote}
@@ -342,10 +328,10 @@ export default function AdminFlaggedPage() {
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 text-[#727974] text-[11px] font-medium">
                       <span className="uppercase tracking-wider">
-                        {item.category === "Comment" ? "FLAGGED ITEM — COMMENT" : `FLAGGED CONTENT — ${item.category.toUpperCase()}`}
+                        {item.category === "Comment" ? ui("FLAGGED ITEM — COMMENT") : `FLAGGED CONTENT — ${item.category.toUpperCase()}`}
                       </span>
                       <span>•</span>
-                      <span>⏱ Flagged {item.flagTime}</span>
+                      <span><UiText text={"⏱ Flagged"} />{" "}{item.flagTime}</span>
                     </div>
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${item.flagTypeColor}`}>
                       ⚑ {item.flagTypeTag}
@@ -375,7 +361,7 @@ export default function AdminFlaggedPage() {
                       </div>
                     )}
                     <span>
-                      {item.category === "Comment" ? "Posted by" : "Submitted by"}{" "}
+                      {item.category === "Comment" ? ui("Posted by") : ui("Submitted by")}{" "}
                       <strong className="text-[#07241A]">{item.authorName}</strong> ({item.authorBadge})
                     </span>
                   </div>
@@ -388,7 +374,7 @@ export default function AdminFlaggedPage() {
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                       </svg>
-                      <span>Flag Reason</span>
+                      <span><UiText text={"Flag Reason"} /></span>
                     </div>
                     <p className="text-xs text-[#424844] leading-relaxed">
                       {item.flagReason}
@@ -420,7 +406,7 @@ export default function AdminFlaggedPage() {
                       <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
-                    <span>{item.category === "Comment" ? "View Full Context" : "View Content"}</span>
+                    <span>{item.category === "Comment" ? ui("View Full Context") : ui("View Content")}</span>
                   </button>
 
                   <button
@@ -431,7 +417,7 @@ export default function AdminFlaggedPage() {
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <span>Keep (Dismiss Flag)</span>
+                    <span><UiText text={"Keep (Dismiss Flag)"} /></span>
                   </button>
 
                   <button
@@ -444,7 +430,7 @@ export default function AdminFlaggedPage() {
                       <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
                       <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                     </svg>
-                    <span>Remove Content</span>
+                    <span><UiText text={"Remove Content"} /></span>
                   </button>
                 </div>
               </div>
@@ -459,18 +445,14 @@ export default function AdminFlaggedPage() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h3 className="font-serif text-lg font-bold text-[#07241A]">Không có nội dung cắm cờ đang chờ duyệt</h3>
-            <p className="mt-1 text-xs text-[#727974] max-w-md">
-              Tất cả các cảnh báo hoặc báo cáo từ cộng đồng trong mục này đã được xử lý. Hệ thống VeggieAI đang tiếp tục giám sát theo thời gian thực.
-            </p>
+            <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Không có nội dung cắm cờ đang chờ duyệt"} /></h3>
+            <p className="mt-1 text-xs text-[#727974] max-w-md"><UiText text={"Tất cả các cảnh báo hoặc báo cáo từ cộng đồng trong mục này đã được xử lý. Hệ thống VeggieAI đang tiếp tục giám sát theo thời gian thực."} /></p>
             {flaggedCount === 0 && (
               <button
                 type="button"
                 onClick={resetAll}
                 className="mt-4 rounded-xl border border-[#1E3A2F] bg-[#1E3A2F] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#07241A] transition"
-              >
-                Khôi phục lại dữ liệu mẫu (12 nội dung)
-              </button>
+              ><UiText text={"Khôi phục lại dữ liệu mẫu (12 nội dung)"} /></button>
             )}
           </div>
         )}
@@ -478,17 +460,13 @@ export default function AdminFlaggedPage() {
 
       {/* Pagination Footer */}
       <div className="flex items-center justify-between border-t border-[#EFEEEB] pt-4 text-xs text-[#727974]">
-        <p>
-          Displaying <span className="font-bold text-[#07241A]">{filteredItems.length}</span> of{" "}
-          <span className="font-bold text-[#07241A]">{flaggedCount}</span> flagged items awaiting administrator review
-        </p>
+        <p><UiText text={"Displaying"} />{" "}<span className="font-bold text-[#07241A]">{filteredItems.length}</span>{" "}<UiText text={"of"} />{" "}
+          <span className="font-bold text-[#07241A]">{flaggedCount}</span>{" "}<UiText text={"flagged items awaiting administrator review"} /></p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             className="rounded-lg border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-medium text-[#727974] hover:bg-gray-50"
-          >
-            Previous
-          </button>
+          ><UiText text={"Previous"} /></button>
           <button
             type="button"
             className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white shadow-sm"
@@ -504,9 +482,7 @@ export default function AdminFlaggedPage() {
           <button
             type="button"
             className="rounded-lg border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-medium text-[#07241A] hover:bg-gray-50"
-          >
-            Next
-          </button>
+          ><UiText text={"Next"} /></button>
         </div>
       </div>
     </div>

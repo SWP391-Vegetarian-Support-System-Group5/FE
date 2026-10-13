@@ -1,5 +1,8 @@
 "use client";
 
+import { useUiText } from "@/components/UiText";
+
+
 import { useEffect, useRef, useState } from "react";
 import { locationApi } from "@/lib/location-api";
 import type { Coordinates } from "@/types/location";
@@ -20,6 +23,7 @@ type Props = {
 };
 
 export default function AddressAutocomplete({ value, center, onChange, onSelect, onSearch }: Props) {
+  const ui = useUiText();
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const requestId = useRef(0);
@@ -53,7 +57,7 @@ export default function AddressAutocomplete({ value, center, onChange, onSelect,
         onFocus={() => setOpen(true)}
         onBlur={() => window.setTimeout(() => setOpen(false), 150)}
         onKeyDown={(event) => event.key === "Enter" && (setOpen(false), onSearch())}
-        placeholder="Số nhà, tên đường, phường/xã"
+        placeholder={ui("Số nhà, tên đường, phường/xã")}
         autoComplete="off"
         className="w-full bg-transparent py-3.5 text-sm font-normal text-[#18372a] outline-none"
       />
