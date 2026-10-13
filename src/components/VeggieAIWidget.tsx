@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getStoredToken } from "@/lib/auth";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   ChatMessageItem,
   createChatSession,
@@ -16,6 +17,7 @@ import {
 
 export default function VeggieAIWidget() {
   const { t } = useLanguage();
+  const { user, loading: authLoading } = useAuth();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
@@ -30,6 +32,23 @@ export default function VeggieAIWidget() {
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const sessionAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    setSessionId(null);
+    setGuestToken(null);
+    setMessages([]);
+    setSignupRequired(false);
+    setRemainingGuestMessages(null);
+    sessionAttemptedRef.current = false;
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user && sessionId !== null && !isLoadingSession) {
+      const remaining = Math.max(0, 5 - messages.filter(message => message.sender === "USER").length);
+      setRemainingGuestMessages(remaining);
+      setSignupRequired(remaining === 0);
+    }
+  }, [user, sessionId, isLoadingSession, messages]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -95,11 +114,11 @@ export default function VeggieAIWidget() {
   }, [t]);
 
   useEffect(() => {
-    if (isOpen && sessionId === null && !isLoadingSession && !sessionAttemptedRef.current) {
+    if (!authLoading && isOpen && sessionId === null && !isLoadingSession && !sessionAttemptedRef.current) {
       sessionAttemptedRef.current = true;
       initSession();
     }
-  }, [isOpen, sessionId, isLoadingSession, initSession]);
+  }, [authLoading, isOpen, sessionId, isLoadingSession, initSession]);
 
   const handleStartNewChat = async () => {
     setIsLoadingSession(true);
@@ -109,8 +128,10 @@ export default function VeggieAIWidget() {
       const newSession = await createChatSession();
       setSessionId(newSession.chatSessionId);
       setGuestToken(newSession.guestAccessToken || null);
-      setMessages([]);
-      setRemainingGuestMessages(null);
+      setMessages(newSession.messages || []);
+      const remaining = Math.max(0, 5 - newSession.messages.filter(message => message.sender === "USER").length);
+      setRemainingGuestMessages(newSession.userId === null ? remaining : null);
+      setSignupRequired(newSession.userId === null && remaining === 0);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t("Could not create a new conversation", "Không thể tạo hội thoại mới");
       setError(msg);
@@ -154,6 +175,12 @@ export default function VeggieAIWidget() {
       }
 
       const res = await sendChatMessage(activeSessionId, content, activeGuestToken);
+      if (res.signupRequired) {
+        setSignupRequired(true);
+        setRemainingGuestMessages(0);
+        setMessages(prev => prev.filter(message => message !== userMsg));
+        return;
+      }
 
       if (res.signupRequired) {
         setSignupRequired(true);

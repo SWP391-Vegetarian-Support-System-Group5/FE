@@ -9,12 +9,16 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props) {
-  const recipe = getDetailRecipe((await params).slug);
+  const slug = (await params).slug;
+  if (/^\d+$/.test(slug)) return { title: "Community Recipe" };
+  const recipe = getDetailRecipe(slug);
   return { title: recipe ? recipe.title[0] : "Recipe not found" };
 }
 
 export default async function Page({ params }: Props) {
-  const recipe = getDetailRecipe((await params).slug);
+  const slug = (await params).slug;
+  if (/^\d+$/.test(slug)) return <ContentDetailScreen postId={Number(slug)} />;
+  const recipe = getDetailRecipe(slug);
   if (!recipe) notFound();
   return <ContentDetailScreen recipe={recipe} />;
 }

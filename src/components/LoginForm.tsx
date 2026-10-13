@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, updateCurrentUserLocation } from "@/lib/auth";
+import { ApiError, getStoredToken, updateCurrentUserLocation } from "@/lib/auth";
+import { useLanguage } from "@/context/LanguageContext";
 
 function requestBrowserLocation(): Promise<GeolocationPosition | null> {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -20,9 +21,9 @@ function requestBrowserLocation(): Promise<GeolocationPosition | null> {
   });
 }
 
-async function captureLocationAfterLogin() {
+async function captureLocationAfterLogin(expectedToken: string) {
   const position = await requestBrowserLocation();
-  if (!position) return;
+  if (!position || getStoredToken() !== expectedToken) return;
 
   await updateCurrentUserLocation(
     position.coords.latitude,
@@ -31,6 +32,7 @@ async function captureLocationAfterLogin() {
 }
 
 export default function LoginForm() {
+  const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signInWithGoogle, loginWithCredentials, user, error: authError, clearError } = useAuth();
@@ -45,6 +47,8 @@ export default function LoginForm() {
   const [isUnverified403, setIsUnverified403] = useState(false);
   const [isDeactivated403, setIsDeactivated403] = useState(false);
   const [verifiedSuccess, setVerifiedSuccess] = useState(false);
+
+  useEffect(() => { if (user) router.replace("/"); }, [user, router]);
 
   useEffect(() => {
     const verifiedParam = searchParams.get("verified");
@@ -68,7 +72,7 @@ export default function LoginForm() {
       clearError();
       const signedInUser = await signInWithGoogle();
       if (signedInUser) {
-        router.push("/");
+        router.replace("/");
       }
     } catch (err: unknown) {
       const msg =
@@ -98,17 +102,8 @@ export default function LoginForm() {
     try {
       setIsSubmitting(true);
       const loginRes = await loginWithCredentials(targetEmail, password);
-      try {
-        await captureLocationAfterLogin();
-      } catch {
-        // Location is useful for recommendations, but login must still succeed.
-      }
-      // Điều hướng theo phân quyền: Admin vào /admin, user thường vào trang chủ /
-      if (loginRes?.user?.role?.toLowerCase() === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/");
-      }
+      router.replace("/");
+      if (loginRes.user.role.toLowerCase() !== "admin") void captureLocationAfterLogin(loginRes.token).catch(() => {});
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         const lowerMsg = (err.message || "").toLowerCase();
@@ -194,10 +189,10 @@ export default function LoginForm() {
           </span>
         </Link>
         <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]">
-          Welcome to VeggieMate
+          {t("Welcome to VeggieMate", "Chào mừng đến VeggieMate")}
         </h1>
         <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]">
-          Sign in to save recipes, join mindful discussions, and access personalized plant-based nutrition.
+          {t("Sign in to save recipes, join discussions, and access personalized meal plans.", "Đăng nhập để lưu công thức, bình luận và sử dụng thực đơn cá nhân hóa.")}
         </p>
       </div>
 
@@ -206,7 +201,7 @@ export default function LoginForm() {
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
           <span className="text-sm font-bold text-emerald-700">✓</span>
           <div className="flex-1 leading-relaxed">
-            <p className="font-semibold">Email verified successfully. Please log in.</p>
+            <p className="font-semibold">{t("Email verified successfully. Please log in.", "Email đã được xác thực. Vui lòng đăng nhập.")}</p>
             <p className="text-[11px] text-[#526359] mt-0.5">
               Tài khoản của bạn đã được kích hoạt thành công. Hãy nhập mật khẩu để đăng nhập.
             </p>
@@ -222,22 +217,6 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* Logged in notification if already authenticated */}
-      {user && (
-        <div className="mt-4 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
-          <div className="flex items-center justify-between">
-            <span>
-              Đã đăng nhập: <strong>{user.displayName || user.email}</strong>
-            </span>
-            <Link
-              href="/"
-              className="font-semibold text-[#1E3A2F] underline hover:text-[#07241A]"
-            >
-              Về trang chủ
-            </Link>
-          </div>
-        </div>
-      )}
 
       {/* Error Banner */}
       {activeError && (
@@ -350,7 +329,7 @@ export default function LoginForm() {
             </svg>
           )}
           <span>
-            {isGoogleLoading ? "Connecting to Google..." : "Continue with Google"}
+            {isGoogleLoading ? t("Connecting to Google...", "Đang kết nối Google...") : t("Continue with Google", "Tiếp tục với Google")}
           </span>
         </button>
       </div>
@@ -359,7 +338,7 @@ export default function LoginForm() {
       <div className="relative my-6 flex items-center justify-center">
         <div className="w-full border-t border-[#EFEEEB]" />
         <span className="absolute bg-white px-3 text-xs font-medium text-[#727974]">
-          or
+          {t("or", "hoặc")}
         </span>
       </div>
 
@@ -370,7 +349,7 @@ export default function LoginForm() {
             htmlFor="email"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
           >
-            Email address
+            {t("Email address", "Địa chỉ email")}
           </label>
           <div className="relative">
             <input
@@ -397,13 +376,13 @@ export default function LoginForm() {
               htmlFor="password"
               className="block text-xs font-semibold text-[#07241A]"
             >
-              Password
+              {t("Password", "Mật khẩu")}
             </label>
             <a
               href="#forgot-password"
               className="text-[11px] font-semibold text-[#99462A] hover:underline"
             >
-              Forgot password?
+              {t("Forgot password?", "Quên mật khẩu?")}
             </a>
           </div>
           <div className="relative">
@@ -469,11 +448,11 @@ export default function LoginForm() {
                     className="opacity-75"
                   />
                 </svg>
-                <span>Đang đăng nhập...</span>
+                <span>{t("Đang đăng nhập...", "Đang đăng nhập...")}</span>
               </>
             ) : (
               <>
-                <span>Log In</span>
+                <span>{t("Log In", "Đăng nhập")}</span>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
@@ -486,12 +465,12 @@ export default function LoginForm() {
 
       {/* Switch to Register */}
       <div className="mt-5 text-center text-xs text-[#424844]">
-        <span>Don&apos;t have an account? </span>
+        <span>{t("Don’t have an account? ", "Chưa có tài khoản? ")}</span>
         <Link
           href="/register"
           className="font-semibold text-[#07241A] underline underline-offset-2 hover:text-[#1E3A2F]"
         >
-          Create New Account
+          {t("Create New Account", "Tạo tài khoản")}
         </Link>
       </div>
 

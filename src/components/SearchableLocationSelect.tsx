@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export type SearchableLocationOption = {
   code: string;
@@ -36,6 +37,7 @@ export default function SearchableLocationSelect({
   onSelect,
   className = "",
 }: Props) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -104,7 +106,7 @@ export default function SearchableLocationSelect({
           </div>
           <div className="max-h-56 overflow-y-auto py-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-[#727974]">No result</div>
+              <div className="px-4 py-3 text-sm text-[#727974]">{t("No result", "Không có kết quả")}</div>
             ) : (
               filteredOptions.map((option) => (
                 <button

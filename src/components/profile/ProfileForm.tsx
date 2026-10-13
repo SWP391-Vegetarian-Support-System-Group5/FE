@@ -29,6 +29,9 @@ import {
   type UpdateProfilePayload,
 } from "@/lib/profile-api";
 import { getStoredToken } from "@/lib/auth";
+import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
+import { saveLivingLocation } from "@/lib/living-location";
+import { useLanguage } from "@/context/LanguageContext";
 
 const ProfileLeafletMap = dynamic(() => import("@/components/profile/ProfileLeafletMap"), {
   ssr: false,
@@ -69,6 +72,7 @@ function validateDraft(d: ProfileDraft): ProfileErrors {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function ProfileForm() {
+  const { language, t } = useLanguage();
   // ── Core state ────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -235,6 +239,7 @@ export default function ProfileForm() {
   const bmiCategory = bmi !== null ? classifyBmi(bmi) : null;
 
   const currentDietType = dietTypes.find((d) => d.dietTypeId === draft.dietTypeId);
+  const currentDietTypeExplanation = dietTypeAvoidsText(currentDietType, language);
 
   const selectedProvince = provinces.find((p) => p.code === selectedProvinceCode);
   const selectedArea = areas.find((a) => a.code === selectedAreaCode);
@@ -404,6 +409,14 @@ export default function ProfileForm() {
       setDraft(newDraft);
       setSavedDraft({ ...newDraft });
       setSavedAllergenIds([...selectedAllergenIds]);
+      if (updatedProfile.latitude != null && updatedProfile.longitude != null) {
+        saveLivingLocation({
+          provinceCode: selectedProvinceCode || "hochiminh",
+          areaCode: selectedAreaCode || "all",
+          address: addressQuery,
+          center: { lat: updatedProfile.latitude, lng: updatedProfile.longitude },
+        });
+      }
       setErrors({});
       setToastMessage("Profile updated successfully.");
     } catch (err) {
@@ -422,7 +435,7 @@ export default function ProfileForm() {
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
           <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
         </svg>
-        <span className="text-sm text-[#727974]">Loading profile…</span>
+        <span className="text-sm text-[#727974]">{t("Loading profile...", "Đang tải hồ sơ...")}</span>
       </div>
     );
   }
@@ -667,11 +680,13 @@ export default function ProfileForm() {
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
             <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]">
-              Health Profile
+              {t("Health Profile", "Hồ sơ sức khỏe")}
             </h2>
             <p className="text-[13px] leading-5 text-[#727974]">
-              Configures ingredient substitutions and nutrient balance in
-              seasonal menus.
+              {t(
+                "Configures ingredient substitutions and nutrient balance in seasonal menus.",
+                "Cấu hình thay thế nguyên liệu và cân bằng dinh dưỡng cho thực đơn.",
+              )}
             </p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F5F3F0]">
@@ -695,7 +710,7 @@ export default function ProfileForm() {
           {/* Height */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Height
+              {t("Height", "Chiều cao")}
             </label>
             <div className="relative">
               <input
@@ -720,7 +735,7 @@ export default function ProfileForm() {
           {/* Weight */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Weight
+              {t("Weight", "Cân nặng")}
             </label>
             <div className="relative">
               <input
@@ -746,7 +761,7 @@ export default function ProfileForm() {
         {/* Row 2: Vegetarian Diet Type (full-width dropdown from API) */}
         <div className="mt-6 flex flex-col gap-1.5">
           <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-            Vegetarian Diet Type
+            {t("Vegetarian Diet Type", "Kiểu ăn chay")}
           </label>
           <div ref={dietDropdownRef} className="relative">
             <button
@@ -756,8 +771,8 @@ export default function ProfileForm() {
             >
               <span>
                 {currentDietType
-                  ? `${currentDietType.name}${currentDietType.description ? ` (${currentDietType.description})` : ""}`
-                  : "Select diet type"}
+                  ? `${formatDietTypeName(currentDietType.name, language)}${currentDietType.description ? ` (${currentDietType.description})` : ""}`
+                  : t("Select diet type", "Chọn kiểu ăn chay")}
               </span>
               <svg
                 width="8"
@@ -796,7 +811,7 @@ export default function ProfileForm() {
                           : "text-[#1B1C1A]"
                       }`}
                     >
-                      {dt.name}
+                      {formatDietTypeName(dt.name, language)}
                     </span>
                     {dt.description && (
                       <span className="text-xs text-[#727974]">
@@ -809,7 +824,7 @@ export default function ProfileForm() {
             )}
           </div>
           <p className="mt-0.5 text-[13px] leading-5 text-[#727974]">
-            Used to match recipes and personalize your meal plan.
+            {currentDietTypeExplanation}
           </p>
         </div>
 
@@ -1006,11 +1021,10 @@ export default function ProfileForm() {
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
             <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]">
-              Living Location
+              {t("Living Location", "Vị trí sinh sống")}
             </h2>
             <p className="text-[13px] leading-5 text-[#727974]">
-              Your home base coordinates for organic markets, plant bistros, and
-              localized seasonal harvest.
+              {t("Your home base coordinates for vegetarian restaurants, plant bistros, and nearby places.", "Tọa độ nơi ở của bạn để tìm nhà hàng chay, quán thuần thực vật và địa điểm gần đó.")}
             </p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F5F3F0]">
@@ -1049,15 +1063,10 @@ export default function ProfileForm() {
             </svg>
           </div>
           <p className="text-[13px] leading-5 text-[#727974]">
-            Your location helps VeggieMate recommend vegetarian places near you
-            in the{" "}
-            <span className="font-semibold text-[#07241A]">
-              Vegan Places Guide
-            </span>{" "}
-            and filter neighborhood community dining tables.
+            {t("Your location helps VeggieMate recommend vegetarian places near you in the Vegan Places Guide and filter neighborhood community dining tables.", "Vị trí của bạn giúp VeggieMate gợi ý địa điểm chay gần bạn trong Cẩm nang địa điểm chay và lọc các gợi ý ăn uống quanh khu vực.")}
             <br />
             <span className="text-[11px] italic">
-              Note: Province/area selections are used to find coordinates only — the backend does not store address text.
+              {t("Note: Province/area selections are used to find coordinates only; the backend does not store address text.", "Lưu ý: lựa chọn tỉnh/khu vực chỉ dùng để tìm tọa độ; backend không lưu nội dung địa chỉ.")}
             </span>
           </p>
         </div>
@@ -1065,19 +1074,19 @@ export default function ProfileForm() {
         {/* Row 1: Province & Area dropdowns */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SearchableLocationSelect
-            label="City / Province"
+            label={t("City / Province", "Tỉnh / Thành phố")}
             value={selectedProvinceCode}
             options={provinces}
-            placeholder="Select province"
-            searchPlaceholder="Search province..."
+            placeholder={t("Select province", "Chọn tỉnh/thành")}
+            searchPlaceholder={t("Search province...", "Tìm tỉnh/thành...")}
             onSelect={(code) => void handleProvinceSelect(code)}
           />
           <SearchableLocationSelect
-            label="District / Area"
+            label={t("District / Area", "Quận / Khu vực")}
             value={selectedAreaCode}
             options={areas}
-            placeholder={selectedProvinceCode ? "Select area" : "Select province first"}
-            searchPlaceholder="Search district / area..."
+            placeholder={selectedProvinceCode ? t("Select area", "Chọn khu vực") : t("Select province first", "Chọn tỉnh/thành trước")}
+            searchPlaceholder={t("Search district / area...", "Tìm quận/khu vực...")}
             disabled={areas.length === 0}
             onSelect={(code) => {
               const area = areas.find((item) => item.code === code);
@@ -1089,7 +1098,7 @@ export default function ProfileForm() {
         {/* Row 2: Address search with suggestions */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-            Search Address
+            {t("Search Address", "Tìm địa chỉ")}
           </label>
           <div ref={addressSuggestionsRef} className="relative">
             <svg
@@ -1114,7 +1123,7 @@ export default function ProfileForm() {
                 if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
               }}
               className="w-full rounded-xl bg-[#F5F3F0] py-2.5 pl-11 pr-4 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20"
-              placeholder="Type to search for an address…"
+              placeholder={t("Type to search for an address...", "Nhập để tìm địa chỉ...")}
             />
             {showAddressSuggestions && addressSuggestions.length > 0 && (
               <div className="absolute left-0 top-full z-[1000] mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
@@ -1133,7 +1142,7 @@ export default function ProfileForm() {
           </div>
           {selectedCoords && (
             <p className="text-[11px] text-[#727974]">
-              Selected coordinates: {selectedCoords.lat.toFixed(6)}, {selectedCoords.lng.toFixed(6)}
+              {t("Selected coordinates:", "Tọa độ đã chọn:")} {selectedCoords.lat.toFixed(6)}, {selectedCoords.lng.toFixed(6)}
             </p>
           )}
         </div>

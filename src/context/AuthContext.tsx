@@ -14,6 +14,8 @@ import {
   signInWithPopup,
   signOut as firebaseSignOut,
   AuthError,
+  setPersistence,
+  inMemoryPersistence,
 } from "firebase/auth";
 import { auth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import {
@@ -21,8 +23,8 @@ import {
   LoginResponse,
   loginWithApi,
   logoutWithApi,
-  getStoredUser,
   getStoredToken,
+  getStoredUser,
   clearStoredAuth,
 } from "@/lib/auth";
 
@@ -89,27 +91,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Restore backend user from localStorage
-    const savedUser = getStoredUser();
-    if (savedUser) {
-      setBackendUser(savedUser);
-    }
-
-    // 2. Listen to Firebase auth state changes
+    setBackendUser(getStoredUser());
     let isSubscribed = true;
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (currentFirebaseUser) => {
-        if (!isSubscribed) return;
-        setFirebaseUser(currentFirebaseUser);
-        setLoading(false);
-      },
-      (err) => {
-        if (!isSubscribed) return;
-        setError(mapFirebaseAuthError(err));
-        setLoading(false);
+    let unsubscribe = () => {};
+    async function initialize() {
+      try {
+        if (isFirebaseConfigured()) {
+          await firebaseSignOut(auth);
+          await setPersistence(auth, inMemoryPersistence);
+          if (!isSubscribed) return;
+          unsubscribe = onAuthStateChanged(auth, (current) => {
+            if (isSubscribed) setFirebaseUser(current);
+          });
+        }
+      } finally {
+        if (isSubscribed) setLoading(false);
       }
-    );
+    }
+    void initialize().catch(() => { if (isSubscribed) setFirebaseUser(null); });
 
     return () => {
       isSubscribed = false;
@@ -160,6 +159,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async (): Promise<void> => {
     setError(null);
+    setBackendUser(null);
+    setFirebaseUser(null);
     try {
       // If we have a backend session, call backend logout API
       await logoutWithApi();

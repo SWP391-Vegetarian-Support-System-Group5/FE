@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { localizeText } from "@/lib/localized-content";
 import { getStoredToken } from "@/lib/auth";
 import { getMediaUrl } from "@/lib/api";
 import { readMyContent, saveManualContent, removeManualContent, rememberPublishedContent } from "@/lib/my-content";
@@ -42,6 +44,7 @@ const subscribeHydration = () => () => {};
 
 export default function CreateContentView() {
   const router = useRouter();
+  const { t, language } = useLanguage();
   const { user, loading: authLoading } = useAuth();
   const contentOwner = user?.uid || "guest";
   const isMounted = useSyncExternalStore(subscribeHydration, () => true, () => false);
@@ -62,6 +65,7 @@ export default function CreateContentView() {
 
   // Form fields
   const [title, setTitle] = useState("");
+  const [recipeName, setRecipeName] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [prepMinutes, setPrepMinutes] = useState<string>("20");
   const [cookMinutes, setCookMinutes] = useState<string>("15");
@@ -143,6 +147,7 @@ export default function CreateContentView() {
       restoredDraftRef.current = true;
       setCreationMode("manual");
       setTitle(draft.title);
+      setRecipeName(draft.recipeName || "");
       setContent(draft.content);
       setCategoryId(draft.categoryId);
       setPrepMinutes(draft.prepMinutes);
@@ -183,9 +188,12 @@ export default function CreateContentView() {
     fetchMaster();
   }, []);
 
+  const pollInFlightRef = useRef(false);
   // Poll draft status
   const pollDraft = useCallback(
     async (id: number) => {
+      if (pollInFlightRef.current) return;
+      pollInFlightRef.current = true;
       try {
         const res: VideoRecipeDraftResponse = await getVideoRecipeDraft(id);
         setDraftStatus(res.status);
@@ -203,6 +211,7 @@ export default function CreateContentView() {
           }
 
           if (res.title) setTitle(res.title);
+          if (res.recipeName) setRecipeName(res.recipeName);
           if (res.description) setContent(res.description);
           if (res.estimatedPrepMinutes !== null && res.estimatedPrepMinutes !== undefined) {
             setPrepMinutes(String(res.estimatedPrepMinutes));
@@ -220,30 +229,25 @@ export default function CreateContentView() {
             );
           }
 
-          setStatusMessage({
-            type: "success",
-            text: "AI đã hoàn tất phân tích video và tạo bản nháp thành công! Vui lòng kiểm tra lại bên dưới.",
-          });
         } else if (res.status === "FAILED") {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          setStatusMessage({
-            type: "error",
-            text: res.errorMessage || "Xử lý video thất bại. Bạn có thể nhấn Thử lại.",
-          });
+          setDraftErrorMessage(localizeText(res.errorMessage || t("Video processing failed. Try again.", "Xử lý video thất bại. Hãy thử lại."), language));
         } else if (res.status === "PUBLISHED") {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
         }
-      } catch {
-        // Polling failure
+      } catch (error: unknown) {
+        setDraftErrorMessage(error instanceof Error ? localizeText(error.message, language) : t("Could not refresh video status. Retrying...", "Chưa tải được trạng thái video. Đang thử lại..."));
+      } finally {
+        pollInFlightRef.current = false;
       }
     },
-    [videoPreviewUrl]
+    [videoPreviewUrl, language, t]
   );
 
   // Clear polling on unmount
@@ -297,28 +301,25 @@ export default function CreateContentView() {
     }
 
     setIsUploading(true);
-    setStatusMessage({
-      type: "info",
-      text: "Đang tải video lên máy chủ... Vui lòng không đóng trang.",
-    });
+    setStatusMessage(null);
+    setDraftId(null);
+    setDraftStatus(null);
+    setDraftErrorMessage(null);
 
     try {
       const res = await uploadVideoRecipeDraft(videoFile);
       setDraftId(res.videoRecipeDraftId);
       setDraftStatus(res.status);
-      setStatusMessage({
-        type: "info",
-        text: "Đã tải lên video thành công! VeggieAI đang phân tích âm thanh và các bước nấu...",
-      });
 
       // Start polling
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = setInterval(() => {
         pollDraft(res.videoRecipeDraftId);
-      }, 3000);
+      }, 10000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Tải lên video thất bại";
-      setStatusMessage({ type: "error", text: msg });
+      setDraftStatus("FAILED");
+      setDraftErrorMessage(localizeText(msg, language));
     } finally {
       setIsUploading(false);
     }
@@ -328,7 +329,8 @@ export default function CreateContentView() {
   const handleRetryDraft = async () => {
     if (!draftId) return;
     try {
-      setStatusMessage({ type: "info", text: "Đang thử lại phân tích..." });
+      setStatusMessage(null);
+      setDraftStatus("PENDING");
       const res = await retryVideoRecipeDraft(draftId);
       setDraftStatus(res.status);
       setDraftErrorMessage(null);
@@ -336,10 +338,11 @@ export default function CreateContentView() {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = setInterval(() => {
         pollDraft(draftId);
-      }, 3000);
+      }, 10000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Thử lại thất bại";
-      setStatusMessage({ type: "error", text: msg });
+      setDraftStatus("FAILED");
+      setDraftErrorMessage(localizeText(msg, language));
     }
   };
 
@@ -420,6 +423,7 @@ export default function CreateContentView() {
       try {
         await updateVideoRecipeDraft(draftId, {
           title: title.trim() || "Untitled Recipe",
+          recipeName: recipeName.trim(),
           description: content.trim(),
           transcript: transcript,
           estimatedPrepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
@@ -440,6 +444,7 @@ export default function CreateContentView() {
       // Manual mode: Save to localStorage as BE doesn't have draft endpoint for manual recipes
       const manualDraft = {
         title,
+        recipeName,
         content,
         categoryId,
         prepMinutes,
@@ -476,10 +481,10 @@ export default function CreateContentView() {
       return;
     }
 
-    if (!title.trim()) {
+    if (!title.trim() || !recipeName.trim()) {
       setStatusMessage({
         type: "error",
-        text: "Vui lòng nhập tên công thức món ăn.",
+        text: t("Enter both the post title and dish name.", "Vui lòng nhập cả tiêu đề bài viết và tên món ăn."),
       });
       return;
     }
@@ -523,6 +528,7 @@ export default function CreateContentView() {
         // Step 1: Save draft modifications via PUT
         await updateVideoRecipeDraft(draftId, {
           title: title.trim(),
+          recipeName: recipeName.trim(),
           description: content.trim(),
           transcript: transcript,
           estimatedPrepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
@@ -532,6 +538,7 @@ export default function CreateContentView() {
 
         // Step 2: Publish via POST /api/video-recipe-drafts/{id}/publish
         const published = await publishVideoRecipeDraft(draftId, {
+          recipeName: recipeName.trim(),
           categoryId: categoryId,
           tagIds: selectedTagIds,
         });
@@ -546,6 +553,7 @@ export default function CreateContentView() {
         // Manual mode: POST /api/recipes
         const payload = {
           title: title.trim(),
+          recipeName: recipeName.trim(),
           content: content.trim(),
           categoryId: categoryId,
           videoUrl: videoPreviewUrl || null,
@@ -784,7 +792,7 @@ export default function CreateContentView() {
               📝
             </span>
             <h2 className="font-serif text-lg font-bold text-[#07241A]">
-              Recipe details
+              {t("Recipe details", "Chi tiết công thức")}
             </h2>
           </div>
           <span className="text-[10px] font-bold tracking-wider text-[#99462A] uppercase">
@@ -796,18 +804,23 @@ export default function CreateContentView() {
           {/* Recipe Title */}
           <div>
             <label className="block text-xs font-semibold text-[#07241A]">
-              Recipe title <span className="text-red-500">*</span>
+              {t("Post title", "Tiêu đề bài viết")} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Easy Tofu in Tomato Sauce"
+              maxLength={250}
+              placeholder={t("e.g. My favorite weeknight recipe", "Ví dụ: Công thức bữa tối yêu thích của tôi")}
               className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 text-sm text-[#07241A] placeholder-[#727974] outline-none transition focus:border-[#1E3A2F] focus:bg-white"
             />
           </div>
 
           {/* Category, Prep Minutes, Servings */}
+          <label className="block text-xs font-semibold text-[#07241A]">
+            {t("Recipe name", "Tên món ăn")} <span className="text-red-500">*</span>
+            <input type="text" required maxLength={250} value={recipeName} onChange={(event) => setRecipeName(event.target.value)} placeholder={t("e.g. Tofu in tomato sauce", "Ví dụ: Đậu hũ sốt cà chua")} className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 text-sm font-normal text-[#07241A] outline-none focus:border-[#1E3A2F]" />
+          </label>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {/* Category */}
             <div>
@@ -965,29 +978,31 @@ export default function CreateContentView() {
 
                   {/* Metadata & Status */}
                   <div className="sm:col-span-2 space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2" aria-live="polite">
                       <span className="text-xs font-bold text-[#07241A] truncate max-w-xs">
                         {videoFile?.name || "Uploaded video"}
                       </span>
-                      {draftStatus === "READY" ? (
+                      {isUploading || draftStatus === "UPLOADING" ? (
+                        <span role="status" className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">{t("Uploading video...", "Đang tải video...")}</span>
+                      ) : draftStatus === "READY" ? (
                         <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#07241A]">
-                          ✓ READY (Đã phân tích)
+                          {t("Analysis complete", "Đã phân tích")}
                         </span>
                       ) : draftStatus === "PROCESSING" ? (
                         <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">
-                          ⚙️ Đang phân tích...
+                          {t("Analyzing...", "Đang phân tích...")}
                         </span>
                       ) : draftStatus === "PENDING" ? (
                         <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
-                          ⏳ Chờ xử lý
+                          {t("Waiting for analysis", "Chờ phân tích")}
                         </span>
                       ) : draftStatus === "FAILED" ? (
                         <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-bold text-red-700">
-                          ✕ Lỗi xử lý
+                          {t("Processing failed", "Xử lý thất bại")}
                         </span>
                       ) : (
                         <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]">
-                          Chưa gửi phân tích
+                          {t("Not submitted", "Chưa gửi phân tích")}
                         </span>
                       )}
                     </div>
@@ -1003,8 +1018,7 @@ export default function CreateContentView() {
                     {draftStatus === "PROCESSING" && (
                       <div className="space-y-1 pt-1">
                         <div className="flex items-center justify-between text-[11px] text-[#727974]">
-                          <span>Audio speech &amp; step analysis</span>
-                          <span>Đang nhận diện giọng nói...</span>
+                          <span>{t("Speech and cooking step analysis", "Phân tích lời nói và bước nấu")}</span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFEEEB]">
                           <div className="h-full w-2/3 animate-pulse rounded-full bg-[#1E3A2F]" />
@@ -1013,7 +1027,7 @@ export default function CreateContentView() {
                     )}
 
                     {draftErrorMessage && (
-                      <p className="text-xs text-red-600 font-medium">
+                      <p role="alert" className="whitespace-pre-wrap break-words text-xs text-red-600 font-medium">
                         {draftErrorMessage}
                       </p>
                     )}
@@ -1023,17 +1037,18 @@ export default function CreateContentView() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading || draftStatus === "UPLOADING" || draftStatus === "PENDING" || draftStatus === "PROCESSING"}
                         className="rounded-xl border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
                       >
-                        Replace video
+                        {t("Replace video", "Đổi video")}
                       </button>
-                      {draftStatus === "FAILED" && (
+                      {draftStatus === "FAILED" && draftId && (
                         <button
                           type="button"
                           onClick={handleRetryDraft}
                           className="rounded-xl bg-[#07241A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A2F] transition"
                         >
-                          Retry analysis
+                          {t("Retry analysis", "Thử phân tích lại")}
                         </button>
                       )}
                     </div>
@@ -1043,24 +1058,26 @@ export default function CreateContentView() {
             )}
 
             {/* Generate draft button */}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col items-start gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={handleGenerateDraft}
-                disabled={isUploading || !videoFile || draftStatus === "PROCESSING"}
+                disabled={isUploading || !videoFile || draftStatus === "UPLOADING" || draftStatus === "PENDING" || draftStatus === "PROCESSING"}
                 className="flex items-center gap-2 rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span>✨</span>
                 <span>
-                  {isUploading
-                    ? "Đang tải video..."
+                  {isUploading || draftStatus === "UPLOADING"
+                    ? t("Uploading video...", "Đang tải video...")
                     : draftStatus === "PROCESSING"
-                    ? "AI đang phân tích..."
-                    : "Generate draft"}
+                    ? t("Analyzing...", "Đang phân tích...")
+                    : draftStatus === "PENDING"
+                    ? t("Waiting for analysis", "Chờ phân tích")
+                    : t("Generate draft", "Tạo bản nháp")}
                 </span>
               </button>
               <span className="text-[11px] text-[#727974] italic">
-                AI draft - review required before publishing
+                {t("Review the draft before publishing", "Kiểm tra bản nháp trước khi đăng")}
               </span>
             </div>
           </div>

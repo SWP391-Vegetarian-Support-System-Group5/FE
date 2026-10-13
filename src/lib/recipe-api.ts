@@ -41,6 +41,7 @@ export interface RecipeStepPayload {
 
 export interface CreateRecipePayload {
   title: string;
+  recipeName: string;
   content: string;
   categoryId: number | null;
   videoUrl: string | null;
@@ -55,6 +56,7 @@ export interface CreateRecipePayload {
 export interface RecipeResponse {
   postId: number;
   title: string;
+  recipeName: string;
   content: string;
   status: "PUBLISHED" | string;
   servings: number | null;
@@ -71,12 +73,14 @@ export interface RecipeResponse {
 
 export type VideoDraftStatus =
   | "PENDING"
+  | "UPLOADING"
   | "PROCESSING"
   | "READY"
   | "FAILED"
   | "PUBLISHED";
 
 export interface VideoRecipeDraftResponse {
+  recipeName: string | null;
   videoRecipeDraftId: number;
   status: VideoDraftStatus;
   videoUrl: string;
@@ -92,6 +96,7 @@ export interface VideoRecipeDraftResponse {
 }
 
 export interface UpdateVideoRecipeDraftPayload {
+  recipeName: string;
   title: string;
   description: string;
   transcript: string | null;
@@ -101,6 +106,7 @@ export interface UpdateVideoRecipeDraftPayload {
 }
 
 export interface PublishVideoRecipeDraftPayload {
+  recipeName: string;
   categoryId: number | null;
   tagIds: number[];
 }
@@ -185,6 +191,10 @@ export async function uploadVideoRecipeDraft(videoFile: File): Promise<VideoReci
     try {
       const errData = await res.json();
       errMsg = errData.message || errData.title || errMsg;
+      if (process.env.NODE_ENV === "development" && Array.isArray(errData.errors)) {
+        const details = errData.errors.filter((error: unknown): error is string => typeof error === "string" && error.trim().length > 0);
+        if (details.length > 0) errMsg += `\n${details.join("\n")}`;
+      }
     } catch {
       // Ignore
     }
@@ -197,6 +207,7 @@ export async function uploadVideoRecipeDraft(videoFile: File): Promise<VideoReci
 export async function getVideoRecipeDraft(id: number): Promise<VideoRecipeDraftResponse> {
   const res = await apiFetch(`/api/video-recipe-drafts/${id}`, {
     method: "GET",
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!res.ok) {

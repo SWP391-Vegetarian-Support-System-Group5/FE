@@ -5,6 +5,8 @@
  * in a single place via the NEXT_PUBLIC_API_BASE_URL environment variable.
  */
 
+import { readSessionToken } from "./auth-session";
+
 export const API_BASE_URL: string =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ||
@@ -48,7 +50,7 @@ export async function apiFetch(
 
   // Automatically attach Bearer token if present in localStorage
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
+    const token = readSessionToken();
     if (token && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${token}`);
     }

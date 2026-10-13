@@ -73,8 +73,16 @@ export function clearStoredGuestSession(): void {
  * If guest, response contains guestAccessToken which is saved.
  */
 export async function createChatSession(): Promise<ChatSessionSummary> {
+  if (!getStoredToken()) {
+    const stored = getStoredGuestSession();
+    if (stored) {
+      const session = await getChatSessionById(stored.chatSessionId, stored.guestAccessToken);
+      return { ...session, guestAccessToken: stored.guestAccessToken };
+    }
+  }
   const res = await apiFetch("/api/chat/sessions", {
     method: "POST",
+    credentials: "include",
   });
 
   if (!res.ok) {

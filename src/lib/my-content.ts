@@ -2,6 +2,7 @@ import type { RecipeResponse, RecipeIngredientPayload, RecipeStepPayload } from 
 
 export interface ManualRecipeDraft {
   title: string;
+  recipeName?: string;
   content: string;
   categoryId: number | null;
   prepMinutes: string;
