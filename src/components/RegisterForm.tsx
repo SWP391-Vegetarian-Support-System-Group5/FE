@@ -1,5 +1,8 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { registerWithApi, ApiError } from "@/lib/auth";
 
 export default function RegisterForm() {
+  const ui = useUiText();
   const router = useRouter();
   const { signInWithGoogle, user, error: authError, clearError } = useAuth();
 
@@ -159,27 +163,20 @@ export default function RegisterForm() {
             VeggieMate
           </span>
         </Link>
-        <h1 className="font-serif text-3xl sm:text-4xl font-medium tracking-tight text-[#07241A]">
-          Welcome to VeggieMate
-        </h1>
-        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]">
-          Create an account to save recipes, join mindful discussions, and access personalized plant-based nutrition.
-        </p>
+        <h1 className="font-serif text-3xl sm:text-4xl font-medium tracking-tight text-[#07241A]"><UiText text={"Welcome to VeggieMate"} /></h1>
+        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"Create an account to save recipes, join mindful discussions, and access personalized plant-based nutrition."} /></p>
       </div>
 
       {/* Logged in notification if already authenticated */}
       {user && (
         <div className="mt-4 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
           <div className="flex items-center justify-between">
-            <span>
-              Đã đăng nhập: <strong>{user.displayName || user.email}</strong>
+            <span><UiText text={"Đã đăng nhập:"} />{" "}<strong>{user.displayName || user.email}</strong>
             </span>
             <Link
               href="/"
               className="font-semibold text-[#1E3A2F] underline hover:text-[#07241A]"
-            >
-              Về trang chủ
-            </Link>
+            ><UiText text={"Về trang chủ"} /></Link>
           </div>
         </div>
       )}
@@ -199,16 +196,13 @@ export default function RegisterForm() {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <div className="flex-1 leading-relaxed">
-            <p>{activeError}</p>
+            <p><UiText text={activeError} /></p>
             {emailExists && (
-              <p className="mt-1">
-                Bạn đã có tài khoản với email này?{" "}
+              <p className="mt-1"><UiText text={"Bạn đã có tài khoản với email này?"} />{" "}
                 <Link
                   href={`/login?email=${encodeURIComponent(email.trim())}`}
                   className="font-bold underline hover:text-[#07241A]"
-                >
-                  Đăng nhập tại đây
-                </Link>
+                ><UiText text={"Đăng nhập tại đây"} /></Link>
               </p>
             )}
           </div>
@@ -220,7 +214,7 @@ export default function RegisterForm() {
               clearError();
             }}
             className="text-[#99462A]/60 hover:text-[#99462A]"
-            title="Đóng thông báo"
+            title={ui("Đóng thông báo")}
           >
             ✕
           </button>
@@ -278,7 +272,7 @@ export default function RegisterForm() {
             </svg>
           )}
           <span>
-            {isGoogleLoading ? "Connecting to Google..." : "Continue with Google"}
+            {isGoogleLoading ? ui("Connecting to Google...") : ui("Continue with Google")}
           </span>
         </button>
       </div>
@@ -286,9 +280,7 @@ export default function RegisterForm() {
       {/* Divider */}
       <div className="relative my-6 flex items-center justify-center">
         <div className="w-full border-t border-[#EFEEEB]" />
-        <span className="absolute bg-white px-3 text-xs font-semibold text-[#727974] tracking-wider">
-          OR
-        </span>
+        <span className="absolute bg-white px-3 text-xs font-semibold text-[#727974] tracking-wider"><UiText text={"OR"} /></span>
       </div>
 
       {/* Form Fields */}
@@ -298,9 +290,7 @@ export default function RegisterForm() {
           <label
             htmlFor="fullName"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          >
-            Full Name
-          </label>
+          ><UiText text={"Full Name"} /></label>
           <input
             id="fullName"
             type="text"
@@ -308,7 +298,7 @@ export default function RegisterForm() {
             maxLength={150}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Your full name"
+            placeholder={ui("Your full name")}
             className="w-full rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-2.5 text-xs text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
           />
         </div>
@@ -318,9 +308,7 @@ export default function RegisterForm() {
           <label
             htmlFor="email"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          >
-            Email address
-          </label>
+          ><UiText text={"Email address"} /></label>
           <div className="relative">
             <input
               id="email"
@@ -328,7 +316,7 @@ export default function RegisterForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder={ui("Enter your email")}
               className="w-full rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-2.5 text-xs text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
             />
             <div className="absolute right-3.5 top-3 text-[#727974]">
@@ -345,9 +333,7 @@ export default function RegisterForm() {
           <label
             htmlFor="password"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          >
-            Password
-          </label>
+          ><UiText text={"Password"} /></label>
           <div className="relative">
             <input
               id="password"
@@ -356,14 +342,14 @@ export default function RegisterForm() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password (min 6 characters)"
+              placeholder={ui("Enter your password (min 6 characters)")}
               className="w-full rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-2.5 text-xs text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3.5 top-2.5 text-[#727974] hover:text-[#07241A]"
-              title={showPassword ? "Hide password" : "Show password"}
+              title={showPassword ? ui("Hide password") : ui("Show password")}
             >
               {showPassword ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -387,9 +373,7 @@ export default function RegisterForm() {
           <label
             htmlFor="confirmPassword"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          >
-            Confirm Password
-          </label>
+          ><UiText text={"Confirm Password"} /></label>
           <div className="relative">
             <input
               id="confirmPassword"
@@ -398,14 +382,14 @@ export default function RegisterForm() {
               minLength={6}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your password"
+              placeholder={ui("Confirm your password")}
               className="w-full rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-2.5 text-xs text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute right-3.5 top-2.5 text-[#727974] hover:text-[#07241A]"
-              title={showConfirmPassword ? "Hide password" : "Show password"}
+              title={showConfirmPassword ? ui("Hide password") : ui("Show password")}
             >
               {showConfirmPassword ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -454,11 +438,11 @@ export default function RegisterForm() {
                     className="opacity-75"
                   />
                 </svg>
-                <span>Đang xử lý đăng ký...</span>
+                <span><UiText text={"Đang xử lý đăng ký..."} /></span>
               </>
             ) : (
               <>
-                <span>Create Account</span>
+                <span><UiText text={"Create Account"} /></span>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
@@ -471,21 +455,17 @@ export default function RegisterForm() {
 
       {/* Switch to Login */}
       <div className="mt-5 text-center text-xs text-[#424844]">
-        <span>Already have an account? </span>
+        <span><UiText text={"Already have an account?"} />{" "}</span>
         <Link
           href="/login"
           className="font-semibold text-[#1E3A2F] underline underline-offset-2 hover:text-[#07241A]"
-        >
-          Log In
-        </Link>
+        ><UiText text={"Log In"} /></Link>
       </div>
 
       {/* Terms & Privacy */}
-      <p className="mt-6 text-center font-serif italic text-[11px] leading-tight text-[#727974]">
-        By continuing, you agree to VeggieMate&apos;s{" "}
-        <a href="#terms" className="underline hover:text-[#07241A]">Terms of Service</a>{" "}
-        and{" "}
-        <a href="#privacy" className="underline hover:text-[#07241A]">Privacy Policy</a>.
+      <p className="mt-6 text-center font-serif italic text-[11px] leading-tight text-[#727974]"><UiText text={"By continuing, you agree to VeggieMate's"} />{" "}
+        <a href="#terms" className="underline hover:text-[#07241A]"><UiText text={"Terms of Service"} /></a>{" "}<UiText text={"and"} />{" "}
+        <a href="#privacy" className="underline hover:text-[#07241A]"><UiText text={"Privacy Policy"} /></a>.
       </p>
     </div>
   );

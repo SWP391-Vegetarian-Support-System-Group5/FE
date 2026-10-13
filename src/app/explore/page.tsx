@@ -1,10 +1,14 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState, useMemo, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CommunityFeed from "@/components/content/CommunityFeed";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 
 interface RestaurantItem {
@@ -24,19 +28,6 @@ interface RestaurantItem {
   signatureDishes: string[];
   phone: string;
   openHours: string;
-}
-
-interface RecipeVideoItem {
-  id: string;
-  title: string;
-  image: string;
-  rating: number;
-  reviewsCount: number;
-  prepTime: string;
-  difficulty: string;
-  type: "video" | "recipe";
-  cuisine: string;
-  author: string;
 }
 
 const RESTAURANTS_DATA: RestaurantItem[] = [
@@ -150,58 +141,8 @@ const RESTAURANTS_DATA: RestaurantItem[] = [
   },
 ];
 
-const RECIPES_DATA: RecipeVideoItem[] = [
-  {
-    id: "recipe-1",
-    title: "Claypot Tofu with Lemongrass & Black Pepper",
-    image: "/images/recipe_claypot_tofu.png",
-    rating: 4.9,
-    reviewsCount: 184,
-    prepTime: "25 mins",
-    difficulty: "Easy",
-    type: "recipe",
-    cuisine: "Vietnamese Comfort",
-    author: "Chef Thao Linh",
-  },
-  {
-    id: "recipe-2",
-    title: "Hue Spicy Vegetarian Noodle Broth (Bun Hue Chay)",
-    image: "/images/recipe_bun_hue.png",
-    rating: 4.8,
-    reviewsCount: 220,
-    prepTime: "40 mins",
-    difficulty: "Medium",
-    type: "video",
-    cuisine: "Central Regional",
-    author: "VeggieMate Kitchen",
-  },
-  {
-    id: "recipe-3",
-    title: "Crispy Summer Spring Rolls with Sweet Tamarind Dip",
-    image: "/images/recipe_spring_rolls.png",
-    rating: 4.9,
-    reviewsCount: 146,
-    prepTime: "20 mins",
-    difficulty: "Easy",
-    type: "recipe",
-    cuisine: "Fresh Herbs",
-    author: "Chef Minh",
-  },
-  {
-    id: "recipe-4",
-    title: "Braised Tofu in Ripe Tomato Coulis & Scallions",
-    image: "/images/recipe_tofu_tomato.png",
-    rating: 4.7,
-    reviewsCount: 164,
-    prepTime: "18 mins",
-    difficulty: "Quick",
-    type: "video",
-    cuisine: "Everyday Table",
-    author: "Lan Anh",
-  },
-];
-
 export default function ExplorePage() {
+  const ui = useUiText();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "recipes" | "restaurants">("all");
   const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
@@ -223,17 +164,6 @@ export default function ExplorePage() {
         place.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
         place.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
         place.description.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return matchQuery;
-    });
-  }, [searchQuery]);
-
-  const filteredRecipes = useMemo(() => {
-    return RECIPES_DATA.filter((item) => {
-      const matchQuery =
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.author.toLowerCase().includes(searchQuery.toLowerCase());
 
       return matchQuery;
     });
@@ -261,18 +191,14 @@ export default function ExplorePage() {
                 <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
                 <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
               </svg>
-              <span>Culinary Directory</span>
+              <span><UiText text={"Culinary Directory"} /></span>
             </div>
 
             {/* Main Headline */}
-            <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl lg:text-[46px] lg:leading-[52px]">
-              Search & Explore
-            </h1>
+            <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl lg:text-[46px] lg:leading-[52px]"><UiText text={"Search & Explore"} /></h1>
 
             {/* Subtitle */}
-            <p className="text-sm text-[#424844] sm:text-base">
-              Find recipes, videos, restaurant reviews and vegetarian places.
-            </p>
+            <p className="text-sm text-[#424844] sm:text-base"><UiText text={"Find recipes, videos, restaurant reviews and vegetarian places."} /></p>
           </div>
 
           {/* 2. SEARCH & FILTER CARD */}
@@ -296,7 +222,7 @@ export default function ExplorePage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search recipes, foods, restaurants..."
+                  placeholder={ui("Search recipes, foods, restaurants...")}
                   className="w-full bg-transparent text-sm text-[#07241A] placeholder-[#727974] focus:outline-none"
                 />
                 {searchQuery && (
@@ -319,7 +245,7 @@ export default function ExplorePage() {
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.3-4.3" />
                 </svg>
-                <span>Search</span>
+                <span><UiText text={"Search"} /></span>
               </button>
             </div>
 
@@ -334,9 +260,7 @@ export default function ExplorePage() {
                       ? "bg-white text-[#07241A] shadow-xs font-bold"
                       : "text-[#5C6460] hover:text-[#07241A]"
                   }`}
-                >
-                  All
-                </button>
+                ><UiText text={"All"} /></button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("recipes")}
@@ -345,9 +269,7 @@ export default function ExplorePage() {
                       ? "bg-white text-[#07241A] shadow-xs font-bold"
                       : "text-[#5C6460] hover:text-[#07241A]"
                   }`}
-                >
-                  Video & Recipes
-                </button>
+                ><UiText text={"Video & Recipes"} /></button>
                 <button
                   type="button"
                   onClick={() => setActiveTab("restaurants")}
@@ -356,9 +278,7 @@ export default function ExplorePage() {
                       ? "bg-white text-[#07241A] shadow-xs font-bold"
                       : "text-[#5C6460] hover:text-[#07241A]"
                   }`}
-                >
-                  Restaurant Reviews
-                </button>
+                ><UiText text={"Restaurant Reviews"} /></button>
               </div>
             </div>
           </div>
@@ -375,12 +295,8 @@ export default function ExplorePage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-serif text-lg font-bold text-[#07241A] sm:text-xl">
-                    Want to discover vegetarian places near you?
-                  </h3>
-                  <p className="mt-0.5 text-xs text-[#5C6460] sm:text-sm">
-                    Sign in and add your living location to get nearby restaurant recommendations.
-                  </p>
+                  <h3 className="font-serif text-lg font-bold text-[#07241A] sm:text-xl"><UiText text={"Want to discover vegetarian places near you?"} /></h3>
+                  <p className="mt-0.5 text-xs text-[#5C6460] sm:text-sm"><UiText text={"Sign in and add your living location to get nearby restaurant recommendations."} /></p>
                 </div>
               </div>
 
@@ -394,7 +310,7 @@ export default function ExplorePage() {
                   <polyline points="10 17 15 12 10 7" />
                   <line x1="15" y1="12" x2="3" y2="12" />
                 </svg>
-                <span>Sign In</span>
+                <span><UiText text={"Sign In"} /></span>
               </Link>
             </div>
           </div>
@@ -405,16 +321,10 @@ export default function ExplorePage() {
               {/* Header Row */}
               <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between border-b border-[#EFEEEB] pb-4">
                 <div>
-                  <h2 className="font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl">
-                    Vegetarian Places
-                  </h2>
-                  <p className="mt-1 text-xs text-[#727974] sm:text-sm">
-                    Showing {filteredRestaurants.length} curated recommendations
-                  </p>
+                  <h2 className="font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl"><UiText text={"Vegetarian Places"} /></h2>
+                  <p className="mt-1 text-xs text-[#727974] sm:text-sm"><UiText text={"Showing"} />{" "}{filteredRestaurants.length}{" "}<UiText text={"curated recommendations"} /></p>
                 </div>
-                <p className="font-serif italic text-xs text-[#727974] sm:text-sm">
-                  Curated for plant nourishment
-                </p>
+                <p className="font-serif italic text-xs text-[#727974] sm:text-sm"><UiText text={"Curated for plant nourishment"} /></p>
               </div>
 
               {/* Cards Grid */}
@@ -451,7 +361,7 @@ export default function ExplorePage() {
                             className={`absolute top-3.5 right-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 shadow-md backdrop-blur-md transition hover:scale-110 ${
                               isSaved ? "text-[#C25E48]" : "text-[#424844] hover:text-[#07241A]"
                             }`}
-                            title={isSaved ? "Remove from bookmarks" : "Save restaurant"}
+                            title={isSaved ? ui("Remove from bookmarks") : ui("Save restaurant")}
                           >
                             <svg
                               width="14"
@@ -468,7 +378,7 @@ export default function ExplorePage() {
                           {/* Bottom Left Status Badge */}
                           <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 rounded-full bg-[#07241A]/85 px-3 py-1 text-[11px] font-medium text-white shadow-md backdrop-blur-md">
                             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span>{place.statusText}</span>
+                            <span>{ui(place.statusText)}</span>
                           </div>
                         </div>
 
@@ -477,10 +387,10 @@ export default function ExplorePage() {
                           {/* Tags */}
                           <div className="flex items-center gap-2 text-xs">
                             <span className="rounded-md bg-[#D9E6DC] px-2 py-0.5 text-[11px] font-semibold text-[#1E3A2F]">
-                              {place.categoryBadge}
+                              {ui(place.categoryBadge)}
                             </span>
                             <span className="text-[#727974]">·</span>
-                            <span className="font-medium text-[#424844]">{place.type}</span>
+                            <span className="font-medium text-[#424844]">{ui(place.type)}</span>
                           </div>
 
                           {/* Name */}
@@ -511,7 +421,7 @@ export default function ExplorePage() {
                               }}
                               className="flex items-center gap-1 font-semibold text-[#8B5A3C] transition group-hover:translate-x-0.5 hover:underline"
                             >
-                              <span>Details</span>
+                              <span><UiText text={"Details"} /></span>
                               <span>→</span>
                             </button>
                           </div>
@@ -522,83 +432,21 @@ export default function ExplorePage() {
                 </div>
               ) : (
                 <div className="mt-12 rounded-2xl border border-dashed border-[#EFEEEB] bg-[#FAF8F5] p-12 text-center">
-                  <p className="font-serif text-lg text-[#07241A]">No vegetarian places found</p>
-                  <p className="mt-1 text-xs text-[#727974]">
-                    Try clearing or adjusting your search term: &ldquo;{searchQuery}&rdquo;
+                  <p className="font-serif text-lg text-[#07241A]"><UiText text={"No vegetarian places found"} /></p>
+                  <p className="mt-1 text-xs text-[#727974]"><UiText text={"Try clearing or adjusting your search term: “"} />{searchQuery}&rdquo;
                   </p>
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
                     className="mt-4 rounded-xl bg-[#07241A] px-4 py-2 text-xs font-semibold text-white"
-                  >
-                    Reset Filter
-                  </button>
+                  ><UiText text={"Reset Filter"} /></button>
                 </div>
               )}
             </section>
           )}
 
           {/* 5. VIDEO & RECIPES SECTION (Shown when tab is "all" or "recipes") */}
-          {showRecipes && (
-            <section className="mt-16 sm:mt-20">
-              {/* Header */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between border-b border-[#EFEEEB] pb-4">
-                <div>
-                  <h2 className="font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl">
-                    Seasonal Recipes & Culinary Videos
-                  </h2>
-                  <p className="mt-1 text-xs text-[#727974] sm:text-sm">
-                    Wholesome plant-forward culinary inspiration for home cooking
-                  </p>
-                </div>
-                <p className="font-serif italic text-xs text-[#727974] sm:text-sm">
-                  Rooted in mindful balance
-                </p>
-              </div>
-
-              {/* Recipe Cards Grid */}
-              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredRecipes.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group flex flex-col overflow-hidden rounded-3xl border border-[#EFEEEB] bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                  >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#EFEEEB]">
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        className="object-cover transition duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      />
-                      <span className="absolute top-3 left-3 rounded-full bg-[#1E3A2F]/90 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-xs">
-                        {item.type === "video" ? "📹 Video" : "📖 Recipe"}
-                      </span>
-                      <span className="absolute top-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-[#07241A] backdrop-blur-xs">
-                        ⏱ {item.prepTime}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-1 flex-col p-4">
-                      <div className="text-[11px] font-semibold text-[#727974]">
-                        {item.cuisine} · {item.difficulty}
-                      </div>
-                      <h4 className="mt-1.5 font-serif text-base font-bold text-[#07241A] line-clamp-2 group-hover:text-[#1E3A2F]">
-                        {item.title}
-                      </h4>
-                      <div className="mt-auto pt-3 flex items-center justify-between text-xs text-[#727974]">
-                        <span>By {item.author}</span>
-                        <div className="flex items-center gap-1 font-semibold text-[#07241A]">
-                          <span className="text-[#F59E0B]">★</span>
-                          <span>{item.rating}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          {showRecipes && <section className="mt-12 sm:mt-16"><CommunityFeed keyword={searchQuery} /></section>}
         </div>
       </main>
 
@@ -618,17 +466,16 @@ export default function ExplorePage() {
                 type="button"
                 onClick={() => setSelectedRestaurant(null)}
                 className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#07241A] shadow-lg backdrop-blur-md hover:bg-white"
-                title="Close modal"
+                title={ui("Close modal")}
               >
                 ✕
               </button>
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
                 <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
-                  {selectedRestaurant.type}
+                  {<UiText text={selectedRestaurant.type} />}
                 </span>
                 <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-[#07241A]">
-                  ★ {selectedRestaurant.rating} ({selectedRestaurant.reviewsCount} reviews)
-                </span>
+                  ★ {selectedRestaurant.rating} ({selectedRestaurant.reviewsCount}{" "}<UiText text={"reviews)"} /></span>
               </div>
             </div>
 
@@ -645,28 +492,26 @@ export default function ExplorePage() {
               {/* Meta details list */}
               <div className="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 border border-[#EFEEEB] text-xs sm:grid-cols-2">
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">📍 Address:</span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"📍 Address:"} /></span>
                   <span>{selectedRestaurant.address}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">⏰ Hours:</span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"⏰ Hours:"} /></span>
                   <span>{selectedRestaurant.openHours}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">💰 Price:</span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"💰 Price:"} /></span>
                   <span>{selectedRestaurant.priceRange}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">📞 Hotline:</span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"📞 Hotline:"} /></span>
                   <span>{selectedRestaurant.phone}</span>
                 </div>
               </div>
 
               {/* Signature Dishes */}
               <div className="mt-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#727974]">
-                  Signature Dishes & Recommendations
-                </h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#727974]"><UiText text={"Signature Dishes & Recommendations"} /></h4>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   {selectedRestaurant.signatureDishes.map((dish) => (
                     <span
@@ -686,14 +531,12 @@ export default function ExplorePage() {
                   onClick={(e) => toggleSave(selectedRestaurant.id, e)}
                   className="rounded-xl border border-[#EFEEEB] bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] hover:bg-[#F5F3F0] transition"
                 >
-                  {savedIds[selectedRestaurant.id] ? "Saved in Bookmarks" : "Save Place"}
+                  {savedIds[selectedRestaurant.id] ? ui("Saved in Bookmarks") : ui("Save Place")}
                 </button>
                 <a
                   href={`tel:${selectedRestaurant.phone}`}
                   className="rounded-xl bg-[#07241A] px-6 py-2.5 text-center text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F] transition"
-                >
-                  Reserve Table / Call
-                </a>
+                ><UiText text={"Reserve Table / Call"} /></a>
               </div>
             </div>
           </div>

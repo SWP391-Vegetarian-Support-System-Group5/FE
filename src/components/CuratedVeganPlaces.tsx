@@ -1,5 +1,8 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState } from "react";
 import Image from "next/image";
 
@@ -118,6 +121,7 @@ const VEGAN_PLACES_DATA: VeganPlace[] = [
 ];
 
 export default function CuratedVeganPlaces() {
+  const ui = useUiText();
   const [selectedPlace, setSelectedPlace] = useState<VeganPlace | null>(null);
 
   return (
@@ -127,19 +131,14 @@ export default function CuratedVeganPlaces() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between border-b border-[#EFEEEB] pb-4">
           <div>
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#C25E48]">
-              <span>Featured Botanical Kitchens</span>
+              <span><UiText text={"Featured Botanical Kitchens"} /></span>
             </div>
-            <h2 className="mt-1 font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl">
-              Curated Vegan Places in Saigon
-            </h2>
-            <p className="mt-1 text-xs text-[#727974] sm:text-sm">
-              Curated serene kitchens celebrated for mindful ingredients and culinary depth.
-            </p>
+            <h2 className="mt-1 font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl"><UiText text={"Curated Vegan Places in Saigon"} /></h2>
+            <p className="mt-1 text-xs text-[#727974] sm:text-sm"><UiText text={"Curated serene kitchens celebrated for mindful ingredients and culinary depth."} /></p>
           </div>
 
           <div className="rounded-full border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-1 text-xs font-medium text-[#727974] shrink-0 self-start sm:self-auto">
-            {VEGAN_PLACES_DATA.length} Curated Tables
-          </div>
+            {VEGAN_PLACES_DATA.length}{" "}<UiText text={"Curated Tables"} /></div>
         </div>
 
         {/* 2. CARDS GRID */}
@@ -210,12 +209,8 @@ export default function CuratedVeganPlaces() {
         <div className="font-serif text-4xl sm:text-5xl font-bold text-[#C25E48]">
           &rdquo;
         </div>
-        <blockquote className="mt-2 mx-auto max-w-3xl font-serif text-2xl sm:text-3xl lg:text-[34px] lg:leading-[44px] italic text-[#07241A]">
-          &ldquo;To sit at a plant-forward table is to honor the earth, the seasons, and the gentle pace of life.&rdquo;
-        </blockquote>
-        <p className="mt-4 text-[11px] font-semibold tracking-widest uppercase text-[#727974]">
-          VeggieMate City Guide · Saigon Edition
-        </p>
+        <blockquote className="mt-2 mx-auto max-w-3xl font-serif text-2xl sm:text-3xl lg:text-[34px] lg:leading-[44px] italic text-[#07241A]"><UiText text={"“To sit at a plant-forward table is to honor the earth, the seasons, and the gentle pace of life.”"} /></blockquote>
+        <p className="mt-4 text-[11px] font-semibold tracking-widest uppercase text-[#727974]"><UiText text={"VeggieMate City Guide · Saigon Edition"} /></p>
       </section>
 
       {/* 4. RESTAURANT DETAIL MODAL */}
@@ -233,7 +228,7 @@ export default function CuratedVeganPlaces() {
                 type="button"
                 onClick={() => setSelectedPlace(null)}
                 className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#07241A] shadow-lg backdrop-blur-md hover:bg-white"
-                title="Close modal"
+                title={ui("Close modal")}
               >
                 ✕
               </button>
@@ -242,8 +237,7 @@ export default function CuratedVeganPlaces() {
                   {selectedPlace.dietTag}
                 </span>
                 <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-[#07241A]">
-                  ★ {selectedPlace.rating} ({selectedPlace.reviewsCount} reviews)
-                </span>
+                  ★ {selectedPlace.rating} ({selectedPlace.reviewsCount}{" "}<UiText text={"reviews)"} /></span>
               </div>
             </div>
 
@@ -263,27 +257,25 @@ export default function CuratedVeganPlaces() {
 
               <div className="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 border border-[#EFEEEB] text-xs sm:grid-cols-2">
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">📍 Address:</span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"📍 Address:"} /></span>
                   <span>{selectedPlace.address}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">⏰ Hours:</span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"⏰ Hours:"} /></span>
                   <span>{selectedPlace.openHours}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">📞 Hotline:</span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"📞 Hotline:"} /></span>
                   <span>{selectedPlace.phone}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">🚶 Proximity:</span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"🚶 Proximity:"} /></span>
                   <span>{selectedPlace.distance} ({selectedPlace.walkingTime})</span>
                 </div>
               </div>
 
               <div className="mt-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#727974]">
-                  Signature Dishes & Recommendations
-                </h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#727974]"><UiText text={"Signature Dishes & Recommendations"} /></h4>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   {selectedPlace.signatureDishes.map((dish) => (
                     <span
@@ -301,15 +293,11 @@ export default function CuratedVeganPlaces() {
                   type="button"
                   onClick={() => setSelectedPlace(null)}
                   className="rounded-xl border border-[#EFEEEB] bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] hover:bg-[#F5F3F0] transition"
-                >
-                  Close
-                </button>
+                ><UiText text={"Close"} /></button>
                 <a
                   href={`tel:${selectedPlace.phone}`}
                   className="rounded-xl bg-[#07241A] px-6 py-2.5 text-center text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F] transition"
-                >
-                  Reserve Table / Call
-                </a>
+                ><UiText text={"Reserve Table / Call"} /></a>
               </div>
             </div>
           </div>

@@ -1,10 +1,15 @@
+"use client";
+
+import UiText, { useUiText } from "@/components/UiText";
 import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CommunityFeed from "@/components/content/CommunityFeed";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 
 export default function HomePage() {
+  const ui = useUiText();
   return (
     <div className="flex min-h-screen flex-col bg-[#FBF9F6]">
       <Navbar />
@@ -18,19 +23,14 @@ export default function HomePage() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 rounded-full bg-[#D9E6DC] px-3.5 py-1 text-[11px] font-semibold tracking-wider text-[#1E3A2F] uppercase">
                 <span>🌱</span>
-                <span>Vegetarian Lifestyle</span>
+                <span><UiText text={"Vegetarian Lifestyle"} /></span>
               </div>
 
               {/* Main Heading */}
-              <h1 className="mt-5 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl lg:text-[56px] lg:leading-[64px]">
-                Discover Better <br />
-                Vegetarian Living
-              </h1>
+              <h1 className="mt-5 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl lg:text-[56px] lg:leading-[64px]"><UiText text={"Discover Better"} />{" "}<br /><UiText text={"Vegetarian Living"} /></h1>
 
               {/* Subtitle */}
-              <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg">
-                Find inspiring recipes, cooking videos and restaurant reviews for your everyday vegetarian journey.
-              </p>
+              <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg"><UiText text={"Find inspiring recipes, cooking videos and restaurant reviews for your everyday vegetarian journey."} /></p>
 
               {/* Search Bar Input Form */}
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
@@ -46,15 +46,13 @@ export default function HomePage() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Search recipes, foods, restaurants..."
+                    placeholder={ui("Search recipes, foods, restaurants...")}
                     className="w-full bg-transparent px-3 py-2 text-sm text-[#07241A] placeholder-[#727974] focus:outline-none"
                   />
                   <button
                     type="button"
                     className="rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold tracking-wide text-white transition hover:bg-[#1E3A2F] shrink-0"
-                  >
-                    Search
-                  </button>
+                  ><UiText text={"Search"} /></button>
                 </form>
               </div>
 
@@ -64,7 +62,7 @@ export default function HomePage() {
                   href="/login"
                   className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-3 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
                 >
-                  <span>Explore Recipes</span>
+                  <span><UiText text={"Explore Recipes"} /></span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 12h14" />
                     <path d="m12 5 7 7-7 7" />
@@ -79,7 +77,7 @@ export default function HomePage() {
                 <div className="relative aspect-[16/11] w-full">
                   <Image
                     src="/images/hero_slide.png"
-                    alt="Vegetarian culinary inspiration"
+                    alt={ui("Vegetarian culinary inspiration")}
                     fill
                     priority
                     className="object-cover"
@@ -99,179 +97,17 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 2. POPULAR RECIPES SECTION */}
+        {/* Community posts from the backend */}
         <section id="recipes" className="bg-[#F5F3F0] py-16">
-          <div className="mx-auto max-w-7xl px-6 lg:px-12">
-            {/* Section Header */}
-            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-              <div>
-                <h2 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl">
-                  Popular Recipes
-                </h2>
-                <p className="mt-2 text-sm text-[#424844]">
-                  Discover recipes the community loves.
-                </p>
-              </div>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#99462A] hover:underline"
-              >
-                <span>View All Recipes</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14" />
-                  <path d="m12 5 7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-
-            {/* 4 Recipe Cards Grid */}
-            <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Card 1 */}
-              <Link href="/view-detail/tofu-tomato" className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
-                  <Image
-                    src="/images/recipe_tofu_tomato.png"
-                    alt="Tofu in Rich Tomato Sauce"
-                    fill
-                    className="object-cover transition duration-300 group-hover:scale-105"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                  <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-                    05:42
-                  </span>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-serif text-lg font-semibold leading-snug text-[#07241A]">
-                    Tofu in Rich Tomato Sauce
-                  </h3>
-                  <p className="mt-1 text-xs text-[#424844]">by Minh Tran</p>
-
-                  <div className="mt-3 flex items-center justify-between border-t border-[#EFEEEB] pt-3 text-xs">
-                    <div className="flex items-center gap-1 text-[#F59E0B]">
-                      <span>★</span>
-                      <span className="font-semibold text-[#1B1C1A]">4.6 / 5</span>
-                      <span className="text-[#727974]">· 5 ratings</span>
-                    </div>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#727974]">
-                    <span>💬 38 comments</span>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Card 2 */}
-              <Link href="/view-detail/bun-chay-hue" className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
-                  <Image
-                    src="/images/my-content-noodles.jpg"
-                    alt="Bún Chay Huế"
-                    fill
-                    className="object-cover transition duration-300 group-hover:scale-105"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                  <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-                    06:18
-                  </span>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-serif text-lg font-semibold leading-snug text-[#07241A]">
-                    Bún Chay Huế (Spicy Hue Vegetarian Noodle…)
-                  </h3>
-                  <p className="mt-1 text-xs text-[#424844]">by Lan Nguyen</p>
-
-                  <div className="mt-3 flex items-center justify-between border-t border-[#EFEEEB] pt-3 text-xs">
-                    <div className="flex items-center gap-1 text-[#F59E0B]">
-                      <span>★</span>
-                      <span className="font-semibold text-[#1B1C1A]">4.9 / 5</span>
-                      <span className="text-[#727974]">· 210 ratings</span>
-                    </div>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#727974]">
-                    <span>💬 83 comments</span>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Card 3 */}
-              <Link href="/view-detail/mushroom-spring-rolls" className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
-                  <Image
-                    src="/images/recipe_spring_rolls.png"
-                    alt="Crispy Mushroom Spring Rolls"
-                    fill
-                    className="object-cover transition duration-300 group-hover:scale-105"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                  <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-                    04:52
-                  </span>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-serif text-lg font-semibold leading-snug text-[#07241A]">
-                    Crispy Mushroom Spring Rolls
-                  </h3>
-                  <p className="mt-1 text-xs text-[#424844]">by Anna Le</p>
-
-                  <div className="mt-3 flex items-center justify-between border-t border-[#EFEEEB] pt-3 text-xs">
-                    <div className="flex items-center gap-1 text-[#F59E0B]">
-                      <span>★</span>
-                      <span className="font-semibold text-[#1B1C1A]">4.7 / 5</span>
-                      <span className="text-[#727974]">· 95 ratings</span>
-                    </div>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#727974]">
-                    <span>💬 29 comments</span>
-                  </div>
-                </div>
-              </Link>
-
-              {/* Card 4 */}
-              <Link href="/view-detail/claypot-tofu" className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
-                  <Image
-                    src="/images/recipe_claypot_tofu.png"
-                    alt="Claypot Braised Tofu & Eggplant with Rice"
-                    fill
-                    className="object-cover transition duration-300 group-hover:scale-105"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  />
-                  <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-                    08:20
-                  </span>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-serif text-lg font-semibold leading-snug text-[#07241A]">
-                    Claypot Braised Tofu & Eggplant with Rice
-                  </h3>
-                  <p className="mt-1 text-xs text-[#424844]">by Bao Pham</p>
-
-                  <div className="mt-3 flex items-center justify-between border-t border-[#EFEEEB] pt-3 text-xs">
-                    <div className="flex items-center gap-1 text-[#F59E0B]">
-                      <span>★</span>
-                      <span className="font-semibold text-[#1B1C1A]">4.8 / 5</span>
-                      <span className="text-[#727974]">· 164 ratings</span>
-                    </div>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#727974]">
-                    <span>💬 67 comments</span>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </div>
+          <div className="mx-auto max-w-7xl px-6 lg:px-12"><CommunityFeed compact /></div>
         </section>
-
         {/* 3. POPULAR RESTAURANTS SECTION */}
         <section id="restaurants" className="py-16">
           <div className="mx-auto max-w-7xl px-6 lg:px-12">
             {/* Section Header */}
             <div>
-              <h2 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl">
-                Popular Restaurants
-              </h2>
-              <p className="mt-2 text-sm text-[#424844]">
-                Explore vegetarian and vegan places worth discovering.
-              </p>
+              <h2 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl"><UiText text={"Popular Restaurants"} /></h2>
+              <p className="mt-2 text-sm text-[#424844]"><UiText text={"Explore vegetarian and vegan places worth discovering."} /></p>
             </div>
 
             {/* 3 Restaurant Cards Grid */}
@@ -286,9 +122,7 @@ export default function HomePage() {
                     className="object-cover transition duration-300 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
-                  <span className="absolute top-3 left-3 rounded-full bg-[#1E3A2F] px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
-                    Vegan
-                  </span>
+                  <span className="absolute top-3 left-3 rounded-full bg-[#1E3A2F] px-3 py-0.5 text-xs font-semibold text-white shadow-sm"><UiText text={"Vegan"} /></span>
                 </div>
                 <div className="p-5">
                   <h3 className="font-serif text-xl font-semibold text-[#07241A]">
@@ -299,12 +133,12 @@ export default function HomePage() {
                       <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
-                    <span>District 1, Ho Chi Minh City</span>
+                    <span><UiText text={"District 1, Ho Chi Minh City"} /></span>
                   </div>
                   <div className="mt-3 flex items-center gap-1 text-xs">
                     <span className="text-[#F59E0B]">★</span>
                     <span className="font-semibold text-[#1B1C1A]">4.9</span>
-                    <span className="text-[#727974]">(98 reviews)</span>
+                    <span className="text-[#727974]"><UiText text={"(98 reviews)"} /></span>
                   </div>
                 </div>
               </div>
@@ -319,9 +153,7 @@ export default function HomePage() {
                     className="object-cover transition duration-300 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
-                  <span className="absolute top-3 left-3 rounded-full bg-[#D9E6DC] px-3 py-0.5 text-xs font-semibold text-[#1E3A2F] shadow-sm">
-                    Vegetarian
-                  </span>
+                  <span className="absolute top-3 left-3 rounded-full bg-[#D9E6DC] px-3 py-0.5 text-xs font-semibold text-[#1E3A2F] shadow-sm"><UiText text={"Vegetarian"} /></span>
                 </div>
                 <div className="p-5">
                   <h3 className="font-serif text-xl font-semibold text-[#07241A]">
@@ -332,12 +164,12 @@ export default function HomePage() {
                       <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
-                    <span>District 3, Ho Chi Minh City</span>
+                    <span><UiText text={"District 3, Ho Chi Minh City"} /></span>
                   </div>
                   <div className="mt-3 flex items-center gap-1 text-xs">
                     <span className="text-[#F59E0B]">★</span>
                     <span className="font-semibold text-[#1B1C1A]">4.8</span>
-                    <span className="text-[#727974]">(142 reviews)</span>
+                    <span className="text-[#727974]"><UiText text={"(142 reviews)"} /></span>
                   </div>
                 </div>
               </div>
@@ -352,9 +184,7 @@ export default function HomePage() {
                     className="object-cover transition duration-300 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
-                  <span className="absolute top-3 left-3 rounded-full bg-[#D9E6DC] px-3 py-0.5 text-xs font-semibold text-[#1E3A2F] shadow-sm">
-                    Vegetarian
-                  </span>
+                  <span className="absolute top-3 left-3 rounded-full bg-[#D9E6DC] px-3 py-0.5 text-xs font-semibold text-[#1E3A2F] shadow-sm"><UiText text={"Vegetarian"} /></span>
                 </div>
                 <div className="p-5">
                   <h3 className="font-serif text-xl font-semibold text-[#07241A]">
@@ -365,12 +195,12 @@ export default function HomePage() {
                       <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
-                    <span>Phu Nhuan, Ho Chi Minh City</span>
+                    <span><UiText text={"Phu Nhuan, Ho Chi Minh City"} /></span>
                   </div>
                   <div className="mt-3 flex items-center gap-1 text-xs">
                     <span className="text-[#F59E0B]">★</span>
                     <span className="font-semibold text-[#1B1C1A]">4.7</span>
-                    <span className="text-[#727974]">(215 reviews)</span>
+                    <span className="text-[#727974]"><UiText text={"(215 reviews)"} /></span>
                   </div>
                 </div>
               </div>
@@ -388,18 +218,14 @@ export default function HomePage() {
                 <path d="m16 8 5-5" />
               </svg>
             </div>
-            <h2 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl max-w-2xl mx-auto">
-              Start with a dish you already love.
-            </h2>
-            <p className="mt-3 text-base text-[#424844] max-w-xl mx-auto">
-              Discover its vegetarian version and explore recipes you can cook.
-            </p>
+            <h2 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl max-w-2xl mx-auto"><UiText text={"Start with a dish you already love."} /></h2>
+            <p className="mt-3 text-base text-[#424844] max-w-xl mx-auto"><UiText text={"Discover its vegetarian version and explore recipes you can cook."} /></p>
             <div className="mt-8">
               <Link
                 href="/login"
                 className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-8 py-3.5 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
               >
-                <span>Find a Vegetarian Version</span>
+                <span><UiText text={"Find a Vegetarian Version"} /></span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />

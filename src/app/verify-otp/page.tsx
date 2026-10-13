@@ -1,3 +1,5 @@
+import { LanguageSwitch } from "@/components/UiText";
+import UiText from "@/components/UiText";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,22 +14,23 @@ export default function VerifyOtpPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between bg-[#FBF9F6] p-6 sm:p-10">
       {/* Top Bar with Login return */}
-      <div className="w-full max-w-5xl flex items-center justify-start">
+      <div className="w-full max-w-5xl flex items-center justify-between">
         <Link
           href="/login"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E3A2F] hover:underline"
         >
           <span>←</span>
-          <span>Back to Login</span>
+          <span><UiText text={"Back to Login"} /></span>
         </Link>
-      </div>
+      <LanguageSwitch />
+</div>
 
       {/* Main Verify Card */}
       <div className="my-auto py-8">
         <Suspense
           fallback={
             <div className="w-full max-w-[460px] rounded-3xl border border-[#EFEEEB] bg-white p-10 text-center text-sm text-[#727974]">
-              Đang tải biểu mẫu xác thực...
+              Loading verification form...
             </div>
           }
         >
@@ -42,7 +45,7 @@ export default function VerifyOtpPage() {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#07241A" strokeWidth="2">
               <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
             </svg>
-            <span>Sync Bookmarks</span>
+            <span><UiText text={"Sync Bookmarks"} /></span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -56,7 +59,7 @@ export default function VerifyOtpPage() {
               <path d="m4.93 19.07 2.83-2.83" />
               <path d="m16.24 7.76 2.83-2.83" />
             </svg>
-            <span>AI Meal Plans</span>
+            <span><UiText text={"AI Meal Plans"} /></span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -64,7 +67,7 @@ export default function VerifyOtpPage() {
               <circle cx="12" cy="12" r="10" />
               <path d="M12 6v6l4 2" />
             </svg>
-            <span>Mindful Table</span>
+            <span><UiText text={"Mindful Table"} /></span>
           </div>
         </div>
       </div>

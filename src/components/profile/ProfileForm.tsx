@@ -1,5 +1,8 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -69,6 +72,7 @@ function validateDraft(d: ProfileDraft): ProfileErrors {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function ProfileForm() {
+  const ui = useUiText();
   // ── Core state ────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -422,7 +426,7 @@ export default function ProfileForm() {
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
           <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
         </svg>
-        <span className="text-sm text-[#727974]">Loading profile…</span>
+        <span className="text-sm text-[#727974]"><UiText text={"Loading profile…"} /></span>
       </div>
     );
   }
@@ -434,11 +438,11 @@ export default function ProfileForm() {
       {toastMessage && (
         <div className="fixed top-24 right-6 z-50 max-w-sm animate-fade-in rounded-xl bg-[#07241A] px-5 py-3 text-sm text-white shadow-lg">
           <div className="flex items-center gap-3">
-            <span className="flex-1">{toastMessage}</span>
+            <span className="flex-1">{<UiText text={toastMessage} />}</span>
             <button
               onClick={() => setToastMessage(null)}
               className="text-white/60 hover:text-white transition"
-              aria-label="Dismiss"
+              aria-label={ui("Dismiss")}
             >
               ✕
             </button>
@@ -458,18 +462,11 @@ export default function ProfileForm() {
       {/* ═══ 1. PAGE INTRODUCTION ═══ */}
       <section className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold tracking-[0.05em] uppercase text-[#727974]">
-            Account &amp; Preferences
-          </span>
+          <span className="text-xs font-semibold tracking-[0.05em] uppercase text-[#727974]"><UiText text={"Account & Preferences"} /></span>
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#99462A]" />
         </div>
-        <h1 className="font-serif text-[40px] leading-[48px] font-medium tracking-[-0.025em] text-[#07241A]">
-          My Profile
-        </h1>
-        <p className="max-w-[672px] text-[15px] leading-6 text-[#424844]">
-          Manage your personal information, health details and living location
-          to shape your seasonal table.
-        </p>
+        <h1 className="font-serif text-[40px] leading-[48px] font-medium tracking-[-0.025em] text-[#07241A]"><UiText text={"My Profile"} /></h1>
+        <p className="max-w-[672px] text-[15px] leading-6 text-[#424844]"><UiText text={"Manage your personal information, health details and living location to shape your seasonal table."} /></p>
       </section>
 
       {/* ═══ 2. PROFILE SUMMARY CARD ═══ */}
@@ -515,7 +512,7 @@ export default function ProfileForm() {
           type="button"
           onClick={handlePhotoChange}
           className="flex items-center gap-2 rounded-xl bg-[#F5F3F0] px-3.5 py-2 text-xs font-semibold tracking-[0.02em] text-[#1B1C1A] transition hover:bg-[#EFEEEB]"
-          title="Avatar upload is not supported by the backend yet"
+          title={ui("Avatar upload is not supported by the backend yet")}
         >
           <svg
             width="13"
@@ -529,22 +526,15 @@ export default function ProfileForm() {
           >
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
             <circle cx="12" cy="13" r="4" />
-          </svg>
-          Change Photo
-        </button>
+          </svg><UiText text={"Change Photo"} /></button>
       </section>
 
       {/* ═══ 3. PERSONAL INFORMATION CARD ═══ */}
       <section className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
-            <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]">
-              Personal Information
-            </h2>
-            <p className="text-[13px] leading-5 text-[#727974]">
-              Used for recipe discussions, workshop confirmations, and community
-              identity.
-            </p>
+            <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]"><UiText text={"Personal Information"} /></h2>
+            <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"Used for recipe discussions, workshop confirmations, and community identity."} /></p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F5F3F0]">
             <svg
@@ -566,9 +556,7 @@ export default function ProfileForm() {
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {/* Full Name */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Full Name
-            </label>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Full Name"} /></label>
             <input
               type="text"
               value={draft.fullName}
@@ -576,32 +564,28 @@ export default function ProfileForm() {
               className={`rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20 ${
                 errors.fullName ? "ring-2 ring-[#99462A]/40" : ""
               }`}
-              placeholder="Your full name"
+              placeholder={ui("Your full name")}
             />
             {errors.fullName && (
-              <span className="text-xs text-[#99462A]">{errors.fullName}</span>
+              <span className="text-xs text-[#99462A]">{<UiText text={errors.fullName} />}</span>
             )}
           </div>
 
           {/* Email Address (read-only) */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Email Address
-            </label>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Email Address"} /></label>
             <input
               type="email"
               value={draft.email}
               readOnly
               className="rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-[15px] leading-6 text-[#727974] outline-none cursor-not-allowed"
-              title="Email cannot be changed"
+              title={ui("Email cannot be changed")}
             />
           </div>
 
           {/* Gender dropdown */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Gender
-            </label>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Gender"} /></label>
             <div ref={sexDropdownRef} className="relative">
               <button
                 type="button"
@@ -610,10 +594,10 @@ export default function ProfileForm() {
               >
                 <span>
                   {draft.sex === "MALE"
-                    ? "Male"
+                    ? ui("Male")
                     : draft.sex === "FEMALE"
-                      ? "Female"
-                      : "Not specified"}
+                      ? ui("Female")
+                      : ui("Not specified")}
                 </span>
                 <svg
                   width="9"
@@ -651,7 +635,7 @@ export default function ProfileForm() {
                           : "text-[#424844]"
                       }`}
                     >
-                      {opt.label}
+                      {<UiText text={opt.label} />}
                     </button>
                   ))}
                 </div>
@@ -666,13 +650,8 @@ export default function ProfileForm() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
-            <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]">
-              Health Profile
-            </h2>
-            <p className="text-[13px] leading-5 text-[#727974]">
-              Configures ingredient substitutions and nutrient balance in
-              seasonal menus.
-            </p>
+            <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]"><UiText text={"Health Profile"} /></h2>
+            <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"Configures ingredient substitutions and nutrient balance in seasonal menus."} /></p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F5F3F0]">
             <svg
@@ -694,9 +673,7 @@ export default function ProfileForm() {
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Height */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Height
-            </label>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Height"} /></label>
             <div className="relative">
               <input
                 type="text"
@@ -713,15 +690,13 @@ export default function ProfileForm() {
               </span>
             </div>
             {errors.heightCm && (
-              <span className="text-xs text-[#99462A]">{errors.heightCm}</span>
+              <span className="text-xs text-[#99462A]">{<UiText text={errors.heightCm} />}</span>
             )}
           </div>
 
           {/* Weight */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Weight
-            </label>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Weight"} /></label>
             <div className="relative">
               <input
                 type="text"
@@ -738,16 +713,14 @@ export default function ProfileForm() {
               </span>
             </div>
             {errors.weightKg && (
-              <span className="text-xs text-[#99462A]">{errors.weightKg}</span>
+              <span className="text-xs text-[#99462A]">{<UiText text={errors.weightKg} />}</span>
             )}
           </div>
         </div>
 
         {/* Row 2: Vegetarian Diet Type (full-width dropdown from API) */}
         <div className="mt-6 flex flex-col gap-1.5">
-          <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-            Vegetarian Diet Type
-          </label>
+          <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Vegetarian Diet Type"} /></label>
           <div ref={dietDropdownRef} className="relative">
             <button
               type="button"
@@ -756,8 +729,8 @@ export default function ProfileForm() {
             >
               <span>
                 {currentDietType
-                  ? `${currentDietType.name}${currentDietType.description ? ` (${currentDietType.description})` : ""}`
-                  : "Select diet type"}
+                  ? `${ui(currentDietType.name)}${currentDietType.description ? ` (${ui(currentDietType.description)})` : ""}`
+                  : ui("Select diet type")}
               </span>
               <svg
                 width="8"
@@ -796,11 +769,11 @@ export default function ProfileForm() {
                           : "text-[#1B1C1A]"
                       }`}
                     >
-                      {dt.name}
+                      {<UiText text={dt.name} />}
                     </span>
                     {dt.description && (
                       <span className="text-xs text-[#727974]">
-                        {dt.description}
+                        {<UiText text={dt.description} />}
                       </span>
                     )}
                   </button>
@@ -808,9 +781,7 @@ export default function ProfileForm() {
               </div>
             )}
           </div>
-          <p className="mt-0.5 text-[13px] leading-5 text-[#727974]">
-            Used to match recipes and personalize your meal plan.
-          </p>
+          <p className="mt-0.5 text-[13px] leading-5 text-[#727974]"><UiText text={"Used to match recipes and personalize your meal plan."} /></p>
         </div>
 
         {/* BMI Panel */}
@@ -844,7 +815,7 @@ export default function ProfileForm() {
                       className="text-xs font-semibold tracking-[0.02em]"
                       style={{ color: bmiCategory.color }}
                     >
-                      {bmiCategory.label}
+                      {<UiText text={bmiCategory.label} />}
                     </span>
                   </>
                 )}
@@ -852,7 +823,7 @@ export default function ProfileForm() {
               <span className="text-[13px] leading-5 text-[#727974]">
                 {bmi !== null
                   ? `Calculated automatically from your height (${draft.heightCm}cm) and weight (${draft.weightKg}kg).`
-                  : "Enter valid height and weight to compute BMI."}
+                  : ui("Enter valid height and weight to compute BMI.")}
               </span>
             </div>
           </div>
@@ -860,9 +831,7 @@ export default function ProfileForm() {
           {/* Visual indicator */}
           {bmi !== null && (
             <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5">
-              <span className="text-xs font-semibold tracking-[0.02em] text-[#727974]">
-                Optimal Balance
-              </span>
+              <span className="text-xs font-semibold tracking-[0.02em] text-[#727974]"><UiText text={"Optimal Balance"} /></span>
               <div className="flex h-2 w-20 overflow-hidden rounded-full bg-[#EFEEEB]">
                 <div
                   className="h-full rounded-full bg-[#DBDAD7]"
@@ -884,13 +853,8 @@ export default function ProfileForm() {
         {/* Allergies & Intolerances */}
         <div className="mt-6 flex flex-col gap-2.5">
           <div className="flex flex-col">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-              Allergies &amp; Intolerances
-            </label>
-            <p className="text-[13px] leading-5 text-[#727974]">
-              VeggieMate will flag or automatically omit dishes featuring these
-              elements.
-            </p>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Allergies & Intolerances"} /></label>
+            <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"VeggieMate will flag or automatically omit dishes featuring these elements."} /></p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -942,15 +906,11 @@ export default function ProfileForm() {
                   strokeLinecap="round"
                 >
                   <path d="M4 1v6M1 4h6" />
-                </svg>
-                Add Allergy
-              </button>
+                </svg><UiText text={"Add Allergy"} /></button>
               {showAllergenDropdown && (
                 <div className="absolute left-0 top-full z-[1000] mt-1 w-52 max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
                   {allAllergens.length === 0 && (
-                    <div className="px-4 py-3 text-xs text-[#727974]">
-                      No allergens available
-                    </div>
+                    <div className="px-4 py-3 text-xs text-[#727974]"><UiText text={"No allergens available"} /></div>
                   )}
                   {allAllergens.map((allergen) => {
                     const isSelected = selectedAllergenIds.includes(
@@ -989,7 +949,7 @@ export default function ProfileForm() {
                             </svg>
                           )}
                         </span>
-                        {allergen.name}
+                        {<UiText text={allergen.name} />}
                       </button>
                     );
                   })}
@@ -1005,13 +965,8 @@ export default function ProfileForm() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
-            <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]">
-              Living Location
-            </h2>
-            <p className="text-[13px] leading-5 text-[#727974]">
-              Your home base coordinates for organic markets, plant bistros, and
-              localized seasonal harvest.
-            </p>
+            <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]"><UiText text={"Living Location"} /></h2>
+            <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"Your home base coordinates for organic markets, plant bistros, and localized seasonal harvest."} /></p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F5F3F0]">
             <svg
@@ -1048,17 +1003,9 @@ export default function ProfileForm() {
               <path d="M12 8h.01" />
             </svg>
           </div>
-          <p className="text-[13px] leading-5 text-[#727974]">
-            Your location helps VeggieMate recommend vegetarian places near you
-            in the{" "}
-            <span className="font-semibold text-[#07241A]">
-              Vegan Places Guide
-            </span>{" "}
-            and filter neighborhood community dining tables.
-            <br />
-            <span className="text-[11px] italic">
-              Note: Province/area selections are used to find coordinates only — the backend does not store address text.
-            </span>
+          <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"Your location helps VeggieMate recommend vegetarian places near you in the"} />{" "}
+            <span className="font-semibold text-[#07241A]"><UiText text={"Vegan Places Guide"} /></span>{" "}<UiText text={"and filter neighborhood community dining tables."} /><br />
+            <span className="text-[11px] italic"><UiText text={"Note: Province/area selections are used to find coordinates only — the backend does not store address text."} /></span>
           </p>
         </div>
 
@@ -1068,7 +1015,7 @@ export default function ProfileForm() {
             label="City / Province"
             value={selectedProvinceCode}
             options={provinces}
-            placeholder="Select province"
+            placeholder={ui("Select province")}
             searchPlaceholder="Search province..."
             onSelect={(code) => void handleProvinceSelect(code)}
           />
@@ -1076,7 +1023,7 @@ export default function ProfileForm() {
             label="District / Area"
             value={selectedAreaCode}
             options={areas}
-            placeholder={selectedProvinceCode ? "Select area" : "Select province first"}
+            placeholder={selectedProvinceCode ? ui("Select area") : ui("Select province first")}
             searchPlaceholder="Search district / area..."
             disabled={areas.length === 0}
             onSelect={(code) => {
@@ -1088,9 +1035,7 @@ export default function ProfileForm() {
 
         {/* Row 2: Address search with suggestions */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]">
-            Search Address
-          </label>
+          <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Search Address"} /></label>
           <div ref={addressSuggestionsRef} className="relative">
             <svg
               width="11"
@@ -1114,7 +1059,7 @@ export default function ProfileForm() {
                 if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
               }}
               className="w-full rounded-xl bg-[#F5F3F0] py-2.5 pl-11 pr-4 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20"
-              placeholder="Type to search for an address…"
+              placeholder={ui("Type to search for an address…")}
             />
             {showAddressSuggestions && addressSuggestions.length > 0 && (
               <div className="absolute left-0 top-full z-[1000] mt-1 w-full max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
@@ -1132,8 +1077,7 @@ export default function ProfileForm() {
             )}
           </div>
           {selectedCoords && (
-            <p className="text-[11px] text-[#727974]">
-              Selected coordinates: {selectedCoords.lat.toFixed(6)}, {selectedCoords.lng.toFixed(6)}
+            <p className="text-[11px] text-[#727974]"><UiText text={"Selected coordinates:"} />{" "}{selectedCoords.lat.toFixed(6)}, {selectedCoords.lng.toFixed(6)}
             </p>
           )}
         </div>
@@ -1150,9 +1094,7 @@ export default function ProfileForm() {
           type="button"
           onClick={handleCancel}
           className="rounded-xl px-5 py-2.5 text-sm font-semibold tracking-[0.01em] text-[#727974] transition hover:bg-[#F5F3F0] hover:text-[#07241A]"
-        >
-          Cancel
-        </button>
+        ><UiText text={"Cancel"} /></button>
         <button
           type="button"
           onClick={handleSave}
@@ -1181,9 +1123,7 @@ export default function ProfileForm() {
                   strokeLinecap="round"
                   className="opacity-75"
                 />
-              </svg>
-              Saving…
-            </>
+              </svg><UiText text={"Saving…"} /></>
           ) : (
             <>
               <svg
@@ -1199,9 +1139,7 @@ export default function ProfileForm() {
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
-              </svg>
-              Save Changes
-            </>
+              </svg><UiText text={"Save Changes"} /></>
           )}
         </button>
       </div>

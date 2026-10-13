@@ -1,5 +1,12 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+import PostComposer from "@/components/content/PostComposer";
+import DietSelector from "@/components/recipe/DietSelector";
+import { useLanguage } from "@/context/LanguageContext";
+import type { PostType } from "@/lib/post-api";
+
+
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -32,15 +39,35 @@ import {
 } from "@/lib/recipe-api";
 
 const DIETARY_GROUPS: { value: DietaryGroup; label: string; desc: string }[] = [
-  { value: "PLANT", label: "Thực vật (Plant)", desc: "100% gốc thực vật" },
-  { value: "DAIRY", label: "Sữa (Dairy)", desc: "Bơ, sữa chua, phô mai..." },
-  { value: "EGG", label: "Trứng (Egg)", desc: "Trứng gà, vịt..." },
-  { value: "HONEY", label: "Mật ong (Honey)", desc: "Mật ong tự nhiên" },
+  { value: "PLANT", label: "Plant", desc: "100% gốc thực vật" },
+  { value: "DAIRY", label: "Dairy", desc: "Bơ, sữa chua, phô mai..." },
+  { value: "EGG", label: "Egg", desc: "Trứng gà, vịt..." },
+  { value: "HONEY", label: "Honey", desc: "Mật ong tự nhiên" },
 ];
 
 const subscribeHydration = () => () => {};
 
 export default function CreateContentView() {
+  const { t } = useLanguage();
+  const [kind, setKind] = useState<PostType | "RECIPE">("RECIPE");
+  const choices: { value: PostType | "RECIPE"; label: string }[] = [
+    { value: "RECIPE", label: t("Recipe", "Công thức") },
+    { value: "BLOG", label: t("Blog post", "Bài chia sẻ") },
+    { value: "QUESTION", label: t("Question", "Câu hỏi") },
+    { value: "VIDEO", label: t("Video post", "Bài video") },
+  ];
+  return <>
+    <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 lg:px-8">
+      <fieldset className="mb-6"><legend className="mb-3 text-sm font-semibold text-[#07241A]">{t("What would you like to create?", "Bạn muốn tạo nội dung gì?")}</legend><div className="flex flex-wrap gap-2">{choices.map(choice => <label key={choice.value} className={`cursor-pointer rounded-full border px-5 py-2.5 text-sm font-semibold ${kind === choice.value ? "border-[#254B38] bg-[#254B38] text-white" : "border-[#E5E7DF] bg-white text-[#424844]"}`}><input type="radio" name="content-kind" value={choice.value} checked={kind === choice.value} onChange={() => setKind(choice.value)} className="peer sr-only" /><span className="peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4">{choice.label}</span></label>)}</div></fieldset>
+    </div>
+    <div hidden={kind !== "RECIPE"}><RecipeContentView /></div>
+    <div hidden={kind === "RECIPE"}><PostComposer postType={kind === "RECIPE" ? "BLOG" : kind} /></div>
+  </>;
+}
+
+function RecipeContentView() {
+  const { t } = useLanguage();
+  const ui = useUiText();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const contentOwner = user?.uid || "guest";
@@ -51,7 +78,7 @@ export default function CreateContentView() {
 
   // Mode: "ai" vs "manual"
   const [creationMode, setCreationMode] = useState<"ai" | "manual">("ai");
-  const [contentType, setContentType] = useState<"recipe" | "review">("recipe");
+
 
   // Master data
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -68,46 +95,14 @@ export default function CreateContentView() {
   const [servings, setServings] = useState<string>("2");
   const [content, setContent] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedDietTypeIds, setSelectedDietTypeIds] = useState<number[]>([]);
 
   // Ingredients
   const [ingredients, setIngredients] = useState<RecipeIngredientPayload[]>([
-    {
-      ingredientName: "Đậu hũ non hữu cơ (Firm organic tofu)",
-      amount: "400 g",
-      dietaryGroup: "PLANT",
-      allergenId: null,
-    },
-    {
-      ingredientName: "Cà chua chín mọng (Ripe heirloom plum tomatoes)",
-      amount: "4 quả",
-      dietaryGroup: "PLANT",
-      allergenId: null,
-    },
-    {
-      ingredientName: "Hành baro băm nhỏ (Scallions)",
-      amount: "2 nhánh",
-      dietaryGroup: "PLANT",
-      allergenId: null,
-    },
+    { ingredientName: "", amount: "", dietaryGroup: "PLANT", allergenId: null },
   ]);
-
-  // Cooking steps
   const [steps, setSteps] = useState<RecipeStepPayload[]>([
-    {
-      stepNumber: 1,
-      instruction:
-        "Cắt đậu hũ thành các miếng vuông vừa ăn. Áp chảo với lửa vừa cùng 1 thìa dầu ăn cho đến khi các mặt có màu vàng giòn nhẹ.",
-    },
-    {
-      stepNumber: 2,
-      instruction:
-        "Phi thơm hành baro. Cho cà chua thái hạt lựu, chút muối và đường vào đun nhỏ lửa trong 5 phút đến khi nhuyễn thành sốt sánh mịn.",
-    },
-    {
-      stepNumber: 3,
-      instruction:
-        "Cho đậu hũ đã áp chảo vào sốt cà chua, rim lửa nhỏ 3-4 phút cho ngấm vị. Rắc hành ngò lên trên và thưởng thức nóng cùng cơm trắng.",
-    },
+    { stepNumber: 1, instruction: "" },
   ]);
 
   // AI Video Draft State
@@ -130,6 +125,8 @@ export default function CreateContentView() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (statusMessage) statusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [statusMessage]);
   const restoredDraftRef = useRef(false);
 
   useEffect(() => {
@@ -151,6 +148,7 @@ export default function CreateContentView() {
       setIngredients(draft.ingredients);
       setSteps(draft.steps);
       setSelectedTagIds(draft.selectedTagIds);
+      setSelectedDietTypeIds(draft.selectedDietTypeIds || []);
     });
     return () => { cancelled = true; };
   }, [authLoading, contentOwner]);
@@ -448,6 +446,7 @@ export default function CreateContentView() {
         ingredients,
         steps,
         selectedTagIds,
+        selectedDietTypeIds,
         savedAt: new Date().toISOString(),
       };
       try {
@@ -468,6 +467,8 @@ export default function CreateContentView() {
 
   // Publish Recipe
   const handlePublish = async () => {
+    if (isSubmitting) return;
+    setPublishedResult(null);
     if (!token) {
       setStatusMessage({
         type: "error",
@@ -508,6 +509,12 @@ export default function CreateContentView() {
       return;
     }
 
+    const filledIngredients = ingredients.filter(ingredient => ingredient.ingredientName.trim());
+    if (dietTypes.some(diet => selectedDietTypeIds.includes(diet.id) && !isDietCompatible(diet, filledIngredients))) {
+      setStatusMessage({ type: "error", text: t("Adjust ingredients to match your selected diets, or deselect those diets before publishing.", "Điều chỉnh nguyên liệu cho phù hợp hoặc bỏ chế độ ăn đã chọn trước khi đăng.") });
+      return;
+    }
+
     setIsSubmitting(true);
     setStatusMessage(null);
 
@@ -540,7 +547,7 @@ export default function CreateContentView() {
         try { rememberPublishedContent(contentOwner, published, "video"); } catch { /* Publishing already succeeded. */ }
         setStatusMessage({
           type: "success",
-          text: `Chúc mừng! Công thức "${published.title}" đã được xuất bản thành công (Mã bài viết: #${published.postId})!`,
+          text: "Recipe published successfully.",
         });
       } else {
         // Manual mode: POST /api/recipes
@@ -568,7 +575,7 @@ export default function CreateContentView() {
 
         setStatusMessage({
           type: "success",
-          text: `Chúc mừng! Công thức "${res.title}" đã được xuất bản thành công (Mã bài viết: #${res.postId})!`,
+          text: "Recipe published successfully.",
         });
       }
     } catch (err: unknown) {
@@ -587,58 +594,22 @@ export default function CreateContentView() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EFEEEB] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#99462A]">
               <span>✒️</span>
-              <span>EDITORIAL WORKBENCH</span>
-            </span>
-            <span className="text-xs text-[#727974]">
-              · Draft auto-saved recently
+              <span><UiText text={"EDITORIAL WORKBENCH"} /></span>
             </span>
           </div>
-          <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight text-[#07241A] sm:text-4xl">
-            Create Content
-          </h1>
-          <p className="mt-1 text-sm text-[#424844]">
-            Share a cherished plant-forward recipe or document your culinary discoveries across mindful tables.
-          </p>
+          <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight text-[#07241A] sm:text-4xl"><UiText text={"Create Content"} /></h1>
+          <p className="mt-1 text-sm text-[#424844]"><UiText text={"Share your plant-based recipe with the community."} /></p>
         </div>
 
-        {/* Mode Toggle: Video & Recipe vs Restaurant Review */}
-        <div className="flex items-center rounded-2xl bg-[#EFEEEB] p-1 shadow-inner self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setContentType("recipe")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
-              contentType === "recipe"
-                ? "bg-[#07241A] text-white shadow-xs"
-                : "text-[#424844] hover:text-[#07241A]"
-            }`}
-          >
-            <span>🎬 📖</span>
-            <span>Video &amp; Recipe</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setContentType("review");
-              setStatusMessage({
-                type: "info",
-                text: "Chức năng Restaurant Review đang được phát triển và sẽ sớm ra mắt!",
-              });
-            }}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition opacity-70 ${
-              contentType === "review"
-                ? "bg-[#07241A] text-white"
-                : "text-[#727974] hover:text-[#07241A]"
-            }`}
-          >
-            <span>🍽️</span>
-            <span>Restaurant Review (Sắp ra mắt)</span>
-          </button>
-        </div>
+
       </div>
 
       {/* Global Status Banner */}
       {statusMessage && (
         <div
+          ref={statusRef}
+          role={statusMessage.type === "error" ? "alert" : "status"}
+          aria-live="polite"
           className={`my-6 rounded-2xl p-4 text-xs font-medium border shadow-xs transition animate-fade-in ${
             statusMessage.type === "success"
               ? "bg-[#D9E6DC] text-[#07241A] border-[#CAEADA]"
@@ -656,15 +627,13 @@ export default function CreateContentView() {
                   ? "⚠️"
                   : "ℹ️"}
               </span>
-              <span>{statusMessage.text}</span>
+              <div><UiText text={statusMessage.text} />{publishedResult && statusMessage.type === "success" && <p className="mt-1 break-words">{publishedResult.title} · #{publishedResult.postId}</p>}</div>
             </div>
             {publishedResult && (
               <Link
                 href="/my-content"
                 className="underline font-bold hover:text-black ml-4"
-              >
-                Xem bài viết
-              </Link>
+              ><UiText text={"Xem bài viết"} /></Link>
             )}
           </div>
         </div>
@@ -675,24 +644,20 @@ export default function CreateContentView() {
         <div className="my-6 rounded-2xl bg-[#F5F3F0] p-4 text-xs text-[#07241A] border border-[#EFEEEB] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span>🔒</span>
-            <span>Bạn đang xem ở chế độ khách. Vui lòng đăng nhập để lưu trữ bản nháp và xuất bản công thức lên hệ thống.</span>
+            <span><UiText text={"You are browsing as a guest. Sign in to save drafts and publish recipes."} /></span>
           </div>
           <Link
             href="/login"
             className="rounded-xl bg-[#07241A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A2F]"
-          >
-            Đăng nhập
-          </Link>
+          ><UiText text={"Đăng nhập"} /></Link>
         </div>
       )}
 
       {/* ── STEP 1: CHOOSE HOW TO CREATE ───────────────────────────────── */}
       <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
         <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
-          <span className="text-xs font-bold tracking-wider text-[#727974] uppercase">
-            STEP 1: CHOOSE HOW TO CREATE
-          </span>
-          <span className="text-xs text-[#727974]">Step 1 of 4</span>
+          <span className="text-xs font-bold tracking-wider text-[#727974] uppercase"><UiText text={"STEP 1: CHOOSE HOW TO CREATE"} /></span>
+          <span className="text-xs text-[#727974]"><UiText text={"Step 1 of 4"} /></span>
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -717,20 +682,14 @@ export default function CreateContentView() {
                   >
                     ✨
                   </div>
-                  <h3 className="font-serif text-lg font-bold text-[#07241A]">
-                    Generate with AI
-                  </h3>
+                  <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Generate with AI"} /></h3>
                 </div>
-                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]">
-                  Recommended
-                </span>
+                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]"><UiText text={"Recommended"} /></span>
               </div>
-              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]">
-                Upload cooking footage or enter dish notes. AI creates an editable draft of ingredients and culinary steps for you to review.
-              </p>
+              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]"><UiText text={"Upload a cooking video. AI creates an editable draft of ingredients and steps for you to review."} /></p>
             </div>
             <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-[#1E3A2F]">
-              <span>Tự động nhận diện nguyên liệu &amp; công thức</span>
+              <span><UiText text={"Tự động nhận diện nguyên liệu & công thức"} /></span>
               <span>→</span>
             </div>
           </div>
@@ -756,20 +715,14 @@ export default function CreateContentView() {
                   >
                     ✍️
                   </div>
-                  <h3 className="font-serif text-lg font-bold text-[#07241A]">
-                    Write Manually
-                  </h3>
+                  <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Write Manually"} /></h3>
                 </div>
-                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]">
-                  Standard
-                </span>
+                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]"><UiText text={"Standard"} /></span>
               </div>
-              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]">
-                Enter ingredients, measurements, and cooking technique manually. Video attachment remains completely optional.
-              </p>
+              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]"><UiText text={"Enter ingredients, measurements, and cooking technique manually. Video attachment remains completely optional."} /></p>
             </div>
             <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-[#1E3A2F]">
-              <span>Tự do điều chỉnh toàn bộ chi tiết</span>
+              <span><UiText text={"Tự do điều chỉnh toàn bộ chi tiết"} /></span>
               <span>→</span>
             </div>
           </div>
@@ -783,26 +736,21 @@ export default function CreateContentView() {
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
               📝
             </span>
-            <h2 className="font-serif text-lg font-bold text-[#07241A]">
-              Recipe details
-            </h2>
+            <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Recipe details"} /></h2>
           </div>
-          <span className="text-[10px] font-bold tracking-wider text-[#99462A] uppercase">
-            REQUIRED DETAILS
-          </span>
+          <span className="text-[10px] font-bold tracking-wider text-[#99462A] uppercase"><UiText text={"REQUIRED DETAILS"} /></span>
         </div>
 
         <div className="mt-6 space-y-5">
           {/* Recipe Title */}
           <div>
-            <label className="block text-xs font-semibold text-[#07241A]">
-              Recipe title <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Recipe title"} />{" "}<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Easy Tofu in Tomato Sauce"
+              placeholder={ui("e.g. Easy Tofu in Tomato Sauce")}
               className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 text-sm text-[#07241A] placeholder-[#727974] outline-none transition focus:border-[#1E3A2F] focus:bg-white"
             />
           </div>
@@ -811,8 +759,7 @@ export default function CreateContentView() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-[#07241A]">
-                Heritage category <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Category"} />{" "}<span className="text-red-500">*</span>
               </label>
               <select
                 value={categoryId ?? ""}
@@ -823,7 +770,7 @@ export default function CreateContentView() {
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {<UiText text={c.name} />}
                   </option>
                 ))}
               </select>
@@ -831,9 +778,7 @@ export default function CreateContentView() {
 
             {/* Preparation time */}
             <div>
-              <label className="block text-xs font-semibold text-[#07241A]">
-                Preparation cadence (phút)
-              </label>
+              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Preparation time (minutes)"} /></label>
               <div className="relative mt-1.5">
                 <input
                   type="number"
@@ -851,12 +796,8 @@ export default function CreateContentView() {
 
             {/* Servings */}
             <div>
-              <label className="block text-xs font-semibold text-[#07241A]">
-                Servings (Khẩu phần)
-                {creationMode === "ai" && (
-                  <span className="ml-1 text-[10px] text-[#727974] font-normal">
-                    (Manual only)
-                  </span>
+              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Servings"} />{creationMode === "ai" && (
+                  <span className="ml-1 text-[10px] text-[#727974] font-normal"><UiText text={"(Manual only)"} /></span>
                 )}
               </label>
               <div className="relative mt-1.5">
@@ -878,9 +819,7 @@ export default function CreateContentView() {
           {/* Story & flavor profile */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-[#07241A]">
-                Story &amp; flavor profile (Mô tả món ăn)
-              </label>
+              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Dish description"} /></label>
               <span className="text-[11px] text-[#727974]">
                 {content.length} / 500
               </span>
@@ -890,14 +829,14 @@ export default function CreateContentView() {
               maxLength={500}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="A comforting home-cooked dish featuring pan-seared golden tofu braised in a fresh, savory tomato reduction..."
+              placeholder={ui("A comforting home-cooked dish featuring pan-seared golden tofu braised in a fresh, savory tomato reduction...")}
               className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] p-3 text-xs text-[#07241A] placeholder-[#727974] outline-none transition focus:border-[#1E3A2F] focus:bg-white"
             />
           </div>
         </div>
       </section>
 
-      {/* ── Section: Video or dish idea (AI mode) ───────────────────────── */}
+      {/* ── Section: Cooking video (AI mode) ───────────────────────── */}
       {creationMode === "ai" && (
         <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
           <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
@@ -905,23 +844,15 @@ export default function CreateContentView() {
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
                 🎥
               </span>
-              <h2 className="font-serif text-lg font-bold text-[#07241A]">
-                Video or dish idea
-              </h2>
+              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Cooking video"} /></h2>
             </div>
-            <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[10px] font-bold tracking-wider text-[#1E3A2F]">
-              AI POWERED EXTRACTION
-            </span>
+            <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[10px] font-bold tracking-wider text-[#1E3A2F]"><UiText text={"AI POWERED EXTRACTION"} /></span>
           </div>
 
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-[#07241A]">
-                Option A: Upload cooking video
-              </span>
-              <span className="text-[#727974]">
-                MP4, MOV, WEBM, AVI (Tối đa 100 MB)
-              </span>
+              <span className="font-semibold text-[#07241A]"><UiText text={"Upload cooking video"} /></span>
+              <span className="text-[#727974]"><UiText text={"MP4, MOV, WEBM, AVI (up to 100 MB)"} /></span>
             </div>
 
             {/* Hidden file input */}
@@ -942,12 +873,8 @@ export default function CreateContentView() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EFEEEB] text-2xl text-[#07241A]">
                   📁
                 </div>
-                <p className="mt-3 text-xs font-semibold text-[#07241A]">
-                  Bấm để chọn tệp video nấu ăn từ thiết bị
-                </p>
-                <p className="mt-1 text-[11px] text-[#727974]">
-                  Hệ thống hỗ trợ MP4, MOV, WEBM hoặc AVI (dưới 100 MB)
-                </p>
+                <p className="mt-3 text-xs font-semibold text-[#07241A]"><UiText text={"Choose a cooking video from your device"} /></p>
+                <p className="mt-1 text-[11px] text-[#727974]"><UiText text={"Supports MP4, MOV, WEBM or AVI (under 100 MB)"} /></p>
               </div>
             ) : (
               <div className="rounded-2xl border border-[#EFEEEB] bg-[#FBF9F6] p-4 space-y-4">
@@ -970,25 +897,15 @@ export default function CreateContentView() {
                         {videoFile?.name || "Uploaded video"}
                       </span>
                       {draftStatus === "READY" ? (
-                        <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#07241A]">
-                          ✓ READY (Đã phân tích)
-                        </span>
+                        <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#07241A]"><UiText text={"✓ Ready"} /></span>
                       ) : draftStatus === "PROCESSING" ? (
-                        <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">
-                          ⚙️ Đang phân tích...
-                        </span>
+                        <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse"><UiText text={"⚙️ Đang phân tích..."} /></span>
                       ) : draftStatus === "PENDING" ? (
-                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
-                          ⏳ Chờ xử lý
-                        </span>
+                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-700"><UiText text={"⏳ Chờ xử lý"} /></span>
                       ) : draftStatus === "FAILED" ? (
-                        <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-bold text-red-700">
-                          ✕ Lỗi xử lý
-                        </span>
+                        <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-bold text-red-700"><UiText text={"✕ Lỗi xử lý"} /></span>
                       ) : (
-                        <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]">
-                          Chưa gửi phân tích
-                        </span>
+                        <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]"><UiText text={"Chưa gửi phân tích"} /></span>
                       )}
                     </div>
 
@@ -1003,8 +920,8 @@ export default function CreateContentView() {
                     {draftStatus === "PROCESSING" && (
                       <div className="space-y-1 pt-1">
                         <div className="flex items-center justify-between text-[11px] text-[#727974]">
-                          <span>Audio speech &amp; step analysis</span>
-                          <span>Đang nhận diện giọng nói...</span>
+                          <span><UiText text={"Audio speech & step analysis"} /></span>
+                          <span><UiText text={"Đang nhận diện giọng nói..."} /></span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFEEEB]">
                           <div className="h-full w-2/3 animate-pulse rounded-full bg-[#1E3A2F]" />
@@ -1014,7 +931,7 @@ export default function CreateContentView() {
 
                     {draftErrorMessage && (
                       <p className="text-xs text-red-600 font-medium">
-                        {draftErrorMessage}
+                        {<UiText text={draftErrorMessage} />}
                       </p>
                     )}
 
@@ -1024,17 +941,13 @@ export default function CreateContentView() {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         className="rounded-xl border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
-                      >
-                        Replace video
-                      </button>
+                      ><UiText text={"Replace video"} /></button>
                       {draftStatus === "FAILED" && (
                         <button
                           type="button"
                           onClick={handleRetryDraft}
                           className="rounded-xl bg-[#07241A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A2F] transition"
-                        >
-                          Retry analysis
-                        </button>
+                        ><UiText text={"Retry analysis"} /></button>
                       )}
                     </div>
                   </div>
@@ -1053,15 +966,13 @@ export default function CreateContentView() {
                 <span>✨</span>
                 <span>
                   {isUploading
-                    ? "Đang tải video..."
+                    ? ui("Đang tải video...")
                     : draftStatus === "PROCESSING"
-                    ? "AI đang phân tích..."
-                    : "Generate draft"}
+                    ? ui("AI đang phân tích...")
+                    : ui("Generate draft")}
                 </span>
               </button>
-              <span className="text-[11px] text-[#727974] italic">
-                AI draft - review required before publishing
-              </span>
+              <span className="text-[11px] text-[#727974] italic"><UiText text={"AI draft - review required before publishing"} /></span>
             </div>
           </div>
         </section>
@@ -1075,13 +986,9 @@ export default function CreateContentView() {
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
                 🥗
               </span>
-              <h2 className="font-serif text-lg font-bold text-[#07241A]">
-                Ingredients
-              </h2>
+              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Ingredients"} /></h2>
             </div>
-            <p className="mt-0.5 text-xs text-[#727974]">
-              Edit quantities, ingredient names, and verify pantry provenance.
-            </p>
+            <p className="mt-0.5 text-xs text-[#727974]"><UiText text={"Edit quantities, ingredient names, and verify pantry provenance."} /></p>
           </div>
           <button
             type="button"
@@ -1089,7 +996,7 @@ export default function CreateContentView() {
             className="flex items-center gap-1.5 rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-[#D9E6DC]/40 transition self-start sm:self-auto cursor-pointer"
           >
             <span>+</span>
-            <span>Add ingredient</span>
+            <span><UiText text={"Add ingredient"} /></span>
           </button>
         </div>
 
@@ -1111,7 +1018,7 @@ export default function CreateContentView() {
                       onChange={(e) =>
                         handleUpdateIngredient(index, "amount", e.target.value)
                       }
-                      placeholder="e.g. 400g / 2 thìa"
+                      placeholder={ui("e.g. 400 g / 2 tbsp")}
                       className="w-full rounded-xl border border-[#EFEEEB] bg-white px-3 py-2 text-xs text-[#07241A] outline-none"
                     />
                   </div>
@@ -1128,7 +1035,7 @@ export default function CreateContentView() {
                           e.target.value
                         )
                       }
-                      placeholder="Tên nguyên liệu (e.g. Đậu hũ)"
+                      placeholder={ui("Ingredient name (e.g. tofu)")}
                       className="w-full rounded-xl border border-[#EFEEEB] bg-white px-3 py-2 text-xs text-[#07241A] outline-none"
                     />
                   </div>
@@ -1148,7 +1055,7 @@ export default function CreateContentView() {
                     >
                       {DIETARY_GROUPS.map((g) => (
                         <option key={g.value} value={g.value}>
-                          {g.label}
+                          {<UiText text={g.label} />}
                         </option>
                       ))}
                     </select>
@@ -1167,10 +1074,10 @@ export default function CreateContentView() {
                       }
                       className="w-full rounded-xl border border-[#EFEEEB] bg-white px-2 py-2 text-xs text-[#727974] outline-none"
                     >
-                      <option value="">(Không dị ứng)</option>
+                      <option value=""><UiText text={"(Không dị ứng)"} /></option>
                       {allergens.map((al) => (
                         <option key={al.id} value={al.id}>
-                          {al.name}
+                          {<UiText text={al.name} />}
                         </option>
                       ))}
                     </select>
@@ -1182,7 +1089,7 @@ export default function CreateContentView() {
                       type="button"
                       onClick={() => handleRemoveIngredient(index)}
                       className="text-[#727974] hover:text-red-600 transition p-1"
-                      title="Xóa nguyên liệu"
+                      title={ui("Xóa nguyên liệu")}
                     >
                       ✕
                     </button>
@@ -1192,12 +1099,8 @@ export default function CreateContentView() {
                 {/* Non-plant clarification warning */}
                 {isNonPlant && (
                   <div className="rounded-xl bg-[#FDE8E4] px-3 py-1.5 text-[11px] text-[#99462A] flex items-center justify-between">
-                    <span>
-                      ⚠️ Nhóm nguyên liệu <strong>{ing.dietaryGroup}</strong> sẽ ảnh hưởng đến độ tương thích Vegan thuần chay.
-                    </span>
-                    <span className="font-semibold text-[10px] uppercase">
-                      Needs Clarification
-                    </span>
+                    <span><UiText text={"⚠️ Nhóm nguyên liệu"} />{" "}<strong>{ui(DIETARY_GROUPS.find(group => group.value === ing.dietaryGroup)?.label || ing.dietaryGroup)}</strong>{" "}<UiText text={"affects vegan diet compatibility."} /></span>
+                    <span className="font-semibold text-[10px] uppercase"><UiText text={"Needs Clarification"} /></span>
                   </div>
                 )}
               </div>
@@ -1206,73 +1109,7 @@ export default function CreateContentView() {
         </div>
       </section>
 
-      {/* ── Section: Diet compatibility ─────────────────────────────────── */}
-      <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
-        <div className="border-b border-[#EFEEEB] pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
-                🌱
-              </span>
-              <h2 className="font-serif text-lg font-bold text-[#07241A]">
-                Diet compatibility
-              </h2>
-            </div>
-            <span className="text-[11px] text-[#727974] italic">
-              Based on ingredients confirmed by author
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-[#727974]">
-            Evaluates listed ingredients against vegetarian classifications. Helps mindful diners discover suitable options with confidence.
-          </p>
-        </div>
-
-        {/* Diet badges cards */}
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {dietTypes.map((dt) => {
-            const compatible = isDietCompatible(dt, ingredients);
-            return (
-              <div
-                key={dt.id}
-                className={`rounded-2xl p-4 border transition flex flex-col justify-between ${
-                  compatible
-                    ? "border-[#CAEADA] bg-[#FBF9F6]"
-                    : "border-[#EFEEEB] bg-white opacity-80"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-serif text-sm font-bold text-[#07241A]">
-                    {dt.name}
-                  </span>
-                  {compatible ? (
-                    <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#07241A]">
-                      ✓ Compatible
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-[#FDE8E4] px-2 py-0.5 text-[10px] font-bold text-[#99462A]">
-                      Needs clarification
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2 text-[11px] text-[#727974]">
-                  {compatible ? (
-                    <span>Tất cả nguyên liệu thuộc nhóm cho phép.</span>
-                  ) : (
-                    <span>Có nguyên liệu ngoài nhóm {dt.allowedIngredientGroups?.join(", ")}.</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-4 rounded-xl bg-[#F5F3F0] p-3 text-[11px] text-[#424844] flex items-center gap-2">
-          <span>ℹ️</span>
-          <span>
-            Kết quả cuối cùng sẽ được máy chủ tự động tính toán và lưu thành các danh mục tương thích (compatibleDietTypeIds) khi công thức được đăng tải.
-          </span>
-        </div>
-      </section>
+      <DietSelector diets={dietTypes} ingredients={ingredients} selectedIds={selectedDietTypeIds} onChange={setSelectedDietTypeIds} />
 
       {/* ── Section: Cooking steps ──────────────────────────────────────── */}
       <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
@@ -1282,13 +1119,9 @@ export default function CreateContentView() {
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
                 🍳
               </span>
-              <h2 className="font-serif text-lg font-bold text-[#07241A]">
-                Cooking steps
-              </h2>
+              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Cooking steps"} /></h2>
             </div>
-            <p className="mt-0.5 text-xs text-[#727974]">
-              Step-by-step guidance formatted with culinary precision.
-            </p>
+            <p className="mt-0.5 text-xs text-[#727974]"><UiText text={"Step-by-step guidance formatted with culinary precision."} /></p>
           </div>
           <button
             type="button"
@@ -1296,7 +1129,7 @@ export default function CreateContentView() {
             className="flex items-center gap-1.5 rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-[#D9E6DC]/40 transition self-start sm:self-auto cursor-pointer"
           >
             <span>+</span>
-            <span>Add step</span>
+            <span><UiText text={"Add step"} /></span>
           </button>
         </div>
 
@@ -1312,24 +1145,21 @@ export default function CreateContentView() {
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#07241A] text-xs font-bold text-white">
                     {st.stepNumber}
                   </span>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[#07241A]">
-                    BƯỚC {st.stepNumber}
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[#07241A]"><UiText text={"BƯỚC"} />{" "}{st.stepNumber}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleRemoveStep(index)}
                   className="text-xs text-[#727974] hover:text-red-600 transition p-1"
-                  title="Xóa bước này"
-                >
-                  ✕ Xóa
-                </button>
+                  title={ui("Xóa bước này")}
+                ><UiText text={"✕ Xóa"} /></button>
               </div>
               <textarea
                 rows={2}
                 value={st.instruction}
                 onChange={(e) => handleUpdateStep(index, e.target.value)}
-                placeholder="Mô tả kỹ thuật nấu, lửa và thời gian cho bước này..."
+                placeholder={ui("Mô tả kỹ thuật nấu, lửa và thời gian cho bước này...")}
                 className="w-full rounded-xl border border-[#EFEEEB] bg-white p-3 text-xs text-[#07241A] placeholder-[#727974] outline-none transition focus:border-[#1E3A2F]"
               />
             </div>
@@ -1349,11 +1179,7 @@ export default function CreateContentView() {
             className="mt-0.5 h-4 w-4 rounded border-[#99462A] text-[#07241A] focus:ring-[#1E3A2F]"
           />
           <label htmlFor="review-checkbox" className="text-xs text-[#424844] cursor-pointer">
-            <span className="font-semibold text-[#07241A]">
-              I have reviewed the ingredients and cooking steps.
-            </span>{" "}
-            Published recipes become available after you confirm ingredient provenance, resolve warnings, and verify step instructions.
-          </label>
+            <span className="font-semibold text-[#07241A]"><UiText text={"I have reviewed the ingredients and cooking steps."} /></span>{" "}<UiText text={"Published recipes become available after you confirm ingredient provenance, resolve warnings, and verify step instructions."} /></label>
         </div>
 
         {/* Action Buttons */}
@@ -1361,14 +1187,12 @@ export default function CreateContentView() {
           <button
             type="button"
             onClick={() => {
-              if (confirm("Bạn có chắc chắn muốn hủy các thay đổi?")) {
+              if (confirm(ui("Bạn có chắc chắn muốn hủy các thay đổi?"))) {
                 router.push("/");
               }
             }}
             className="text-xs font-semibold text-[#727974] hover:text-[#07241A] transition text-left sm:text-center"
-          >
-            ✕ Discard changes
-          </button>
+          ><UiText text={"✕ Discard changes"} /></button>
 
           <div className="flex items-center gap-3">
             <button
@@ -1376,9 +1200,7 @@ export default function CreateContentView() {
               onClick={handleSaveDraft}
               disabled={isSubmitting}
               className="rounded-xl border border-[#EFEEEB] bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition disabled:opacity-50 cursor-pointer"
-            >
-              Save draft
-            </button>
+            ><UiText text={"Save draft"} /></button>
             <button
               type="button"
               onClick={handlePublish}
@@ -1386,7 +1208,7 @@ export default function CreateContentView() {
               className="flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <span>🚀</span>
-              <span>{isSubmitting ? "Đang xuất bản..." : "Publish recipe"}</span>
+              <span>{isSubmitting ? ui("Đang xuất bản...") : ui("Publish recipe")}</span>
             </button>
           </div>
         </div>

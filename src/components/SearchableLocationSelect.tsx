@@ -1,5 +1,8 @@
 "use client";
 
+import UiText from "@/components/UiText";
+
+
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export type SearchableLocationOption = {
@@ -104,7 +107,7 @@ export default function SearchableLocationSelect({
           </div>
           <div className="max-h-56 overflow-y-auto py-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-[#727974]">No result</div>
+              <div className="px-4 py-3 text-sm text-[#727974]"><UiText text={"No result"} /></div>
             ) : (
               filteredOptions.map((option) => (
                 <button

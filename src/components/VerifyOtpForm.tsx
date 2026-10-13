@@ -1,11 +1,15 @@
 "use client";
 
+import UiText, { useUiText } from "@/components/UiText";
+
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyOtpWithApi, resendOtpWithApi, ApiError } from "@/lib/auth";
 
 export default function VerifyOtpForm() {
+  const ui = useUiText();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -232,25 +236,17 @@ export default function VerifyOtpForm() {
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5F2] text-[#C25E48] text-xl mb-3">
           ⚠️
         </span>
-        <h2 className="font-serif text-2xl font-bold text-[#07241A]">
-          Thiếu thông tin xác thực
-        </h2>
-        <p className="mt-2 text-xs sm:text-sm text-[#727974] leading-relaxed">
-          Không tìm thấy địa chỉ email đang chờ xác minh OTP. Vui lòng thực hiện đăng ký hoặc đăng nhập.
-        </p>
+        <h2 className="font-serif text-2xl font-bold text-[#07241A]"><UiText text={"Thiếu thông tin xác thực"} /></h2>
+        <p className="mt-2 text-xs sm:text-sm text-[#727974] leading-relaxed"><UiText text={"Không tìm thấy địa chỉ email đang chờ xác minh OTP. Vui lòng thực hiện đăng ký hoặc đăng nhập."} /></p>
         <div className="mt-6 flex flex-col gap-2.5">
           <Link
             href="/register"
             className="rounded-xl bg-[#1E3A2F] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#07241A]"
-          >
-            Đến trang Đăng ký
-          </Link>
+          ><UiText text={"Đến trang Đăng ký"} /></Link>
           <Link
             href="/login"
             className="rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-4 py-2.5 text-xs font-semibold text-[#424844] transition hover:bg-white"
-          >
-            Đến trang Đăng nhập
-          </Link>
+          ><UiText text={"Đến trang Đăng nhập"} /></Link>
         </div>
       </div>
     );
@@ -282,12 +278,8 @@ export default function VerifyOtpForm() {
             VeggieMate
           </span>
         </Link>
-        <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]">
-          Verify your email
-        </h1>
-        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]">
-          We have sent a 6-digit verification code to
-        </p>
+        <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]"><UiText text={"Verify your email"} /></h1>
+        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"We have sent a 6-digit verification code to"} /></p>
         <p className="font-semibold text-xs sm:text-sm text-[#07241A] break-all mt-0.5">
           {email}
         </p>
@@ -297,7 +289,7 @@ export default function VerifyOtpForm() {
       {successMessage && (
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
           <span className="text-sm">✓</span>
-          <span className="flex-1 leading-relaxed">{successMessage}</span>
+          <span className="flex-1 leading-relaxed">{<UiText text={successMessage} />}</span>
         </div>
       )}
 
@@ -316,15 +308,13 @@ export default function VerifyOtpForm() {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <div className="flex-1 leading-relaxed">
-            <p>{error}</p>
+            <p>{<UiText text={error} />}</p>
             {isEmailAlreadyVerified && (
               <p className="mt-1">
                 <Link
                   href={`/login?email=${encodeURIComponent(email)}`}
                   className="font-bold underline hover:text-[#07241A]"
-                >
-                  Chuyển tới trang Đăng nhập
-                </Link>
+                ><UiText text={"Go to login"} /></Link>
               </p>
             )}
           </div>
@@ -335,7 +325,7 @@ export default function VerifyOtpForm() {
               setIsEmailAlreadyVerified(false);
             }}
             className="text-[#99462A]/60 hover:text-[#99462A]"
-            title="Đóng thông báo"
+            title={ui("Đóng thông báo")}
           >
             ✕
           </button>
@@ -345,9 +335,7 @@ export default function VerifyOtpForm() {
       {/* 6-Digit OTP Form */}
       <form onSubmit={handleVerify} className="mt-6 space-y-6">
         <div>
-          <label className="block text-center text-xs font-semibold text-[#727974] uppercase tracking-wider mb-3">
-            Enter 6-digit Code
-          </label>
+          <label className="block text-center text-xs font-semibold text-[#727974] uppercase tracking-wider mb-3"><UiText text={"Enter 6-digit Code"} /></label>
           <div className="flex items-center justify-between gap-1.5 sm:gap-2.5">
             {otp.map((digit, idx) => (
               <input
@@ -400,10 +388,10 @@ export default function VerifyOtpForm() {
                     className="opacity-75"
                   />
                 </svg>
-                <span>Đang xác thực mã...</span>
+                <span><UiText text={"Đang xác thực mã..."} /></span>
               </>
             ) : (
-              <span>Verify Email</span>
+              <span><UiText text={"Verify Email"} /></span>
             )}
           </button>
 
@@ -414,11 +402,11 @@ export default function VerifyOtpForm() {
             className="w-full rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-4 py-2.5 text-xs font-semibold text-[#424844] transition hover:bg-white hover:text-[#07241A] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isResending ? (
-              <span>Đang gửi lại...</span>
+              <span><UiText text={"Đang gửi lại..."} /></span>
             ) : cooldownSeconds > 0 ? (
-              <span>Resend OTP in {String(cooldownSeconds).padStart(2, "0")}s</span>
+              <span><UiText text={"Resend OTP in"} />{" "}{String(cooldownSeconds).padStart(2, "0")}s</span>
             ) : (
-              <span>Resend OTP</span>
+              <span><UiText text={"Resend OTP"} /></span>
             )}
           </button>
         </div>
@@ -429,9 +417,7 @@ export default function VerifyOtpForm() {
         <Link
           href={`/login?email=${encodeURIComponent(email)}`}
           className="font-semibold text-[#1E3A2F] hover:underline"
-        >
-          ← Back to login
-        </Link>
+        ><UiText text={"← Back to login"} /></Link>
       </div>
     </div>
   );

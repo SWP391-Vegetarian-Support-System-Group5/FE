@@ -1,5 +1,8 @@
 "use client";
 
+import UiText from "@/components/UiText";
+
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -327,9 +330,7 @@ export default function VeggieAIWidget() {
                   {/* Related Recipes if present */}
                   {msg.relatedRecipes && msg.relatedRecipes.length > 0 && (
                     <div className="mt-2.5 pt-2 border-t border-[#EFEEEB] space-y-1">
-                      <p className="text-[11px] font-semibold text-[#07241A]">
-                        🥗 Gợi ý món liên quan:
-                      </p>
+                      <p className="text-[11px] font-semibold text-[#07241A]"><UiText text={"🥗 Gợi ý món liên quan:"} /></p>
                       <div className="flex flex-wrap gap-1">
                         {msg.relatedRecipes.map((recipe) => (
                           <Link
@@ -347,7 +348,7 @@ export default function VeggieAIWidget() {
                   {/* Sources if present */}
                   {msg.sources && msg.sources.length > 0 && (
                     <div className="mt-2 pt-1 border-t border-[#EFEEEB] flex items-center gap-1 flex-wrap">
-                      <span className="text-[10px] text-[#727974]">Nguồn:</span>
+                      <span className="text-[10px] text-[#727974]"><UiText text={"Nguồn:"} /></span>
                       {msg.sources.map((src, i) => (
                         <span
                           key={i}
