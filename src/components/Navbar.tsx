@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminModeration, BYPASS_ADMIN_ROLE } from "@/context/AdminModerationContext";
 import { useLanguage } from "@/context/LanguageContext";
 
 function getInitials(name?: string | null, email?: string | null): string {
@@ -28,6 +29,7 @@ interface NavbarProps {
 
 export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProps) {
   const { user, loading, logout } = useAuth();
+  const { flaggedCount } = useAdminModeration();
   const { language, setLanguage, t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
@@ -95,7 +97,6 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     { label: t("Vegan Places", "Địa điểm chay"), href: "/vegan-places" },
     { label: t("Meal Planner", "Thực đơn"), href: "/meal-planner" },
     { label: t("AI Chatbox", "Trợ lý AI"), href: "/ai-chatbox" },
-    { label: t("My Content", "Bài viết của tôi"), href: "/my-content" },
   ];
 
   const isLinkActive = (href: string) => {
@@ -112,9 +113,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#EFEEEB] bg-[#FBF9F6]/90 backdrop-blur-md transition-all">
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6 xl:px-8 2xl:px-10">
+      <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6 xl:gap-6 xl:px-8">
         {/* Brand Logo & Main Nav */}
-        <div className="flex min-w-0 items-center gap-5 xl:gap-6">
+        <div className="flex min-w-0 items-center gap-5 xl:gap-7 2xl:gap-9">
           <Link href="/" className="group flex shrink-0 items-center gap-2.5 whitespace-nowrap">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1E3A2F] text-white shadow-sm transition group-hover:bg-[#07241A] sm:h-9 sm:w-9">
               <svg
@@ -137,17 +138,17 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
           </Link>
 
           {/* Navigation Links */}
-          <nav aria-label={t("Main navigation", "Điều hướng chính")} className="hidden shrink-0 items-center gap-0.5 xl:flex">
+          <nav aria-label={t("Main navigation", "Điều hướng chính")} className="hidden shrink-0 items-center gap-1 xl:flex 2xl:gap-2">
             {navLinks.map((link) => (
               <Link
                 key={link.label}
                 href={link.href}
                 aria-current={isLinkActive(link.href) ? "page" : undefined}
-                className={`whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold transition ${
+                className={`whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-semibold transition 2xl:px-4 2xl:text-[15px] ${
                   isLinkActive(link.href)
                     ? "bg-[#1E3A2F] text-white shadow-sm"
                     : "text-[#424844] hover:bg-[#D9E6DC]/40 hover:text-[#07241A]"
-                }`}
+                  }`}
               >
                 {link.label}
               </Link>
@@ -168,10 +169,10 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder={t("Search recipes, foods, places...", "Tìm công thức, món ăn, địa điểm...")}
               aria-label={t("Search VeggieMate", "Tìm kiếm trên VeggieMate")}
-              className="w-full rounded-full border border-[#EFEEEB] bg-[#F5F3F0] py-1.5 pl-9 pr-4 text-xs text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
+              className="w-full rounded-full border border-[#EFEEEB] bg-[#F5F3F0] py-2 pl-9 pr-4 text-sm text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
             />
             <svg
-              className="absolute left-3 top-2 text-[#727974]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#727974]"
               width="14"
               height="14"
               viewBox="0 0 24 24"
@@ -189,7 +190,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             <button
               type="button"
               onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-2 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
               title={t("Select language", "Chọn ngôn ngữ")}
               aria-expanded={showLanguageDropdown}
               aria-controls="navbar-languages"
@@ -221,7 +222,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     language === "en"
                       ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
                       : "text-[#424844] hover:bg-[#F5F3F0]"
-                  }`}
+                    }`}
                 >
                   English (EN)
                 </button>
@@ -235,7 +236,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     language === "vi"
                       ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
                       : "text-[#424844] hover:bg-[#F5F3F0]"
-                  }`}
+                    }`}
                 >
                   Tiếng Việt (VI)
                 </button>
@@ -272,11 +273,11 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   </div>
                 )}
                 <div className="hidden flex-col text-left sm:flex">
-                  <span className="max-w-[110px] truncate text-[11px] font-semibold leading-tight text-[#07241A]">
+                  <span className="max-w-[110px] truncate text-[13px] font-semibold leading-tight text-[#07241A]">
                     {userName}
                   </span>
                   {user.email && (
-                    <span className="max-w-[110px] truncate text-[10px] font-normal text-[#727974]">
+                    <span className="max-w-[110px] truncate text-[11px] font-normal text-[#727974]">
                       {user.email}
                     </span>
                   )}
@@ -294,6 +295,76 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     )}
                   </div>
                   <div className="py-1">
+                    {/* Admin Dashboard & Members: Hiển thị khi role là admin hoặc khi bật bypass */}
+                    {(BYPASS_ADMIN_ROLE || user?.role?.toLowerCase() === "admin") && (
+                      <>
+                        <Link
+                          href="/admin"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#1E3A2F] font-semibold bg-[#D9E6DC]/60 hover:bg-[#D9E6DC] transition mb-1"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect width="7" height="9" x="3" y="3" rx="1" />
+                            <rect width="7" height="5" x="14" y="3" rx="1" />
+                            <rect width="7" height="9" x="14" y="12" rx="1" />
+                            <rect width="7" height="5" x="3" y="16" rx="1" />
+                          </svg>
+                          <span>Admin Dashboard</span>
+                        </Link>
+                        <Link
+                          href="/admin/members"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#1E3A2F] font-semibold hover:bg-[#D9E6DC]/40 transition mb-1"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                          </svg>
+                          <span>Members</span>
+                        </Link>
+                        <Link
+                          href="/admin/content"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#1E3A2F] font-semibold hover:bg-[#D9E6DC]/40 transition mb-1"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                            <path d="M6 6h10" />
+                            <path d="M6 10h10" />
+                          </svg>
+                          <span>Content & Categories</span>
+                        </Link>
+                        <Link
+                          href="/admin/flagged"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center justify-between rounded-lg px-3 py-1.5 text-xs text-[#1E3A2F] font-semibold hover:bg-[#D9E6DC]/40 transition mb-1"
+                        >
+                          <div className="flex items-center gap-2">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                              <line x1="4" x2="4" y1="22" y2="15" />
+                            </svg>
+                            <span>AI Flagged</span>
+                          </div>
+                          {flaggedCount > 0 && (
+                            <span className="rounded-full bg-[#F97316] px-1.5 py-0.2 text-[10px] font-bold text-white">
+                              {flaggedCount}
+                            </span>
+                          )}
+                        </Link>
+                      </>
+                    )}
+                    <Link
+                      href="/my-content"
+                      onClick={() => setShowProfileMenu(false)}
+                      aria-current={pathname.startsWith("/my-content") ? "page" : undefined}
+                      className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#424844] hover:bg-[#F5F3F0] transition"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 7h8M8 12h8M8 17h5" /></svg>
+                      <span>{t("My Content", "Bài viết của tôi")}</span>
+                    </Link>
                     <Link
                       href="/create-content"
                       onClick={() => setShowProfileMenu(false)}
@@ -343,14 +414,24 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               )}
             </div>
           ) : (
-            <Link
-              href="/login"
-              aria-label={t("Login / Sign Up", "Đăng nhập / Đăng ký")}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#07241A] text-xs font-semibold tracking-wide text-white shadow-sm transition hover:bg-[#1E3A2F] sm:w-auto sm:px-4"
-            >
-              <svg className="sm:hidden" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>
-              <span className="hidden sm:inline">{t("Login / Sign Up", "Đăng nhập / Đăng ký")}</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              {BYPASS_ADMIN_ROLE && (
+                <Link
+                  href="/admin/content"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
+                >
+                  <span>🛠️ Admin Test</span>
+                </Link>
+              )}
+              <Link
+                href="/login"
+                aria-label={t("Login / Sign Up", "Đăng nhập / Đăng ký")}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#07241A] text-xs font-semibold tracking-wide text-white shadow-sm transition hover:bg-[#1E3A2F] sm:w-auto sm:px-4"
+              >
+                <svg className="sm:hidden" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>
+                <span className="hidden sm:inline">{t("Login / Sign Up", "Đăng nhập / Đăng ký")}</span>
+              </Link>
+            </div>
           )}
 
           {/* Mobile menu toggle */}
@@ -390,11 +471,10 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               key={link.label}
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`block rounded-lg px-4 py-2 text-xs font-semibold ${
-                isLinkActive(link.href)
+              className={`block rounded-lg px-4 py-2 text-xs font-semibold ${isLinkActive(link.href)
                   ? "bg-[#07241A] text-white"
                   : "text-[#424844] hover:bg-[#D9E6DC]/40"
-              }`}
+                }`}
             >
               {link.label}
             </Link>
@@ -402,6 +482,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
           {user ? (
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
+              <Link href="/my-content" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
+                {t("My Content", "Bài viết của tôi")}
+              </Link>
               <Link
                 href="/create-content"
                 onClick={() => setIsMobileMenuOpen(false)}

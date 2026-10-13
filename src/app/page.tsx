@@ -127,7 +127,7 @@ export default function HomePage() {
             {/* 4 Recipe Cards Grid */}
             <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {/* Card 1 */}
-              <div className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+              <Link href="/view-detail/tofu-tomato" className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
                   <Image
                     src="/images/recipe_tofu_tomato.png"
@@ -149,21 +149,21 @@ export default function HomePage() {
                   <div className="mt-3 flex items-center justify-between border-t border-[#EFEEEB] pt-3 text-xs">
                     <div className="flex items-center gap-1 text-[#F59E0B]">
                       <span>★</span>
-                      <span className="font-semibold text-[#1B1C1A]">4.8 / 5</span>
-                      <span className="text-[#727974]">· 128 ratings</span>
+                      <span className="font-semibold text-[#1B1C1A]">4.6 / 5</span>
+                      <span className="text-[#727974]">· 5 ratings</span>
                     </div>
                   </div>
                   <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#727974]">
-                    <span>💬 46 comments</span>
+                    <span>💬 38 comments</span>
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* Card 2 */}
-              <div className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+              <Link href="/view-detail/bun-chay-hue" className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
                   <Image
-                    src="/images/recipe_bun_hue.png"
+                    src="/images/my-content-noodles.jpg"
                     alt="Bún Chay Huế"
                     fill
                     className="object-cover transition duration-300 group-hover:scale-105"
@@ -190,10 +190,10 @@ export default function HomePage() {
                     <span>💬 83 comments</span>
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* Card 3 */}
-              <div className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+              <Link href="/view-detail/mushroom-spring-rolls" className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
                   <Image
                     src="/images/recipe_spring_rolls.png"
@@ -223,10 +223,10 @@ export default function HomePage() {
                     <span>💬 29 comments</span>
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* Card 4 */}
-              <div className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+              <Link href="/view-detail/claypot-tofu" className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
                   <Image
                     src="/images/recipe_claypot_tofu.png"
@@ -256,7 +256,7 @@ export default function HomePage() {
                     <span>💬 67 comments</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </section>

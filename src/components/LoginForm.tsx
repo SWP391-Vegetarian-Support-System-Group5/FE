@@ -97,15 +97,18 @@ export default function LoginForm() {
 
     try {
       setIsSubmitting(true);
-      // Calls POST /api/auth/login and stores token & user in localStorage
-      await loginWithCredentials(targetEmail, password);
+      const loginRes = await loginWithCredentials(targetEmail, password);
       try {
         await captureLocationAfterLogin();
       } catch {
         // Location is useful for recommendations, but login must still succeed.
       }
-      // Immediately redirect to homepage
-      router.push("/");
+      // Điều hướng theo phân quyền: Admin vào /admin, user thường vào trang chủ /
+      if (loginRes?.user?.role?.toLowerCase() === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         const lowerMsg = (err.message || "").toLowerCase();
