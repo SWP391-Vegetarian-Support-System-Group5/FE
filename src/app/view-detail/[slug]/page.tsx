@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
 import ContentDetailScreen from "@/components/content/ContentDetailScreen";
-import { detailRecipes, getDetailRecipe } from "@/lib/content-detail-data";
+import { getDetailRecipe } from "@/lib/content-detail-data";
 
 type Props = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return detailRecipes.map(recipe => ({ slug: recipe.slug }));
-}
+// Community post IDs are created at runtime, independently of the sample slugs.
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: Props) {
   const slug = (await params).slug;
