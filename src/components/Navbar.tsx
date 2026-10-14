@@ -150,10 +150,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                 key={link.label}
                 href={link.href}
                 aria-current={isLinkActive(link.href) ? "page" : undefined}
-                className={`whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-semibold transition 2xl:px-4 2xl:text-[15px] ${
-                  isLinkActive(link.href)
-                    ? "bg-[#1E3A2F] text-white shadow-sm"
-                    : "text-[#424844] hover:bg-[#D9E6DC]/40 hover:text-[#07241A]"
+                className={`whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-semibold transition 2xl:px-4 2xl:text-[15px] ${isLinkActive(link.href)
+                  ? "bg-[#1E3A2F] text-white shadow-sm"
+                  : "text-[#424844] hover:bg-[#D9E6DC]/40 hover:text-[#07241A]"
                   }`}
               >
                 {link.label}
@@ -224,10 +223,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     setLanguage("en");
                     setShowLanguageDropdown(false);
                   }}
-                  className={`w-full px-3 py-1.5 text-left text-xs transition ${
-                    language === "en"
-                      ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
-                      : "text-[#424844] hover:bg-[#F5F3F0]"
+                  className={`w-full px-3 py-1.5 text-left text-xs transition ${language === "en"
+                    ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
+                    : "text-[#424844] hover:bg-[#F5F3F0]"
                     }`}
                 ><UiText text={"English (EN)"} /></button>
                 <button
@@ -236,10 +234,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     setLanguage("vi");
                     setShowLanguageDropdown(false);
                   }}
-                  className={`w-full px-3 py-1.5 text-left text-xs transition ${
-                    language === "vi"
-                      ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
-                      : "text-[#424844] hover:bg-[#F5F3F0]"
+                  className={`w-full px-3 py-1.5 text-left text-xs transition ${language === "vi"
+                    ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
+                    : "text-[#424844] hover:bg-[#F5F3F0]"
                     }`}
                 >
                   Tiếng Việt (VI)
@@ -421,7 +418,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             <div className="flex items-center gap-2">
               {BYPASS_ADMIN_ROLE && (
                 <Link
-                  href="/admin/content"
+                  href="/admin"
                   className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
                 >
                   <span><UiText text={"🛠️ Admin Test"} /></span>
@@ -476,8 +473,8 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
               className={`block rounded-lg px-4 py-2 text-xs font-semibold ${isLinkActive(link.href)
-                  ? "bg-[#07241A] text-white"
-                  : "text-[#424844] hover:bg-[#D9E6DC]/40"
+                ? "bg-[#07241A] text-white"
+                : "text-[#424844] hover:bg-[#D9E6DC]/40"
                 }`}
             >
               {link.label}
