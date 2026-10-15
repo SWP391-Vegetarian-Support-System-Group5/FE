@@ -3,6 +3,7 @@
 import UiText, { useUiText } from "@/components/UiText";
 import Link from "next/link";
 import Image from "next/image";
+import Reveal from "@/components/ui/Reveal";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CommunityFeed from "@/components/content/CommunityFeed";
@@ -16,7 +17,7 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* 1. HERO SECTION */}
-        <section className="mx-auto max-w-7xl px-6 py-10 lg:px-12 lg:py-14">
+        <Reveal><section className="mx-auto max-w-7xl px-6 py-10 lg:px-12 lg:py-14">
           <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
             {/* Left Content */}
             <div className="lg:col-span-6">
@@ -95,14 +96,14 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </section>
+        </section></Reveal>
 
         {/* Community posts from the backend */}
-        <section id="recipes" className="bg-[#F5F3F0] py-16">
+        <Reveal><section id="recipes" className="bg-[#F5F3F0] py-16">
           <div className="mx-auto max-w-7xl px-6 lg:px-12"><CommunityFeed compact /></div>
-        </section>
+        </section></Reveal>
         {/* 3. POPULAR RESTAURANTS SECTION */}
-        <section id="restaurants" className="py-16">
+        <Reveal><section id="restaurants" className="py-16">
           <div className="mx-auto max-w-7xl px-6 lg:px-12">
             {/* Section Header */}
             <div>
@@ -113,7 +114,7 @@ export default function HomePage() {
             {/* 3 Restaurant Cards Grid */}
             <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
               {/* Restaurant 1 */}
-              <div className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md border border-[#EFEEEB]">
+              <div className="vm-card group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md border border-[#EFEEEB]">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
                   <Image
                     src="/images/restaurant_loving_leaf.png"
@@ -144,7 +145,7 @@ export default function HomePage() {
               </div>
 
               {/* Restaurant 2 */}
-              <div className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md border border-[#EFEEEB]">
+              <div className="vm-card group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md border border-[#EFEEEB]">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
                   <Image
                     src="/images/restaurant_1.png"
@@ -175,7 +176,7 @@ export default function HomePage() {
               </div>
 
               {/* Restaurant 3 */}
-              <div className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md border border-[#EFEEEB]">
+              <div className="vm-card group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md border border-[#EFEEEB]">
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
                   <Image
                     src="/images/restaurant_an_nhien.png"
@@ -206,10 +207,10 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </section>
+        </section></Reveal>
 
         {/* 4. FINAL CALL TO ACTION CARD */}
-        <section id="cta" className="mx-auto max-w-7xl px-6 py-12 lg:px-12 lg:pb-20">
+        <Reveal><section id="cta" className="mx-auto max-w-7xl px-6 py-12 lg:px-12 lg:pb-20">
           <div className="relative overflow-hidden rounded-3xl bg-[#EFEEEB] px-8 py-14 text-center sm:px-14 lg:py-16 shadow-sm">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#D9E6DC] text-[#1E3A2F] mb-6">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -233,7 +234,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-        </section>
+        </section></Reveal>
       </main>
 
       <Footer />

@@ -4,6 +4,7 @@ import UiText, { useUiText } from "@/components/UiText";
 
 
 import { useState, useMemo, useTransition } from "react";
+import { useRememberedFilters } from "@/hooks/useRememberedFilters";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -143,8 +144,10 @@ const RESTAURANTS_DATA: RestaurantItem[] = [
 
 export default function ExplorePage() {
   const ui = useUiText();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "recipes" | "restaurants">("all");
+  const [{ searchQuery, activeTab: savedTab }, setExploreFilters] = useRememberedFilters("explore", { searchQuery: "", activeTab: "all" });
+  const activeTab = ["all", "recipes", "restaurants"].includes(savedTab) ? savedTab : "all";
+  const setSearchQuery = (searchQuery: string) => setExploreFilters(previous => ({ ...previous, searchQuery }));
+  const setActiveTab = (activeTab: "all" | "recipes" | "restaurants") => setExploreFilters(previous => ({ ...previous, activeTab }));
   const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantItem | null>(null);
   const [, startTransition] = useTransition();
@@ -255,7 +258,7 @@ export default function ExplorePage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("all")}
-                  className={`rounded-full px-5 py-2 text-xs font-semibold tracking-wide transition ${
+                  className={`vm-button rounded-full px-5 py-2 text-xs font-semibold tracking-wide transition ${
                     activeTab === "all"
                       ? "bg-white text-[#07241A] shadow-xs font-bold"
                       : "text-[#5C6460] hover:text-[#07241A]"
@@ -264,7 +267,7 @@ export default function ExplorePage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("recipes")}
-                  className={`rounded-full px-5 py-2 text-xs font-semibold tracking-wide transition ${
+                  className={`vm-button rounded-full px-5 py-2 text-xs font-semibold tracking-wide transition ${
                     activeTab === "recipes"
                       ? "bg-white text-[#07241A] shadow-xs font-bold"
                       : "text-[#5C6460] hover:text-[#07241A]"
@@ -273,7 +276,7 @@ export default function ExplorePage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("restaurants")}
-                  className={`rounded-full px-5 py-2 text-xs font-semibold tracking-wide transition ${
+                  className={`vm-button rounded-full px-5 py-2 text-xs font-semibold tracking-wide transition ${
                     activeTab === "restaurants"
                       ? "bg-white text-[#07241A] shadow-xs font-bold"
                       : "text-[#5C6460] hover:text-[#07241A]"

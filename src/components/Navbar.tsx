@@ -196,7 +196,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             <button
               type="button"
               onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-2 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
+              className="vm-button inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-2 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
               title={t("Select language", "Chọn ngôn ngữ")}
               aria-expanded={showLanguageDropdown}
               aria-controls="navbar-languages"
@@ -217,7 +217,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             </button>
 
             {showLanguageDropdown && (
-              <div id="navbar-languages" className="absolute right-0 z-50 mt-1.5 w-36 rounded-xl border border-[#EFEEEB] bg-white py-1.5 shadow-lg ring-1 ring-black/5">
+              <div id="navbar-languages" className="vm-popover absolute right-0 z-50 mt-1.5 w-36 rounded-xl border border-[#EFEEEB] bg-white py-1.5 shadow-lg ring-1 ring-black/5">
                 <button
                   type="button"
                   onClick={() => {
@@ -258,7 +258,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 aria-expanded={showProfileMenu}
                 aria-label={t("Account menu", "Menu tài khoản")}
-                className="flex items-center gap-2 rounded-xl border border-[#EFEEEB] bg-white p-1.5 pr-2.5 sm:pr-3 text-xs font-semibold text-[#07241A] shadow-sm transition hover:bg-[#F5F3F0]"
+                className="vm-button flex items-center gap-2 rounded-xl border border-[#EFEEEB] bg-white p-1.5 pr-2.5 sm:pr-3 text-xs font-semibold text-[#07241A] shadow-sm transition hover:bg-[#F5F3F0]"
                 title={user.email || userName}
               >
                 {user.photoURL ? (
@@ -289,7 +289,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               </button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-[#EFEEEB] bg-white p-2 shadow-xl ring-1 ring-black/5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="vm-popover absolute right-0 mt-2 w-52 rounded-2xl border border-[#EFEEEB] bg-white p-2 shadow-xl ring-1 ring-black/5 z-50">
                   <div className="px-3 py-2 border-b border-[#EFEEEB]">
                     <p className="text-xs font-semibold text-[#07241A] truncate">
                       {userName}
@@ -460,7 +460,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
       {/* Mobile nav dropdown */}
       {isMobileMenuOpen && (
-        <div id="mobile-navigation" className="space-y-2 border-t border-[#EFEEEB] bg-[#FBF9F6] px-6 py-4 xl:hidden">
+        <div id="mobile-navigation" className="vm-popover space-y-2 border-t border-[#EFEEEB] bg-[#FBF9F6] px-6 py-4 xl:hidden">
           {user && (
             <div className="mb-3 border-b border-[#EFEEEB] pb-3">
               <p className="text-xs font-semibold text-[#07241A]">{userName}</p>

@@ -37,3 +37,74 @@
 .animate-fade-in {
   animation: fade-in 0.25s ease-out;
 }
+
+@layer base {
+  button, a, input, select, textarea {
+    transition-duration: 180ms;
+    transition-timing-function: ease-out;
+    transition-property: background-color, border-color, color, box-shadow, opacity;
+  }
+  :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid #658266;
+    outline-offset: 3px;
+  }
+}
+
+@keyframes vm-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes vm-pop {
+  from { opacity: 0; transform: translateY(-5px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes vm-shimmer {
+  from { background-position: 160% 0; }
+  to { background-position: -60% 0; }
+}
+
+.vm-reveal[data-reveal="pending"] { opacity: 0; transform: translateY(12px); }
+.vm-reveal[data-reveal="visible"] { animation: vm-rise 380ms ease-out both; }
+.vm-reveal:focus-within { opacity: 1; transform: none; }
+.vm-enter { animation: vm-rise 220ms ease-out both; }
+.vm-popover { transform-origin: top right; animation: vm-pop 180ms ease-out both; }
+.vm-dialog[open] { animation: vm-pop 180ms ease-out; }
+.vm-feedback { animation: vm-rise 180ms ease-out; }
+.vm-skeleton {
+  background: linear-gradient(100deg, #eceee6 25%, #f7f8f3 45%, #eceee6 65%);
+  background-size: 240% 100%;
+  animation: vm-shimmer 1.6s linear infinite;
+}
+.vm-card { transition: translate 220ms ease-out, box-shadow 220ms ease-out, border-color 180ms ease-out; }
+.vm-feed-image { transition: opacity 240ms ease-out, scale 350ms ease-out; }
+.vm-button { transition: scale 150ms ease-out, background-color 180ms ease-out, box-shadow 180ms ease-out; }
+.vm-button:active:not(:disabled):not([aria-disabled="true"]) { scale: .98; }
+.vm-stagger > .vm-enter:nth-child(2) { animation-delay: 35ms; }
+.vm-stagger > .vm-enter:nth-child(3) { animation-delay: 70ms; }
+.vm-stagger > .vm-enter:nth-child(n+4) { animation-delay: 105ms; }
+
+.vm-field[aria-invalid="true"] { border-color: #b86148; background-color: #fffaf7; }
+.vm-field[aria-invalid="true"]:focus-visible { outline-color: #b86148; }
+.vm-upload-bar { transition: width 180ms linear; }
+@keyframes vm-upload-travel {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(380%); }
+}
+.vm-upload-indeterminate { animation: vm-upload-travel 1.4s ease-in-out infinite; }
+
+@media (hover: hover) and (pointer: fine) {
+  .vm-card:hover { translate: 0 -3px; box-shadow: 0 12px 30px #1e3a2f12; }
+  .vm-card:hover .vm-feed-image { scale: 1.03; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .vm-reveal[data-reveal="pending"] { opacity: 1; transform: none; }
+  .vm-card:hover { translate: none; }
+  .vm-feed-image, .vm-button:active { scale: 1 !important; }
+}

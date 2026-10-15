@@ -1,4 +1,4 @@
-import { apiFetch, apiGet } from "@/lib/api";
+import { apiFetch, apiGet, apiUpload, type UploadOptions } from "@/lib/api";
 
 export type DietaryGroup = "PLANT" | "DAIRY" | "EGG" | "HONEY";
 
@@ -171,14 +171,11 @@ export async function getRecipeById(id: number): Promise<RecipeResponse> {
 
 // ── AI Video Recipe Drafts ─────────────────────────────────────────────────
 
-export async function uploadVideoRecipeDraft(videoFile: File): Promise<VideoRecipeDraftResponse> {
+export async function uploadVideoRecipeDraft(videoFile: File, options: UploadOptions = {}): Promise<VideoRecipeDraftResponse> {
   const formData = new FormData();
   formData.append("video", videoFile);
 
-  const res = await apiFetch("/api/video-recipe-drafts", {
-    method: "POST",
-    body: formData,
-  });
+  const res = await apiUpload("/api/video-recipe-drafts", formData, options);
 
   if (!res.ok) {
     let errMsg = `Không thể tải lên video (${res.status})`;

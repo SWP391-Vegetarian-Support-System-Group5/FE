@@ -679,6 +679,8 @@ Vegetarian dishes rich in calcium and iron for beginners|Các món chay giàu ca
 `.trim();
 
 const mealCopy = `
+Upload cancelled.|Đã hủy tải video lên.
+Upload connection failed|Kết nối tải video bị lỗi. Kiểm tra kết nối và thử lại.
 Could not save the video draft|Lỗi lưu bản nháp video
 TODAY|HÔM NAY
 YESTERDAY|HÔM QUA
