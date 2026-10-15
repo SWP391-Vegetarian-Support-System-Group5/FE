@@ -3,6 +3,7 @@
 import UiText, { useUiText } from "@/components/UiText";
 import PostComposer from "@/components/content/PostComposer";
 import DietSelector from "@/components/recipe/DietSelector";
+import UploadProgress from "@/components/ui/UploadProgress";
 import { useLanguage } from "@/context/LanguageContext";
 import type { PostType } from "@/lib/post-api";
 
@@ -115,6 +116,9 @@ function RecipeContentView() {
 
   // UI status
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null);
+  const uploadAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => uploadAbort.current?.abort(), []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
@@ -126,7 +130,7 @@ function RecipeContentView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (statusMessage) statusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, [statusMessage]);
+  useEffect(() => { if (statusMessage) statusRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" }); }, [statusMessage]);
   const restoredDraftRef = useRef(false);
 
   useEffect(() => {
@@ -255,6 +259,7 @@ function RecipeContentView() {
 
   // Handle Video file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (uploadAbort.current) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -278,6 +283,7 @@ function RecipeContentView() {
 
   // Upload and trigger AI draft generation
   const handleGenerateDraft = async () => {
+    if (uploadAbort.current) return;
     if (!videoFile) {
       setStatusMessage({
         type: "error",
@@ -294,6 +300,11 @@ function RecipeContentView() {
       return;
     }
 
+    const controller = new AbortController();
+    uploadAbort.current = controller;
+    setUploadPercent(0);
+    setDraftStatus(null);
+    setDraftErrorMessage(null);
     setIsUploading(true);
     setStatusMessage({
       type: "info",
@@ -301,7 +312,7 @@ function RecipeContentView() {
     });
 
     try {
-      const res = await uploadVideoRecipeDraft(videoFile);
+      const res = await uploadVideoRecipeDraft(videoFile, { onProgress: setUploadPercent, signal: controller.signal });
       setDraftId(res.videoRecipeDraftId);
       setDraftStatus(res.status);
       setStatusMessage({
@@ -315,9 +326,14 @@ function RecipeContentView() {
         pollDraft(res.videoRecipeDraftId);
       }, 3000);
     } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setStatusMessage({ type: "info", text: "Upload cancelled." });
+        return;
+      }
       const msg = err instanceof Error ? err.message : "Tải lên video thất bại";
       setStatusMessage({ type: "error", text: msg });
     } finally {
+      uploadAbort.current = null;
       setIsUploading(false);
     }
   };
@@ -859,6 +875,7 @@ function RecipeContentView() {
             <input
               ref={fileInputRef}
               type="file"
+              disabled={isUploading}
               accept="video/mp4,video/quicktime,video/webm,video/avi"
               onChange={handleFileChange}
               className="hidden"
@@ -916,19 +933,6 @@ function RecipeContentView() {
                       </p>
                     )}
 
-                    {/* Status descriptions */}
-                    {draftStatus === "PROCESSING" && (
-                      <div className="space-y-1 pt-1">
-                        <div className="flex items-center justify-between text-[11px] text-[#727974]">
-                          <span><UiText text={"Audio speech & step analysis"} /></span>
-                          <span><UiText text={"Đang nhận diện giọng nói..."} /></span>
-                        </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFEEEB]">
-                          <div className="h-full w-2/3 animate-pulse rounded-full bg-[#1E3A2F]" />
-                        </div>
-                      </div>
-                    )}
-
                     {draftErrorMessage && (
                       <p className="text-xs text-red-600 font-medium">
                         {<UiText text={draftErrorMessage} />}
@@ -939,6 +943,7 @@ function RecipeContentView() {
                     <div className="flex items-center gap-2 pt-2">
                       <button
                         type="button"
+                        disabled={isUploading}
                         onClick={() => fileInputRef.current?.click()}
                         className="rounded-xl border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
                       ><UiText text={"Replace video"} /></button>
@@ -960,7 +965,7 @@ function RecipeContentView() {
               <button
                 type="button"
                 onClick={handleGenerateDraft}
-                disabled={isUploading || !videoFile || draftStatus === "PROCESSING"}
+                disabled={isUploading || !videoFile || draftStatus === "PROCESSING" || draftStatus === "PENDING"}
                 className="flex items-center gap-2 rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span>✨</span>
@@ -975,6 +980,7 @@ function RecipeContentView() {
               <span className="text-[11px] text-[#727974] italic"><UiText text={"AI draft - review required before publishing"} /></span>
             </div>
           </div>
+          {(isUploading || draftStatus === "PENDING" || draftStatus === "PROCESSING") && <UploadProgress percent={uploadPercent} processing={!isUploading} onCancel={() => uploadAbort.current?.abort()} />}
         </section>
       )}
 

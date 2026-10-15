@@ -60,6 +60,36 @@ export async function apiFetch(
   });
 }
 
+export interface UploadOptions {
+  onProgress?: (percent: number | null) => void;
+  signal?: AbortSignal;
+}
+
+/** XMLHttpRequest exposes real upload progress; fetch does not expose this in browsers. */
+export function apiUpload(path: string, body: FormData, options: UploadOptions = {}): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    if (options.signal?.aborted) { reject(new DOMException("Upload cancelled", "AbortError")); return; }
+    const xhr = new XMLHttpRequest();
+    const abort = () => xhr.abort();
+    const cleanup = () => options.signal?.removeEventListener("abort", abort);
+    xhr.open("POST", `${API_BASE_URL.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`);
+    const token = localStorage.getItem("token");
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    // The browser supplies the multipart Content-Type and boundary.
+    xhr.upload.onprogress = event => options.onProgress?.(event.lengthComputable && event.total > 0 ? Math.min(100, Math.floor(event.loaded / event.total * 100)) : null);
+    xhr.upload.onload = () => options.onProgress?.(100);
+    xhr.onload = () => {
+      cleanup();
+      if (!xhr.status) { reject(new Error("Upload connection failed")); return; }
+      resolve(new Response(xhr.status === 204 || xhr.status === 304 ? null : xhr.responseText, { status: xhr.status, statusText: xhr.statusText, headers: { "Content-Type": xhr.getResponseHeader("Content-Type") || "application/json" } }));
+    };
+    xhr.onerror = () => { cleanup(); reject(new Error("Upload connection failed")); };
+    xhr.onabort = () => { cleanup(); reject(new DOMException("Upload cancelled", "AbortError")); };
+    options.signal?.addEventListener("abort", abort, { once: true });
+    xhr.send(body);
+  });
+}
+
 /**
  * Convenience helper: performs a GET request and parses the JSON response.
  * Throws if the response is not OK.
