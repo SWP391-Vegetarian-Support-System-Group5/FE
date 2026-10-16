@@ -88,6 +88,43 @@ export default function AdminLayout({
       ),
     },
     {
+      label: "Categories",
+      href: "/admin/categories",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+          <line x1="7" y1="7" x2="7.01" y2="7" />
+        </svg>
+      ),
+    },
+    {
+      label: "Restaurants",
+      href: "/admin/restaurants",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+          <path d="M2 7h20" />
+          <path d="M22 7v3a2 2 0 0 1-2 2 2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12V7" />
+        </svg>
+      ),
+    },
+    {
+      label: "Allergens & Health",
+      href: "/admin/allergens",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="2" y1="2" x2="22" y2="22" />
+          <path d="M10.4 4.5A2 2 0 0 1 12 4a2 2 0 0 1 2 .5" />
+          <path d="M19 13.5A7.5 7.5 0 0 0 12 7c-1.3 0-2.5.3-3.6 1" />
+          <path d="M5.3 12.5A7.5 7.5 0 0 0 4.5 15h11" />
+          <line x1="3" y1="18" x2="19" y2="18" />
+          <path d="M6 18v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" />
+        </svg>
+      ),
+    },
+    {
       label: "AI Flagged",
       href: "/admin/flagged",
       badge: flaggedCount > 0 ? String(flaggedCount) : undefined,
@@ -135,7 +172,7 @@ export default function AdminLayout({
                     <span className={isActive ? "text-white" : "text-[#727974] group-hover:text-[#07241A]"}>
                       {item.icon}
                     </span>
-                    <span>{item.label}</span>
+                    <span><UiText text={item.label} /></span>
                   </div>
                   {item.badge && (
                     <span

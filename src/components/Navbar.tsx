@@ -335,7 +335,46 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <path d="M6 6h10" />
                             <path d="M6 10h10" />
                           </svg>
-                          <span><UiText text={"Content & Categories"} /></span>
+                          <span><UiText text={"Content"} /></span>
+                        </Link>
+                        <Link
+                          href="/admin/categories"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#1E3A2F] font-semibold hover:bg-[#D9E6DC]/40 transition mb-1"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                            <line x1="7" y1="7" x2="7.01" y2="7" />
+                          </svg>
+                          <span><UiText text={"Categories"} /></span>
+                        </Link>
+                        <Link
+                          href="/admin/restaurants"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#1E3A2F] font-semibold hover:bg-[#D9E6DC]/40 transition mb-1"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                            <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+                            <path d="M2 7h20" />
+                          </svg>
+                          <span><UiText text={"Restaurants"} /></span>
+                        </Link>
+                        <Link
+                          href="/admin/allergens"
+                          onClick={() => setShowProfileMenu(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#1E3A2F] font-semibold hover:bg-[#D9E6DC]/40 transition mb-1"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="2" y1="2" x2="22" y2="22" />
+                            <path d="M10.4 4.5A2 2 0 0 1 12 4a2 2 0 0 1 2 .5" />
+                            <path d="M19 13.5A7.5 7.5 0 0 0 12 7c-1.3 0-2.5.3-3.6 1" />
+                            <path d="M5.3 12.5A7.5 7.5 0 0 0 4.5 15h11" />
+                            <line x1="3" y1="18" x2="19" y2="18" />
+                            <path d="M6 18v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" />
+                          </svg>
+                          <span><UiText text={"Allergens & Health"} /></span>
                         </Link>
                         <Link
                           href="/admin/flagged"
@@ -483,6 +522,37 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
           {user ? (
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
+              {(BYPASS_ADMIN_ROLE || user?.role?.toLowerCase() === "admin") && (
+                <div className="mb-2 pb-2 border-b border-[#EFEEEB] space-y-1">
+                  <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Admin</div>
+                  <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#1E3A2F] bg-[#D9E6DC]/40">
+                    <UiText text={"Admin Dashboard"} />
+                  </Link>
+                  <Link href="/admin/members" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
+                    <UiText text={"Members"} />
+                  </Link>
+                  <Link href="/admin/content" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
+                    <UiText text={"Content"} />
+                  </Link>
+                  <Link href="/admin/categories" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
+                    <UiText text={"Categories"} />
+                  </Link>
+                  <Link href="/admin/restaurants" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
+                    <UiText text={"Restaurants"} />
+                  </Link>
+                  <Link href="/admin/allergens" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
+                    <UiText text={"Allergens & Health"} />
+                  </Link>
+                  <Link href="/admin/flagged" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-between rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
+                    <span><UiText text={"AI Flagged"} /></span>
+                    {flaggedCount > 0 && (
+                      <span className="rounded-full bg-[#F97316] px-1.5 py-0.2 text-[10px] font-bold text-white">
+                        {flaggedCount}
+                      </span>
+                    )}
+                  </Link>
+                </div>
+              )}
               <Link href="/my-content" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
                 {t("My Content", "Bài viết của tôi")}
               </Link>

@@ -803,6 +803,9 @@ to|vào file
 to enable the interactive map.|để bật bản đồ tương tác.
 vegetarian places|địa điểm chay
 vegetarian places within 5 km|địa điểm chay trong 5km
+Categories|Danh mục
+Restaurants|Nhà hàng
+Allergens & Health|Dị ứng & Sức khỏe
 `.trim();
 
 const catalog = new Map<string, readonly [string, string]>();
