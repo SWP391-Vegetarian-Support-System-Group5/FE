@@ -5,15 +5,12 @@ export interface PostResponse {
   postId: number;
   userId: number;
   authorName: string;
-  categoryId: number | null;
-  categoryName: string | null;
   title: string;
   content: string;
   postType: string;
   videoUrl: string | null;
   thumbnailUrl: string | null;
   status: string;
-  tags: string[];
   averageRating: number;
   ratingCount: number;
   commentCount: number;
@@ -45,10 +42,12 @@ export interface CommunityEvent {
   commentCount: number | null;
 }
 
-export function listPosts(params: { postType?: string; limit?: number; keyword?: string } = {}) {
+export function listPosts(params: { postType?: string; limit?: number; keyword?: string; category?: number; categoryType?: string } = {}) {
   const query = new URLSearchParams();
   if (params.postType) query.set("postType", params.postType);
   if (params.limit) query.set("limit", String(params.limit));
+  if (params.category) query.set("category", String(params.category));
+  if (params.categoryType) query.set("categoryType", params.categoryType);
   if (params.keyword) query.set("keyword", params.keyword);
   const suffix = query.toString();
   return apiGet<PostResponse[]>(`/api/posts${suffix ? `?${suffix}` : ""}`);
@@ -114,11 +113,10 @@ export function postToRecipe(post: PostResponse): RecipeResponse {
     ingredients: [],
     steps: [],
     compatibleDietTypeIds: [],
-    categoryId: post.categoryId,
     videoUrl: post.videoUrl,
     thumbnailUrl: post.thumbnailUrl,
     prepMinutes: null,
     cookMinutes: null,
-    tagIds: [],
+    categories: [],
   };
 }

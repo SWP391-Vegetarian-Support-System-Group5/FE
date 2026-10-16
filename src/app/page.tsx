@@ -39,7 +39,7 @@ export default function HomePage() {
               {/* Subtitle */}
               <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg">
                 {t(
-                  "Find inspiring recipes, cooking videos and restaurant reviews for your everyday vegetarian journey.",
+                  "Find inspiring recipes, cooking videos and vegetarian places for your everyday vegetarian journey.",
                   "Tìm công thức, video nấu ăn và địa điểm chay phù hợp cho hành trình ăn chay mỗi ngày.",
                 )}
               </p>

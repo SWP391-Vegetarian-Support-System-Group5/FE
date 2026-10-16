@@ -6,7 +6,7 @@ import Image from "next/image";
 
 export interface BookmarkItem {
   id: string;
-  type: "recipe" | "review";
+  type: "recipe" | "post";
   badge: string;
   duration?: string;
   rating?: { score: number; count: number };
@@ -56,8 +56,8 @@ const INITIAL_BOOKMARKS: BookmarkItem[] = [
   },
   {
     id: "bm-3",
-    type: "review",
-    badge: "Restaurant Review",
+    type: "post",
+    badge: "Post",
     rating: { score: 4.9, count: 142 },
     categoryPrep: "📍 Ben Nghe, District 1, HCMC",
     title: "Loving Leaf Vegan Bistro",
@@ -88,8 +88,8 @@ const INITIAL_BOOKMARKS: BookmarkItem[] = [
   },
   {
     id: "bm-5",
-    type: "review",
-    badge: "Restaurant Review",
+    type: "post",
+    badge: "Post",
     rating: { score: 4.8, count: 88 },
     categoryPrep: "📍 District 3, HCMC",
     title: "Green Garden Vegetarian",
@@ -122,7 +122,7 @@ const INITIAL_BOOKMARKS: BookmarkItem[] = [
 
 export default function BookmarksView() {
   const [items, setItems] = useState<BookmarkItem[]>(INITIAL_BOOKMARKS);
-  const [activeTab, setActiveTab] = useState<"all" | "recipe" | "review">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "recipe" | "post">("all");
   const [sortBy, setSortBy] = useState<"recent" | "rating" | "prep">("recent");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -153,7 +153,7 @@ export default function BookmarksView() {
   // Filter items
   const filteredItems = items.filter((item) => {
     if (activeTab === "recipe") return item.type === "recipe";
-    if (activeTab === "review") return item.type === "review";
+    if (activeTab === "post") return item.type === "post";
     return true;
   });
 
@@ -172,7 +172,7 @@ export default function BookmarksView() {
 
   const totalBookmarked = items.filter((i) => i.isBookmarked).length;
   const recipeCount = items.filter((i) => i.type === "recipe" && i.isBookmarked).length;
-  const reviewCount = items.filter((i) => i.type === "review" && i.isBookmarked).length;
+  const postCount = items.filter((i) => i.type === "post" && i.isBookmarked).length;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -202,7 +202,7 @@ export default function BookmarksView() {
             My Collection
           </h1>
           <p className="mt-1.5 text-sm text-[#424844]">
-            Your bookmarked recipes and restaurant reviews in one place.
+            Your bookmarked recipes and posts in one place.
           </p>
         </div>
 
@@ -266,14 +266,14 @@ export default function BookmarksView() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("review")}
+            onClick={() => setActiveTab("post")}
             className={`rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide transition cursor-pointer ${
-              activeTab === "review"
+              activeTab === "post"
                 ? "bg-[#07241A] text-white shadow-xs"
                 : "bg-white text-[#424844] border border-[#EFEEEB] hover:bg-[#F5F3F0]"
             }`}
           >
-            Restaurant Reviews ({reviewCount})
+            Posts ({postCount})
           </button>
         </div>
 
@@ -438,7 +438,7 @@ export default function BookmarksView() {
               Bookmarked Places
             </span>
             <p className="mt-1 font-serif text-2xl font-bold text-[#07241A]">
-              {reviewCount} bistros
+              {postCount} posts
             </p>
           </div>
 

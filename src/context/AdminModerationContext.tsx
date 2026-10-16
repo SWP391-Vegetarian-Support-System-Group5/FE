@@ -7,7 +7,7 @@ export const BYPASS_ADMIN_ROLE = false;
 
 export interface FlaggedItem {
   id: string;
-  category: "Recipe & Video" | "Restaurant Review" | "Comment";
+  category: "Recipe & Video" | "Post" | "Comment";
   flagTime: string;
   flagTypeTag: string;
   flagTypeColor: string;
@@ -31,7 +31,7 @@ interface AdminModerationContextType {
   contentCount: number;
   commentsCount: number;
   recipesCount: number;
-  reviewsCount: number;
+  postsCount: number;
   items: FlaggedItem[];
   dismissFlag: (id: string) => void;
   removeContent: (id: string) => void;
@@ -121,10 +121,10 @@ const initialFlaggedItems: FlaggedItem[] = [
     flagSubText: "Tree nut allergy advisory missing",
   },
 
-  // 4 Restaurant Reviews
+  // 4 Posts
   {
     id: "flag-2",
-    category: "Restaurant Review",
+    category: "Post",
     flagTime: "1h ago",
     flagTypeTag: "Community Report",
     flagTypeColor: "bg-[#F3F4F6] text-[#4B5563]",
@@ -140,7 +140,7 @@ const initialFlaggedItems: FlaggedItem[] = [
   },
   {
     id: "flag-8",
-    category: "Restaurant Review",
+    category: "Post",
     flagTime: "2h 30m ago",
     flagTypeTag: "Promotional Spam",
     flagTypeColor: "bg-[#FEE2E2] text-[#C2410C]",
@@ -156,7 +156,7 @@ const initialFlaggedItems: FlaggedItem[] = [
   },
   {
     id: "flag-9",
-    category: "Restaurant Review",
+    category: "Post",
     flagTime: "4h ago",
     flagTypeTag: "Disputed Info",
     flagTypeColor: "bg-[#FEF3C7] text-[#92400E]",
@@ -172,7 +172,7 @@ const initialFlaggedItems: FlaggedItem[] = [
   },
   {
     id: "flag-10",
-    category: "Restaurant Review",
+    category: "Post",
     flagTime: "5h ago",
     flagTypeTag: "Duplicate Content",
     flagTypeColor: "bg-[#F3F4F6] text-[#4B5563]",
@@ -196,7 +196,7 @@ const initialFlaggedItems: FlaggedItem[] = [
     flagTypeColor: "bg-[#FEE2E2] text-[#C2410C]",
     title: "“This place is completely fake and doesn't serve organic ingredients at all...”",
     authorName: "Khoa Vu",
-    authorBadge: "Target thread: Saigon Vegan Restaurant Review",
+    authorBadge: "Target thread: Saigon Vegan Post",
     authorInitials: "KV",
     commentQuote: "“This place is completely fake and doesn't serve organic ingredients at all...”",
     commentThread: "on: Saigon Vegan Review",
@@ -259,13 +259,13 @@ export function AdminModerationProvider({ children }: { children: React.ReactNod
     return items.filter((item) => item.category === "Recipe & Video").length;
   }, [items]);
 
-  const reviewsCount = useMemo(() => {
-    return items.filter((item) => item.category === "Restaurant Review").length;
+  const postsCount = useMemo(() => {
+    return items.filter((item) => item.category === "Post").length;
   }, [items]);
 
   const contentCount = useMemo(() => {
-    return recipesCount + reviewsCount;
-  }, [recipesCount, reviewsCount]);
+    return recipesCount + postsCount;
+  }, [recipesCount, postsCount]);
 
   const commentsCount = useMemo(() => {
     return items.filter((item) => item.category === "Comment").length;
@@ -281,13 +281,13 @@ export function AdminModerationProvider({ children }: { children: React.ReactNod
       contentCount,
       commentsCount,
       recipesCount,
-      reviewsCount,
+      postsCount,
       items,
       dismissFlag,
       removeContent,
       resetAll,
     }),
-    [flaggedCount, contentCount, commentsCount, recipesCount, reviewsCount, items, dismissFlag, removeContent, resetAll]
+    [flaggedCount, contentCount, commentsCount, recipesCount, postsCount, items, dismissFlag, removeContent, resetAll]
   );
 
   return (

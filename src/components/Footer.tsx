@@ -53,11 +53,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/explore?tab=restaurants" className="transition hover:text-[#07241A]">
-                  {t("Restaurant Reviews", "Đánh giá nhà hàng")}
-                </Link>
-              </li>
-              <li>
                 <Link href="/vegan-places" className="transition hover:text-[#07241A]">
                   {t("Vegan Places Guide", "Địa điểm chay")}
                 </Link>

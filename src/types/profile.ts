@@ -42,23 +42,6 @@ export const DIET_TYPE_OPTIONS: {
   },
 ];
 
-/** Stable enum values for health goals — decoupled from display labels. */
-export enum HealthGoal {
-  WEIGHT_LOSS = "WEIGHT_LOSS",
-  MAINTAIN_WEIGHT = "MAINTAIN_WEIGHT",
-  WEIGHT_GAIN = "WEIGHT_GAIN",
-}
-
-/**
- * Demo health goal options.
- * When a real API/contract is available, replace this with the API response.
- */
-export const HEALTH_GOAL_OPTIONS: { value: HealthGoal; label: string }[] = [
-  { value: HealthGoal.WEIGHT_LOSS, label: "Weight Loss" },
-  { value: HealthGoal.MAINTAIN_WEIGHT, label: "Maintain Weight" },
-  { value: HealthGoal.WEIGHT_GAIN, label: "Weight Gain" },
-];
-
 /** The full profile data shape */
 export interface ProfileData {
   // Personal Information
@@ -74,7 +57,6 @@ export interface ProfileData {
   // Health Profile
   heightCm: string; // kept as string for controlled input
   weightKg: string;
-  healthGoal: HealthGoal;
   dietType: VegetarianDietType;
   allergies: string[];
 
@@ -127,7 +109,6 @@ export const DEMO_PROFILE: ProfileData = {
   memberSince: "November 2024",
   heightCm: "170",
   weightKg: "65",
-  healthGoal: HealthGoal.WEIGHT_LOSS,
   dietType: VegetarianDietType.VEGAN,
   allergies: ["Peanuts", "Dairy"],
   city: "Ho Chi Minh City",

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import RecipeBrowser from "@/components/recipe/RecipeBrowser";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
@@ -16,8 +17,6 @@ import type { Coordinates, Restaurant } from "@/types/location";
 interface RestaurantItem {
   id: string;
   name: string;
-  rating: number;
-  reviewsCount: number;
   isOpen: boolean;
   statusText: string;
   categoryBadge: string;
@@ -34,77 +33,13 @@ interface RestaurantItem {
   distanceKm?: number | null;
 }
 
-interface RecipeVideoItem {
-  id: string;
-  title: string;
-  image: string;
-  rating: number;
-  reviewsCount: number;
-  prepTime: string;
-  difficulty: string;
-  type: "video" | "recipe";
-  cuisine: string;
-  author: string;
-}
 
-const RECIPES_DATA: RecipeVideoItem[] = [
-  {
-    id: "recipe-1",
-    title: "Claypot Tofu with Lemongrass & Black Pepper",
-    image: "/images/recipe_claypot_tofu.png",
-    rating: 4.9,
-    reviewsCount: 184,
-    prepTime: "25 mins",
-    difficulty: "Easy",
-    type: "recipe",
-    cuisine: "Vietnamese Comfort",
-    author: "Chef Thao Linh",
-  },
-  {
-    id: "recipe-2",
-    title: "Hue Spicy Vegetarian Noodle Broth (Bun Hue Chay)",
-    image: "/images/recipe_bun_hue.png",
-    rating: 4.8,
-    reviewsCount: 220,
-    prepTime: "40 mins",
-    difficulty: "Medium",
-    type: "video",
-    cuisine: "Central Regional",
-    author: "VeggieMate Kitchen",
-  },
-  {
-    id: "recipe-3",
-    title: "Crispy Summer Spring Rolls with Sweet Tamarind Dip",
-    image: "/images/recipe_spring_rolls.png",
-    rating: 4.9,
-    reviewsCount: 146,
-    prepTime: "20 mins",
-    difficulty: "Easy",
-    type: "recipe",
-    cuisine: "Fresh Herbs",
-    author: "Chef Minh",
-  },
-  {
-    id: "recipe-4",
-    title: "Braised Tofu in Ripe Tomato Coulis & Scallions",
-    image: "/images/recipe_tofu_tomato.png",
-    rating: 4.7,
-    reviewsCount: 164,
-    prepTime: "18 mins",
-    difficulty: "Quick",
-    type: "video",
-    cuisine: "Everyday Table",
-    author: "Lan Anh",
-  },
-];
 
 function toRestaurantItem(place: Restaurant): RestaurantItem {
   const distanceText = place.distanceKm != null ? `${place.distanceKm.toFixed(1)} km away` : "Near your location";
   return {
     id: place.id,
     name: place.name,
-    rating: place.rating || 0,
-    reviewsCount: place.reviewCount || 0,
     isOpen: true,
     statusText: distanceText,
     categoryBadge: "OSM",
@@ -243,16 +178,6 @@ export default function ExplorePage() {
     });
   }, [restaurants, searchQuery]);
 
-  const filteredRecipes = useMemo(() => {
-    return RECIPES_DATA.filter((item) => {
-      const matchQuery =
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.author.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return matchQuery;
-    });
-  }, [searchQuery]);
 
   const showRestaurants = Boolean(user) && (activeTab === "all" || activeTab === "restaurants");
   const showRecipes = activeTab === "all" || activeTab === "recipes";
@@ -287,7 +212,7 @@ export default function ExplorePage() {
             {/* Subtitle */}
             <p className="text-sm text-[#424844] sm:text-base">
               {t(
-                "Find recipes, videos, restaurant reviews and vegetarian places.",
+                "Find recipes, videos, posts and vegetarian places.",
                 "Tìm công thức, video, đánh giá và địa điểm chay.",
               )}
             </p>
@@ -375,7 +300,7 @@ export default function ExplorePage() {
                       : "text-[#5C6460] hover:text-[#07241A]"
                   }`}
                 >
-                  {t("Restaurant Reviews", "Đánh giá nhà hàng")}
+                  {t("Vegetarian Places", "Địa điểm chay")}
                 </button>
               </div>
             </div>
@@ -462,12 +387,6 @@ export default function ExplorePage() {
                           <div className="absolute inset-y-0 left-1/2 w-px bg-[#1E3A2F]/10" />
                           <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-white/90 text-[#1E3A2F] shadow-md">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                          </div>
-
-                          {/* Top Left Rating Badge */}
-                          <div className="absolute top-3.5 left-3.5 flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-[#07241A] shadow-md backdrop-blur-md">
-                            <span className="text-[#F59E0B] text-xs">★</span>
-                            <span>{place.rating > 0 ? place.rating.toFixed(1) : t("New", "Mới")}</span>
                           </div>
 
                           {/* Top Right Bookmark Button */}
@@ -568,69 +487,7 @@ export default function ExplorePage() {
           )}
 
           {/* 5. VIDEO & RECIPES SECTION (Shown when tab is "all" or "recipes") */}
-          {showRecipes && (
-            <section className="mt-16 sm:mt-20">
-              {/* Header */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between border-b border-[#EFEEEB] pb-4">
-                <div>
-                  <h2 className="font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl">
-                    {t("Seasonal Recipes & Culinary Videos", "Công thức theo mùa & video nấu ăn")}
-                  </h2>
-                  <p className="mt-1 text-xs text-[#727974] sm:text-sm">
-                    {t(
-                      "Wholesome plant-forward culinary inspiration for home cooking",
-                      "Cảm hứng nấu ăn chay lành mạnh cho bữa cơm tại nhà",
-                    )}
-                  </p>
-                </div>
-                <p className="font-serif italic text-xs text-[#727974] sm:text-sm">
-                  {t("Rooted in mindful balance", "Cân bằng và tỉnh thức")}
-                </p>
-              </div>
-
-              {/* Recipe Cards Grid */}
-              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredRecipes.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group flex flex-col overflow-hidden rounded-3xl border border-[#EFEEEB] bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                  >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#EFEEEB]">
-                      <Image
-                        src={item.image}
-                        alt={item.title}
-                        fill
-                        className="object-cover transition duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      />
-                      <span className="absolute top-3 left-3 rounded-full bg-[#1E3A2F]/90 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-xs">
-                        {item.type === "video" ? "📹 Video" : t("📖 Recipe", "📖 Công thức")}
-                      </span>
-                      <span className="absolute top-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-[#07241A] backdrop-blur-xs">
-                        ⏱ {item.prepTime}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-1 flex-col p-4">
-                      <div className="text-[11px] font-semibold text-[#727974]">
-                        {item.cuisine} · {item.difficulty}
-                      </div>
-                      <h4 className="mt-1.5 font-serif text-base font-bold text-[#07241A] line-clamp-2 group-hover:text-[#1E3A2F]">
-                        {item.title}
-                      </h4>
-                      <div className="mt-auto pt-3 flex items-center justify-between text-xs text-[#727974]">
-                        <span>{t("By", "Bởi")} {item.author}</span>
-                        <div className="flex items-center gap-1 font-semibold text-[#07241A]">
-                          <span className="text-[#F59E0B]">★</span>
-                          <span>{item.rating}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          {showRecipes && <RecipeBrowser keyword={searchQuery} />}
         </div>
       </main>
 
@@ -657,9 +514,6 @@ export default function ExplorePage() {
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
                 <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
                   {selectedRestaurant.type}
-                </span>
-                <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-[#07241A]">
-                ★ {selectedRestaurant.rating} ({selectedRestaurant.reviewsCount} {t("reviews", "đánh giá")})
                 </span>
               </div>
             </div>

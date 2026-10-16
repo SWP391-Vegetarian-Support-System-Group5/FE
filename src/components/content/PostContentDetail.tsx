@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { addPostComment, CommunityApiError, createCommunityEventSource, getPost, getPostComments, setPostRating, type CommentResponse, type CommunityEvent, type PostResponse } from "@/lib/community-api";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount } from "@/lib/localized-content";
+import { categoryName } from "@/lib/recipe-categories";
 import ContentDialog from "./ContentDialog";
 import ContentIcon from "./ContentIcon";
+
+async function fetchPostDetail(postId: number) {
+  const [post, comments] = await Promise.all([getPost(postId), getPostComments(postId)]);
+  const recipe = post.postType === "RECIPE" ? await getRecipeById(postId).catch(() => null) : null;
+  return { post, comments, recipe };
+}
 
 export default function PostContentDetail({ postId }: { postId: number }) {
   const { language, t, locale } = useLanguage();
@@ -20,40 +27,44 @@ export default function PostContentDetail({ postId }: { postId: number }) {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [selection, setSelection] = useState(0);
   const [dialog, setDialog] = useState<"rating" | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedPostId, setLoadedPostId] = useState<number | null>(null);
+  const loading = loadedPostId !== postId;
   const [error, setError] = useState<string | null>(null);
 
-  const load = async (background = false) => {
-    if (!background) setLoading(true);
+  const applyDetail = useCallback((data: Awaited<ReturnType<typeof fetchPostDetail>>) => {
+    setPost(data.post); setComments(data.comments); setRecipe(data.recipe); setError(null);
+  }, []);
+
+  const load = useCallback(async () => {
     try {
-      const [nextPost, nextComments] = await Promise.all([getPost(postId), getPostComments(postId)]);
-      setPost(nextPost);
-      setComments(nextComments);
-      if (nextPost.postType === "RECIPE") {
-        try { setRecipe(await getRecipeById(postId)); } catch { setRecipe(null); }
-      }
-      setError(null);
+      applyDetail(await fetchPostDetail(postId));
     } catch {
       setError(t("This post could not be loaded.", "Không thể tải bài viết này."));
     } finally {
-      if (!background) setLoading(false);
+      setLoadedPostId(postId);
     }
-  };
+  }, [postId, t, applyDetail]);
 
-  useEffect(() => { load(); }, [postId]);
+  useEffect(() => {
+    let active = true;
+    fetchPostDetail(postId).then(data => { if (active) applyDetail(data); })
+      .catch(() => { if (active) setError(t("This post could not be loaded.", "Không thể tải bài viết này.")); })
+      .finally(() => { if (active) setLoadedPostId(postId); });
+    return () => { active = false; };
+  }, [postId, t, applyDetail]);
 
   useEffect(() => {
     const source = createCommunityEventSource();
     const refreshPost = (event: Event) => {
       const payload = JSON.parse((event as MessageEvent).data) as CommunityEvent;
-      if (payload.postId === postId) void load(true);
+      if (payload.postId === postId) void load();
     };
-    source.addEventListener("open", () => load(true));
+    source.addEventListener("open", () => void load());
     source.addEventListener("commentCreated", (event) => {
       const payload = JSON.parse((event as MessageEvent).data) as CommunityEvent;
       if (payload.postId !== postId || !payload.comment) return;
       if (payload.comment.parentCommentId !== null) {
-        void load(true);
+        void load();
         return;
       }
       setComments((current) => current.some((item) => item.commentId === payload.comment!.commentId) ? current : [...current, payload.comment!]);
@@ -74,7 +85,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
       setError(t("This post is no longer available.", "Bài viết này không còn khả dụng."));
     });
     return () => source.close();
-  }, [postId]);
+  }, [postId, load, t]);
 
   const totalMinutes = (recipe?.prepMinutes || 0) + (recipe?.cookMinutes || 0);
   const publishedDate = useMemo(() => post ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(post.createdAt)) : "", [locale, post]);
@@ -132,7 +143,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
           <Link href="/" className="hover:text-[#BC4B22]">{t("Home", "Trang chủ")}</Link><span>/</span><span>{localizeRecipeTitle(post.title, language)}</span>
         </nav>
         <header className="py-7">
-          <p className="mb-3 text-[10px] font-semibold tracking-[0.2em] text-[#BC4B22]">{post.categoryName || post.postType}</p>
+          <p className="mb-3 text-[10px] font-semibold tracking-[0.2em] text-[#BC4B22]">{post.postType === "RECIPE" ? t("Recipe & video", "Công thức và video") : t("Post", "Bài viết")}</p>
           <h1 className="font-serif text-4xl leading-tight tracking-tight sm:text-5xl">{localizeRecipeTitle(post.title, language)}</h1>
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-[#727974]">
             <span>{t("by", "bởi")} <strong className="font-medium text-[#07241A]">{post.authorName}</strong></span>
@@ -140,6 +151,8 @@ export default function PostContentDetail({ postId }: { postId: number }) {
             {totalMinutes > 0 && <span className="flex items-center gap-1.5"><ContentIcon name="clock" />{totalMinutes} {t("mins", "phút")}</span>}
           </div>
         </header>
+
+        {recipe?.categories?.length ? <p className="mb-4 text-sm text-[#727974]">{recipe.categories.map(c => categoryName(c, language)).join(" · ")}</p> : null}
 
         <div className="relative overflow-hidden rounded-3xl bg-[#E8EDE4]">
           {post.videoUrl ? (

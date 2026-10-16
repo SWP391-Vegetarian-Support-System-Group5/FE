@@ -2,10 +2,18 @@ import { apiFetch, apiGet } from "@/lib/api";
 
 export type DietaryGroup = "PLANT" | "DAIRY" | "EGG" | "HONEY";
 
-export interface CategoryItem {
+export interface IngredientCategoryItem {
   id: number;
   name: string;
-  type: string | null;
+  code: string;
+}
+
+export interface IngredientItem {
+  id: number;
+  name: string;
+  ingredientCategoryId: number;
+  dietaryGroup: DietaryGroup | "UNVERIFIED";
+  allergenId: number | null;
 }
 
 export interface AllergenItem {
@@ -14,11 +22,6 @@ export interface AllergenItem {
   type: string | null;
 }
 
-export interface TagItem {
-  id: number;
-  name: string;
-  type: string | null;
-}
 
 export interface DietTypeItem {
   id: number;
@@ -43,14 +46,13 @@ export interface CreateRecipePayload {
   title: string;
   recipeName: string;
   content: string;
-  categoryId: number | null;
   videoUrl: string | null;
   prepMinutes: number | null;
   cookMinutes: number | null;
   servings: number | null;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
-  tagIds: number[];
+  categoryIds: number[];
 }
 
 export interface RecipeResponse {
@@ -63,12 +65,12 @@ export interface RecipeResponse {
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
   compatibleDietTypeIds: number[];
-  categoryId?: number | null;
+  categories: import("@/lib/recipe-categories").RecipeCategory[];
   videoUrl?: string | null;
   thumbnailUrl?: string | null;
   prepMinutes?: number | null;
   cookMinutes?: number | null;
-  tagIds?: number[];
+  categoryIds?: number[];
 }
 
 export type VideoDraftStatus =
@@ -107,33 +109,32 @@ export interface UpdateVideoRecipeDraftPayload {
 
 export interface PublishVideoRecipeDraftPayload {
   recipeName: string;
-  categoryId: number | null;
-  tagIds: number[];
+  categoryIds: number[];
 }
 
 // ── Master data endpoints ──────────────────────────────────────────────────
 
-export async function getCategories(): Promise<CategoryItem[]> {
-  try {
-    const res = await apiGet<CategoryItem[]>("/api/categories");
-    return Array.isArray(res) ? res : [];
-  } catch {
-    return [];
+export function getIngredientCategories(): Promise<IngredientCategoryItem[]> {
+  return apiGet<IngredientCategoryItem[]>("/api/ingredient-categories");
+}
+
+export function getIngredients(keyword?: string): Promise<IngredientItem[]> {
+  const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : "";
+  return apiGet<IngredientItem[]>(`/api/ingredients${query}`);
+}
+
+export async function updateIngredient(id: number, payload: { name: string; ingredientCategoryId: number; allergenId: number | null }): Promise<IngredientItem> {
+  const response = await apiFetch(`/api/admin/ingredients/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message || `Ingredient update failed (${response.status})`);
   }
+  return response.json();
 }
 
 export async function getAllergens(): Promise<AllergenItem[]> {
   try {
     const res = await apiGet<AllergenItem[]>("/api/allergens");
-    return Array.isArray(res) ? res : [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getTags(): Promise<TagItem[]> {
-  try {
-    const res = await apiGet<TagItem[]>("/api/tags");
     return Array.isArray(res) ? res : [];
   } catch {
     return [];

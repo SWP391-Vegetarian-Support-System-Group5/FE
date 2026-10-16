@@ -8,7 +8,7 @@ import { useAdminModeration } from "@/context/AdminModerationContext";
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
-  const { flaggedCount, recipesCount, reviewsCount, commentsCount } = useAdminModeration();
+  const { flaggedCount, recipesCount, postsCount, commentsCount } = useAdminModeration();
   const [searchAdmin, setSearchAdmin] = useState("");
 
   const recentActivities = [
@@ -27,7 +27,7 @@ export default function AdminDashboardPage() {
       id: 2,
       author: "Minh Tran",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
-      action: "added a restaurant review",
+      action: "added a post",
       target: "",
       type: "Review",
       typeClass: "bg-[#E0F2F1] text-[#00796B]",
@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
     {
       id: "REV-2026-039",
       title: "A Calm Vegetarian Dinner in Thủ Đức",
-      type: "Restaurant Review",
+      type: "Post",
       author: "Minh Tran",
       authorInitials: "MT",
       authorBg: "bg-[#E0F2F1] text-[#00796B]",
@@ -239,7 +239,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <p className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#07241A]">486</p>
-          <p className="mt-1 text-xs text-[#727974]">Published recipes & reviews</p>
+          <p className="mt-1 text-xs text-[#727974]">Published recipes & posts</p>
         </div>
 
         {/* Card 3: Needs Review */}
@@ -397,10 +397,10 @@ export default function AdminDashboardPage() {
                       <path d="M5 21V7l8-4v18" />
                       <path d="M19 21V11l-6-3" />
                     </svg>
-                    <span>Restaurant Reviews</span>
+                    <span>Posts</span>
                   </div>
                   <div className="flex items-center gap-1 text-[#727974]">
-                    <span className="font-bold text-[#07241A]">{reviewsCount}</span>
+                    <span className="font-bold text-[#07241A]">{postsCount}</span>
                     <span>›</span>
                   </div>
                 </Link>

@@ -1,5 +1,8 @@
 "use client";
 
+import RecipeCategoryPicker from "./RecipeCategoryPicker";
+import { getRecipeCategories, type RecipeCategory } from "@/lib/recipe-categories";
+
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,9 +13,9 @@ import { getStoredToken } from "@/lib/auth";
 import { getMediaUrl } from "@/lib/api";
 import { readMyContent, saveManualContent, removeManualContent, rememberPublishedContent } from "@/lib/my-content";
 import {
-  CategoryItem,
+  IngredientCategoryItem,
+  IngredientItem,
   AllergenItem,
-  TagItem,
   DietTypeItem,
   DietaryGroup,
   RecipeIngredientPayload,
@@ -20,9 +23,9 @@ import {
   RecipeResponse,
   VideoDraftStatus,
   VideoRecipeDraftResponse,
-  getCategories,
+  getIngredientCategories,
+  getIngredients,
   getAllergens,
-  getTags,
   getDietTypes,
   createRecipe,
   uploadVideoRecipeDraft,
@@ -33,12 +36,10 @@ import {
   isDietCompatible,
 } from "@/lib/recipe-api";
 
-const DIETARY_GROUPS: { value: DietaryGroup; label: string; desc: string }[] = [
-  { value: "PLANT", label: "Thực vật (Plant)", desc: "100% gốc thực vật" },
-  { value: "DAIRY", label: "Sữa (Dairy)", desc: "Bơ, sữa chua, phô mai..." },
-  { value: "EGG", label: "Trứng (Egg)", desc: "Trứng gà, vịt..." },
-  { value: "HONEY", label: "Mật ong (Honey)", desc: "Mật ong tự nhiên" },
-];
+const INGREDIENT_CATEGORY_LABELS: Record<string, [string, string]> = {
+  PLANT: ["Plant", "Thực vật"], DAIRY: ["Dairy", "Sữa và chế phẩm từ sữa"],
+  EGG: ["Egg", "Trứng"], HONEY: ["Honey", "Mật ong"],
+};
 
 const subscribeHydration = () => () => {};
 
@@ -54,24 +55,24 @@ export default function CreateContentView() {
 
   // Mode: "ai" vs "manual"
   const [creationMode, setCreationMode] = useState<"ai" | "manual">("ai");
-  const [contentType, setContentType] = useState<"recipe" | "review">("recipe");
+
+  const [recipeCategories, setRecipeCategories] = useState<RecipeCategory[]>([]);
 
   // Master data
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [ingredientCategories, setIngredientCategories] = useState<IngredientCategoryItem[]>([]);
+  const [ingredientCatalog, setIngredientCatalog] = useState<IngredientItem[]>([]);
   const [allergens, setAllergens] = useState<AllergenItem[]>([]);
-  const [, setTags] = useState<TagItem[]>([]);
   const [dietTypes, setDietTypes] = useState<DietTypeItem[]>([]);
   const [, setIsLoadingMasterData] = useState(true);
 
   // Form fields
   const [title, setTitle] = useState("");
   const [recipeName, setRecipeName] = useState("");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [prepMinutes, setPrepMinutes] = useState<string>("20");
   const [cookMinutes, setCookMinutes] = useState<string>("15");
   const [servings, setServings] = useState<string>("2");
   const [content, setContent] = useState("");
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
 
   // Ingredients
   const [ingredients, setIngredients] = useState<RecipeIngredientPayload[]>([
@@ -149,44 +150,46 @@ export default function CreateContentView() {
       setTitle(draft.title);
       setRecipeName(draft.recipeName || "");
       setContent(draft.content);
-      setCategoryId(draft.categoryId);
       setPrepMinutes(draft.prepMinutes);
       setCookMinutes(draft.cookMinutes);
       setServings(draft.servings);
       setIngredients(draft.ingredients);
       setSteps(draft.steps);
-      setSelectedTagIds(draft.selectedTagIds);
+      setSelectedCategoryIds(draft.selectedCategoryIds || []);
     });
     return () => { cancelled = true; };
   }, [authLoading, contentOwner]);
 
   // Load master data on mount
   useEffect(() => {
+    if (authLoading || !user?.uid) return;
+    let cancelled = false;
     async function fetchMaster() {
       setIsLoadingMasterData(true);
       try {
-        const [catData, allData, tagData, dietData] = await Promise.all([
-          getCategories(),
+        const [ingredientCategoryData, allData, dietData, recipeCategoryData, ingredientData] = await Promise.all([
+          getIngredientCategories(),
           getAllergens(),
-          getTags(),
           getDietTypes(),
+          getRecipeCategories(),
+          getIngredients(),
         ]);
-        setCategories(catData);
+        if (cancelled) return;
+        setIngredientCategories(ingredientCategoryData.filter(c => c.code !== "UNVERIFIED"));
+        setIngredientCatalog(ingredientData.filter(x => x.dietaryGroup !== "UNVERIFIED"));
         setAllergens(allData);
-        setTags(tagData);
+        setRecipeCategories(recipeCategoryData);
         setDietTypes(dietData);
 
-        if (catData.length > 0 && !restoredDraftRef.current) {
-          setCategoryId(catData[0].id);
-        }
       } catch {
-        // Handled silently
+        if (!cancelled) setStatusMessage({ type: "error", text: t("Could not load ingredient categories. Please try again.", "Không tải được danh mục nguyên liệu. Vui lòng thử lại.") });
       } finally {
-        setIsLoadingMasterData(false);
+        if (!cancelled) setIsLoadingMasterData(false);
       }
     }
     fetchMaster();
-  }, []);
+    return () => { cancelled = true; };
+  }, [authLoading, user?.uid, t]);
 
   const pollInFlightRef = useRef(false);
   // Poll draft status
@@ -364,9 +367,10 @@ export default function CreateContentView() {
     field: Field,
     value: RecipeIngredientPayload[Field]
   ) => {
-    setIngredients((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
-    );
+    const known = field === "ingredientName" ? ingredientCatalog.find(x => x.name.toLocaleLowerCase() === String(value).trim().toLocaleLowerCase() && x.dietaryGroup !== "UNVERIFIED") : undefined;
+    setIngredients((prev) => prev.map((item, i) => i === index
+      ? { ...item, [field]: value, ...(known && known.dietaryGroup !== "UNVERIFIED" ? { dietaryGroup: known.dietaryGroup, allergenId: known.allergenId } : {}) }
+      : item));
   };
 
   const handleRemoveIngredient = (index: number) => {
@@ -446,13 +450,12 @@ export default function CreateContentView() {
         title,
         recipeName,
         content,
-        categoryId,
         prepMinutes,
         cookMinutes,
         servings,
         ingredients,
         steps,
-        selectedTagIds,
+        selectedCategoryIds,
         savedAt: new Date().toISOString(),
       };
       try {
@@ -539,8 +542,7 @@ export default function CreateContentView() {
         // Step 2: Publish via POST /api/video-recipe-drafts/{id}/publish
         const published = await publishVideoRecipeDraft(draftId, {
           recipeName: recipeName.trim(),
-          categoryId: categoryId,
-          tagIds: selectedTagIds,
+          categoryIds: selectedCategoryIds,
         });
 
         setPublishedResult(published);
@@ -555,14 +557,13 @@ export default function CreateContentView() {
           title: title.trim(),
           recipeName: recipeName.trim(),
           content: content.trim(),
-          categoryId: categoryId,
           videoUrl: videoPreviewUrl || null,
           prepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
           cookMinutes: cookMinutes ? parseInt(cookMinutes, 10) : null,
           servings: servings ? parseInt(servings, 10) : null,
           ingredients,
           steps,
-          tagIds: selectedTagIds,
+          categoryIds: selectedCategoryIds,
         };
 
         const res = await createRecipe(payload);
@@ -609,39 +610,6 @@ export default function CreateContentView() {
           </p>
         </div>
 
-        {/* Mode Toggle: Video & Recipe vs Restaurant Review */}
-        <div className="flex items-center rounded-2xl bg-[#EFEEEB] p-1 shadow-inner self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setContentType("recipe")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
-              contentType === "recipe"
-                ? "bg-[#07241A] text-white shadow-xs"
-                : "text-[#424844] hover:text-[#07241A]"
-            }`}
-          >
-            <span>🎬 📖</span>
-            <span>Video &amp; Recipe</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setContentType("review");
-              setStatusMessage({
-                type: "info",
-                text: "Chức năng Restaurant Review đang được phát triển và sẽ sớm ra mắt!",
-              });
-            }}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition opacity-70 ${
-              contentType === "review"
-                ? "bg-[#07241A] text-white"
-                : "text-[#727974] hover:text-[#07241A]"
-            }`}
-          >
-            <span>🍽️</span>
-            <span>Restaurant Review (Sắp ra mắt)</span>
-          </button>
-        </div>
       </div>
 
       {/* Global Status Banner */}
@@ -822,26 +790,6 @@ export default function CreateContentView() {
             <input type="text" required maxLength={250} value={recipeName} onChange={(event) => setRecipeName(event.target.value)} placeholder={t("e.g. Tofu in tomato sauce", "Ví dụ: Đậu hũ sốt cà chua")} className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 text-sm font-normal text-[#07241A] outline-none focus:border-[#1E3A2F]" />
           </label>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-semibold text-[#07241A]">
-                Heritage category <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={categoryId ?? ""}
-                onChange={(e) =>
-                  setCategoryId(e.target.value ? Number(e.target.value) : null)
-                }
-                className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2.5 text-xs text-[#07241A] outline-none transition focus:border-[#1E3A2F] focus:bg-white"
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {/* Preparation time */}
             <div>
               <label className="block text-xs font-semibold text-[#07241A]">
@@ -863,14 +811,9 @@ export default function CreateContentView() {
             </div>
 
             {/* Servings */}
-            <div>
+            {creationMode === "manual" && <div>
               <label className="block text-xs font-semibold text-[#07241A]">
-                Servings (Khẩu phần)
-                {creationMode === "ai" && (
-                  <span className="ml-1 text-[10px] text-[#727974] font-normal">
-                    (Manual only)
-                  </span>
-                )}
+                {t("Servings", "Khẩu phần")}
               </label>
               <div className="relative mt-1.5">
                 <input
@@ -885,8 +828,10 @@ export default function CreateContentView() {
                   👥
                 </span>
               </div>
-            </div>
+            </div>}
           </div>
+
+          <RecipeCategoryPicker categories={recipeCategories} selected={selectedCategoryIds} onChange={setSelectedCategoryIds} />
 
           {/* Story & flavor profile */}
           <div>
@@ -1111,6 +1056,9 @@ export default function CreateContentView() {
         </div>
 
         {/* Ingredients list */}
+        <datalist id="ingredient-catalog">
+          {ingredientCatalog.map(x => <option key={x.id} value={x.name} />)}
+        </datalist>
         <div className="mt-6 space-y-3">
           {ingredients.map((ing, index) => {
             const isNonPlant = ing.dietaryGroup !== "PLANT";
@@ -1137,6 +1085,7 @@ export default function CreateContentView() {
                   <div className="col-span-12 sm:col-span-4">
                     <input
                       type="text"
+                      list="ingredient-catalog"
                       value={ing.ingredientName}
                       onChange={(e) =>
                         handleUpdateIngredient(
@@ -1163,9 +1112,9 @@ export default function CreateContentView() {
                       }
                       className="w-full rounded-xl border border-[#EFEEEB] bg-white px-2 py-2 text-xs text-[#07241A] outline-none font-medium"
                     >
-                      {DIETARY_GROUPS.map((g) => (
-                        <option key={g.value} value={g.value}>
-                          {g.label}
+                      {ingredientCategories.map((g) => (
+                        <option key={g.id} value={g.code}>
+                          {INGREDIENT_CATEGORY_LABELS[g.code] ? t(...INGREDIENT_CATEGORY_LABELS[g.code]) : g.name}
                         </option>
                       ))}
                     </select>

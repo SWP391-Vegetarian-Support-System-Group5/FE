@@ -320,11 +320,17 @@ export default function AIChatboxView() {
         );
       }
     } catch (err: unknown) {
-      const errorObj = err as { message?: string; signupRequired?: boolean };
+      setMessages(prev => prev.filter(message => message !== optimisticMsg));
+      setInputValue(current => current || content);
+      const errorObj = err as { message?: string; signupRequired?: boolean; status?: number };
       if (errorObj?.signupRequired) {
         setSignupRequired(true);
       }
-      setError(errorObj?.message || "Lỗi khi gửi tin nhắn. Vui lòng thử lại.");
+      setError(errorObj?.status === 503
+        ? t("The AI service is temporarily unavailable. Please try again shortly.", "Dịch vụ AI đang tạm thời không khả dụng. Vui lòng thử lại sau ít phút.")
+        : errorObj?.status === 429
+          ? t("The AI request limit was reached. Please retry shortly.", "Đã đạt giới hạn yêu cầu AI. Vui lòng thử lại sau.")
+          : errorObj?.message || t("Could not send your message. Please try again.", "Không thể gửi tin nhắn. Vui lòng thử lại."));
     } finally {
       setIsThinking(false);
     }
