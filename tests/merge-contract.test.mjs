@@ -125,3 +125,17 @@ test("both branch conventions for detail URLs resolve, invalid IDs do not", asyn
     await assert.rejects(page.default({ params: Promise.resolve({ slug }) }), /NOT_FOUND/);
   }
 });
+
+test("legacy category route uses the real recipe taxonomy after merging main", () => {
+  let destination;
+  const page = loadModule("src/app/admin/categories/page.tsx", {
+    "next/navigation": { redirect: path => { destination = path; } },
+  });
+  page.default();
+  assert.equal(destination, "/admin/recipe-categories");
+});
+
+test("merging main does not enable the admin-role bypass", () => {
+  const source = readFileSync(new URL("../src/context/AdminModerationContext.tsx", import.meta.url), "utf8");
+  assert.match(source, /export const BYPASS_ADMIN_ROLE = false;/);
+});
