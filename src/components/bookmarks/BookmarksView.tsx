@@ -13,7 +13,7 @@ import Image from "next/image";
 
 export interface BookmarkItem {
   id: string;
-  type: "recipe" | "review";
+  type: "recipe" | "post";
   badge: string;
   duration?: string;
   rating?: { score: number };
@@ -30,8 +30,8 @@ export interface BookmarkItem {
 
 function toBookmarkItem(post: PostResponse): BookmarkItem {
   return {
-    id: String(post.postId), type: post.postType === "RECIPE" || post.postType === "VIDEO" ? "recipe" : "review",
-    badge: post.postType, rating: { score: post.averageRating }, categoryPrep: post.categoryName || "",
+    id: String(post.postId), type: post.postType === "RECIPE" || post.postType === "VIDEO" ? "recipe" : "post",
+    badge: post.postType, rating: { score: post.averageRating }, categoryPrep: "",
     title: post.title, description: post.content, author: { name: post.authorName },
     image: getMediaUrl(post.thumbnailUrl), isBookmarked: true,
   };
@@ -39,7 +39,7 @@ function toBookmarkItem(post: PostResponse): BookmarkItem {
 export default function BookmarksView() {
   const ui = useUiText();
   const [items, setItems] = useState<BookmarkItem[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "recipe" | "review">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "recipe" | "post">("all");
   const [sortBy, setSortBy] = useState<"recent" | "rating" | "prep">("recent");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -84,7 +84,7 @@ export default function BookmarksView() {
   // Filter items
   const filteredItems = items.filter((item) => {
     if (activeTab === "recipe") return item.type === "recipe";
-    if (activeTab === "review") return item.type === "review";
+    if (activeTab === "post") return item.type === "post";
     return true;
   });
 
@@ -103,7 +103,7 @@ export default function BookmarksView() {
 
   const totalBookmarked = items.filter((i) => i.isBookmarked).length;
   const recipeCount = items.filter((i) => i.type === "recipe" && i.isBookmarked).length;
-  const reviewCount = items.filter((i) => i.type === "review" && i.isBookmarked).length;
+  const postCount = items.filter((i) => i.type === "post" && i.isBookmarked).length;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -154,7 +154,7 @@ export default function BookmarksView() {
           </label>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as "recent" | "rating" | "prep")}
             className="rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3 py-1.5 text-xs font-semibold text-[#07241A] outline-none transition hover:bg-white focus:border-[#1E3A2F]"
           >
             <option value="recent"><UiText text={"Recently Bookmarked"} /></option>
@@ -189,13 +189,13 @@ export default function BookmarksView() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("review")}
+            onClick={() => setActiveTab("post")}
             className={`rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide transition cursor-pointer ${
-              activeTab === "review"
+              activeTab === "post"
                 ? "bg-[#07241A] text-white shadow-xs"
                 : "bg-white text-[#424844] border border-[#EFEEEB] hover:bg-[#F5F3F0]"
             }`}
-          ><UiText text={"Blog & Questions ("} />{reviewCount})
+          >{ui("Posts")} ({postCount})
           </button>
         </div>
 
@@ -335,6 +335,7 @@ export default function BookmarksView() {
           ))}
         </div>
       )}
+
 
       {/* ── Meal Planner Promo Card ─────────────────────────────────────── */}
       <div className="mt-8 relative overflow-hidden rounded-3xl bg-[#E8F1EC] p-7 sm:p-10 border border-[#D9E6DC] shadow-xs">

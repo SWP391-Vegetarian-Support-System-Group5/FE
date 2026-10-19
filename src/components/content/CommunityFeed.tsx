@@ -11,37 +11,27 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getStoredToken } from "@/lib/auth";
 import { getMediaUrl } from "@/lib/api";
-import { bookmarkPost, communityError, getBookmarks, getPostCategories, getPosts, getPostTags, PostApiError, removeBookmark, type CommunityLookup, type PostResponse } from "@/lib/post-api";
+import { bookmarkPost, communityError, getBookmarks, getPosts, PostApiError, removeBookmark, type PostResponse } from "@/lib/post-api";
 
 export default function CommunityFeed({ keyword = "", bookmarksOnly = false, mineOnly = false, compact = false }: { keyword?: string; bookmarksOnly?: boolean; mineOnly?: boolean; compact?: boolean }) {
   const { user, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const pathname = usePathname();
   const scope = `${pathname}:${bookmarksOnly ? "bookmarks" : mineOnly ? "mine" : "community"}:${user?.uid || "guest"}`;
-  const [{ category, tag, postType, search }, setFilters] = useRememberedFilters(`${scope}:${keyword}`, { category: "", tag: "", postType: "", search: keyword });
-  const setCategory = (category: string) => setFilters(previous => ({ ...previous, category }));
-  const setTag = (tag: string) => setFilters(previous => ({ ...previous, tag }));
+  const [{ postType, search }, setFilters] = useRememberedFilters(`${scope}:${keyword}`, { postType: "", search: keyword });
   const setPostType = (postType: string) => setFilters(previous => ({ ...previous, postType }));
   const setSearch = (search: string) => setFilters(previous => ({ ...previous, search }));
   const [posts, setPosts] = useState<PostResponse[]>([]);
   const [bookmarks, setBookmarks] = useState<number[] | null>(null);
-  const [categories, setCategories] = useState<CommunityLookup[]>([]);
-  const [tags, setTags] = useState<CommunityLookup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [bookmarkError, setBookmarkError] = useState("");
-  const [lookupError, setLookupError] = useState("");
   const [notice, setNotice] = useState("");
   const [revision, setRevision] = useState(0);
   const [pending, setPending] = useState<number[]>([]);
   const locks = useRef(new Set<number>());
 
   useRememberedScroll(scope, !loading && !authLoading, !compact);
-  useEffect(() => {
-    let active = true;
-    Promise.all([getPostCategories(), getPostTags()]).then(([c, t]) => { if (active) { setCategories(c); setTags(t); setLookupError(""); } }).catch(e => { if (active) setLookupError(communityError(e)); });
-    return () => { active = false; };
-  }, [revision]);
   useEffect(() => {
     if (authLoading) return;
     const controller = new AbortController();
@@ -51,7 +41,7 @@ export default function CommunityFeed({ keyword = "", bookmarksOnly = false, min
       return () => controller.abort();
     }
     const timer = setTimeout(() => {
-      const request = bookmarksOnly ? getBookmarks(controller.signal) : getPosts({ keyword: search, category, tag, postType }, controller.signal);
+      const request = bookmarksOnly ? getBookmarks(controller.signal) : getPosts({ keyword: search, postType }, controller.signal);
       request.then(data => {
         if (controller.signal.aborted) return;
         setPosts(data.filter(p => p.status === "PUBLISHED" && (!mineOnly || p.userId === user?.userId)));
@@ -60,7 +50,7 @@ export default function CommunityFeed({ keyword = "", bookmarksOnly = false, min
         .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     }, 250);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [authLoading, user, bookmarksOnly, mineOnly, search, category, tag, postType, revision]);
+  }, [authLoading, user, bookmarksOnly, mineOnly, search, postType, revision]);
   useEffect(() => {
     const controller = new AbortController();
     setBookmarks(null);
@@ -85,7 +75,7 @@ export default function CommunityFeed({ keyword = "", bookmarksOnly = false, min
       if (e instanceof PostApiError && e.status === 409) setRevision(n => n + 1);
     } finally { locks.current.delete(id); setPending(ids => ids.filter(value => value !== id)); }
   }
-  const visible = posts.filter(p => !bookmarksOnly || ((!postType || p.postType === postType) && (!category || p.categoryName === category) && (!tag || p.tags.includes(tag)) && `${p.title} ${p.content} ${p.authorName}`.toLowerCase().includes(search.toLowerCase())));
+  const visible = posts.filter(p => !bookmarksOnly || ((!postType || p.postType === postType) && `${p.title} ${p.content} ${p.authorName}`.toLowerCase().includes(search.toLowerCase())));
   const input = "rounded-xl border border-[#E5E7DF] bg-[#FBF9F6] px-4 py-2.5 text-sm outline-none focus:border-[#254B38]";
   return <section className="text-[#07241A]">
     <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#EFEEEB] pb-4">
@@ -95,11 +85,9 @@ export default function CommunityFeed({ keyword = "", bookmarksOnly = false, min
     {!compact && <div className="my-6 flex flex-wrap gap-3">
       <input aria-label="Tìm bài viết" type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm bài viết…" className={`${input} min-w-48 flex-1`} />
       <select aria-label="Loại bài" value={postType} onChange={e => setPostType(e.target.value)} className={input}><option value="">Tất cả loại bài</option>{["BLOG", "QUESTION", "RECIPE", "VIDEO"].map(type => <option key={type}>{type}</option>)}</select>
-      <select aria-label="Danh mục" value={category} onChange={e => setCategory(e.target.value)} className={input}><option value="">Tất cả danh mục</option>{categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select>
-      <select aria-label="Thẻ" value={tag} onChange={e => setTag(e.target.value)} className={input}><option value="">Tất cả thẻ</option>{tags.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}</select>
-      {(search || category || tag || postType) && <button type="button" onClick={() => setFilters({ search: "", category: "", tag: "", postType: "" })} className="vm-button rounded-full px-3 py-2 text-xs font-semibold text-[#99462A] underline underline-offset-4">{t("Clear filters", "Xóa bộ lọc")}</button>}
+      {(search || postType) && <button type="button" onClick={() => setFilters({ search: "", postType: "" })} className="vm-button rounded-full px-3 py-2 text-xs font-semibold text-[#99462A] underline underline-offset-4">{t("Clear filters", "Xóa bộ lọc")}</button>}
     </div>}
-    {(error || bookmarkError || lookupError) && <div role="alert" className="my-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error || bookmarkError || lookupError} <Link href="/login" className="underline">Đăng nhập</Link><button onClick={() => { setBookmarkError(""); setRevision(n => n + 1); }} className="ml-4 underline">Thử lại</button></div>}
+    {(error || bookmarkError) && <div role="alert" className="my-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error || bookmarkError} <Link href="/login" className="underline">Đăng nhập</Link><button onClick={() => { setBookmarkError(""); setRevision(n => n + 1); }} className="ml-4 underline">Thử lại</button></div>}
     {notice && <p role="status" className="vm-feedback mt-4 rounded-xl border border-[#CCDCCB] bg-[#E8F0E5] px-4 py-3 text-sm text-[#254B38]">{notice}</p>}
     {loading ? <CardSkeleton count={compact ? 4 : 3} compact={compact} /> : !error && !visible.length ? <p className="vm-enter rounded-3xl border border-[#EFEEEB] bg-white p-10 text-center text-[#727974]">Chưa có bài viết phù hợp.</p> : <div className={`vm-stagger mt-7 grid gap-6 sm:grid-cols-2 ${compact ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
       {(compact ? visible.slice(0, 4) : visible).map(post => <article key={post.postId} className="vm-card vm-enter group overflow-hidden rounded-3xl border border-[#EFEEEB] bg-white shadow-xs">
@@ -110,7 +98,7 @@ export default function CommunityFeed({ keyword = "", bookmarksOnly = false, min
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs">★ {post.averageRating.toFixed(1)} / 5</span>
           <button type="button" aria-label={bookmarks?.includes(post.postId) ? "Bỏ lưu bài" : "Lưu bài"} aria-pressed={bookmarks?.includes(post.postId) || false} disabled={pending.includes(post.postId) || authLoading || (!!user && !!getStoredToken() && bookmarks === null)} onClick={() => toggleBookmark(post.postId)} className="vm-button absolute right-3 top-3 rounded-full bg-white/90 px-3 py-2 text-sm disabled:opacity-40">{pending.includes(post.postId) ? "…" : bookmarks?.includes(post.postId) ? "🔖" : "♡"}</button>
         </div>
-        <div className="p-5"><p className="text-xs text-[#727974]">{post.categoryName || post.postType}</p><Link href={`/view-detail/post-${post.postId}`}><h3 className="mt-2 line-clamp-2 font-serif text-xl font-semibold">{post.title}</h3></Link><p className="mt-2 line-clamp-2 text-sm text-[#59635C]">{post.content}</p><p className="mt-4 border-t border-[#EFEEEB] pt-3 text-xs">{post.authorName}</p><div className="mt-3 flex flex-wrap gap-2">{post.tags.map(tag => <span key={tag} className="rounded-full bg-[#F1F4EC] px-2 py-1 text-xs">#{tag}</span>)}</div></div>
+        <div className="p-5"><p className="text-xs text-[#727974]">{post.postType}</p><Link href={`/view-detail/post-${post.postId}`}><h3 className="mt-2 line-clamp-2 font-serif text-xl font-semibold">{post.title}</h3></Link><p className="mt-2 line-clamp-2 text-sm text-[#59635C]">{post.content}</p><p className="mt-4 border-t border-[#EFEEEB] pt-3 text-xs">{post.authorName}</p></div>
       </article>)}
     </div>}
   </section>;

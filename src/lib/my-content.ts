@@ -2,15 +2,14 @@ import type { RecipeResponse, RecipeIngredientPayload, RecipeStepPayload } from 
 
 export interface ManualRecipeDraft {
   title: string;
+  recipeName?: string;
   content: string;
-  categoryId: number | null;
   prepMinutes: string;
   cookMinutes: string;
   servings: string;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
-  selectedTagIds: number[];
-  selectedDietTypeIds?: number[];
+  selectedCategoryIds?: number[];
   savedAt: string;
 }
 

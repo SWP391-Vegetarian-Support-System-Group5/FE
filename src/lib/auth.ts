@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { clearSession, readSessionToken, readSessionUser, setSession, setSessionUser } from "./auth-session";
 
 export interface BackendUser {
   userId: number;
@@ -192,10 +193,7 @@ export async function loginWithApi(
 
   const data = (await res.json()) as LoginResponse;
 
-  if (typeof window !== "undefined") {
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-  }
+  setSession(data.token, data.user);
 
   return data;
 }
@@ -204,17 +202,17 @@ export async function loginWithApi(
  * Logout: POST /api/auth/logout with Bearer token
  */
 export async function logoutWithApi(): Promise<void> {
+  const token = getStoredToken();
+  clearStoredAuth();
   try {
-    const token = getStoredToken();
     if (token) {
       await apiFetch("/api/auth/logout", {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
       });
     }
   } catch {
     // Ignore network/server errors during logout to ensure local cleanup
-  } finally {
-    clearStoredAuth();
   }
 }
 
@@ -222,6 +220,7 @@ export async function updateCurrentUserLocation(
   latitude: number,
   longitude: number,
 ): Promise<BackendUser> {
+  const sessionToken = getStoredToken();
   const res = await apiFetch("/api/users/me/location", {
     method: "PUT",
     body: JSON.stringify({ latitude, longitude }),
@@ -247,29 +246,18 @@ export async function updateCurrentUserLocation(
   }
 
   const user = (await res.json()) as BackendUser;
-  if (typeof window !== "undefined") {
-    localStorage.setItem("user", JSON.stringify(user));
-  }
+  if (getStoredToken() === sessionToken && sessionToken) setSessionUser(user);
   return user;
 }
 
 export function getStoredUser(): BackendUser | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("user");
-    return raw ? (JSON.parse(raw) as BackendUser) : null;
-  } catch {
-    return null;
-  }
+  return readSessionUser();
 }
 
 export function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
+  return readSessionToken();
 }
 
 export function clearStoredAuth(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  clearSession();
 }

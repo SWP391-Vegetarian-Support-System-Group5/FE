@@ -17,7 +17,7 @@ interface ContentItem {
   fullTitle: string;
   subtitle: string;
   category: string;
-  type: "Video & Recipe" | "Restaurant Review";
+  type: "Video & Recipe" | "Post";
   author: string;
   authorInitials: string;
   authorBg?: string;
@@ -64,7 +64,7 @@ export default function AdminContentPage() {
   };
 
   // Filters
-  const [typeFilter, setTypeFilter] = useState<"All" | "Video & Recipe" | "Restaurant Review">("All");
+  const [typeFilter, setTypeFilter] = useState<"All" | "Video & Recipe" | "Post">("All");
   const [searchContentQuery, setSearchContentQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -80,7 +80,7 @@ export default function AdminContentPage() {
   // Form states for Create Entry
   const [newEntryTitle, setNewEntryTitle] = useState("");
   const [newEntrySubtitle, setNewEntrySubtitle] = useState("");
-  const [newEntryType, setNewEntryType] = useState<"Video & Recipe" | "Restaurant Review">("Video & Recipe");
+  const [newEntryType, setNewEntryType] = useState<"Video & Recipe" | "Post">("Video & Recipe");
   const [newEntryCategory, setNewEntryCategory] = useState("Tofu & Soy");
   const [newEntryAuthor, setNewEntryAuthor] = useState("Admin Supervisor");
   const [newEntryStatus, setNewEntryStatus] = useState<"Published" | "Draft">("Published");
@@ -141,7 +141,7 @@ export default function AdminContentPage() {
       fullTitle: "A Calm Vegetarian Dinner in District 9",
       subtitle: "District 9 review • Ambient dining",
       category: "Vegetables",
-      type: "Restaurant Review",
+      type: "Post",
       author: "Minh Tran",
       authorInitials: "MT",
       status: "Published",
@@ -177,7 +177,7 @@ export default function AdminContentPage() {
       fullTitle: "Green Gathering Spotlight Feast",
       subtitle: "Gathering spotlight • Communal feast",
       category: "Legumes",
-      type: "Restaurant Review",
+      type: "Post",
       author: "An Pham",
       authorInitials: "AP",
       status: "Published",
@@ -492,8 +492,12 @@ export default function AdminContentPage() {
             <span className="text-[11px] font-bold tracking-wider uppercase"><UiText text={"Editorial Desk"} /></span>
           </div>
 
-          <h1 className="font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]"><UiText text={"Content Management"} /></h1>
-          <p className="mt-1 text-xs text-[#727974]"><UiText text={"Manage recipes, restaurant reviews, and community discourse."} /></p>
+          <h1 className="font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]">
+            Content Management
+          </h1>
+          <p className="mt-1 text-xs text-[#727974]">
+            Manage recipes, posts, and community discourse.
+          </p>
         </div>
 
         {/* Stat Badges */}
@@ -583,13 +587,15 @@ export default function AdminContentPage() {
             }`}
           ><UiText text={"Video & Recipes (312)"} /></button>
           <button
-            onClick={() => setTypeFilter("Restaurant Review")}
+            onClick={() => setTypeFilter("Post")}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              typeFilter === "Restaurant Review"
+              typeFilter === "Post"
                 ? "bg-[#07241A] text-white shadow-sm"
                 : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
             }`}
-          ><UiText text={"Restaurant Reviews (174)"} /></button>
+          >
+            Posts (174)
+          </button>
         </div>
 
         {/* Search, Status & Refresh */}
@@ -753,7 +759,7 @@ export default function AdminContentPage() {
                                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                                   <polyline points="9 22 9 12 15 12 15 22" />
                                 </svg>
-                                <span><UiText text={"Restaurant Review"} /></span>
+                                <span>Post</span>
                               </span>
                             )}
                           </td>
@@ -1052,8 +1058,8 @@ export default function AdminContentPage() {
                     onChange={(e) => setNewEntryType(e.target.value as any)}
                     className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
                   >
-                    <option value="Video & Recipe"><UiText text={"Video & Recipe"} /></option>
-                    <option value="Restaurant Review"><UiText text={"Restaurant Review"} /></option>
+                    <option value="Video & Recipe">Video & Recipe</option>
+                    <option value="Post">Post</option>
                   </select>
                 </div>
 

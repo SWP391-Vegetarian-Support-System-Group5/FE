@@ -12,6 +12,7 @@ import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { addComment, bookmarkPost, communityError, deleteComment, deletePost, getBookmarks, getComments, getPost, getPosts, getRating, PostApiError, ratePost, removeBookmark, replyToComment, updateComment, type CommentResponse, type PostResponse } from "@/lib/post-api";
 import ContentDialog from "./ContentDialog";
 import PostEditor from "./PostEditor";
+import { createCommunityEventSource, type CommunityEvent } from "@/lib/community-api";
 
 const panel = "rounded-3xl border border-[#E5E7DF] bg-white p-6 sm:p-8";
 const button = "rounded-full bg-[#254B38] px-5 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40";
@@ -45,8 +46,10 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
   const lock = useRef(false);
   const alive = useRef(true);
   const isAdmin = user?.role?.toUpperCase() === "ADMIN";
-  const ratingKey = user ? `community-rating:${user.uid}:${postId}` : null;
-  const refreshPost = useCallback(async () => { const data = await getPost(postId); if (alive.current) setPost(data); }, [postId]);
+  const refreshPost = useCallback(async () => {
+    const data = await getPost(postId);
+    if (alive.current) { setPost(data); setRatingLocked(data.currentUserRating !== null); }
+  }, [postId]);
   const refreshComments = async () => {
     setCommentsLoading(true);
     try { const data = await getComments(postId); if (alive.current) { setComments(data); setCommentsError(""); } }
@@ -62,6 +65,7 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
     getPost(postId, controller.signal).then(async data => {
       if (controller.signal.aborted) return;
       setPost(data);
+      setRatingLocked(data.currentUserRating !== null);
       if (data.postType === "RECIPE") {
         try { const recipe = await getRecipeById(postId); if (!controller.signal.aborted) setRecipe(recipe); }
         catch (e) { if (!controller.signal.aborted) setError(communityError(e)); }
@@ -75,14 +79,28 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
     if (authLoading) return;
     const controller = new AbortController();
     if (user && getStoredToken()) getBookmarks(controller.signal).then(data => { if (!controller.signal.aborted) setSaved(data.some(p => p.postId === postId)); }).catch(e => { if (!controller.signal.aborted) setError(communityError(e)); });
-    if (ratingKey) {
-      try { setRatingLocked(localStorage.getItem(ratingKey) !== null); } catch { /* BE still rejects duplicate ratings with 409. */ }
-    }
     return () => controller.abort();
-  }, [user, authLoading, postId, ratingKey]);
+  }, [user, authLoading, postId]);
+
+  useEffect(() => {
+    const source = createCommunityEventSource();
+    const refresh = (event: Event) => {
+      const payload = JSON.parse((event as MessageEvent).data) as CommunityEvent;
+      if (payload.postId !== postId) return;
+      if (payload.type === "postRemoved") { setRemoved(true); return; }
+      getPost(postId).then(data => {
+        if (!alive.current) return;
+        setPost(data); setAverage(data.averageRating); setRatingLocked(data.currentUserRating !== null);
+        if (data.postType === "RECIPE") void getRecipeById(postId).then(value => { if (alive.current) setRecipe(value); }).catch(() => { if (alive.current) setRecipe(null); });
+      }).catch(() => {});
+      if (payload.type.startsWith("comment")) void getComments(postId).then(data => { if (alive.current) setComments(data); }).catch(() => {});
+    };
+    for (const type of ["postUpdated", "postRemoved", "commentCreated", "commentUpdated", "commentRemoved", "ratingUpdated"]) source.addEventListener(type, refresh);
+    return () => source.close();
+  }, [postId]);
 
   function requireLogin() {
-    if (authLoading || !user || !getStoredToken()) { setError("Bạn cần đăng nhập để thực hiện thao tác này."); return false; }
+    if (authLoading || !user || !getStoredToken()) { setError("Bạn cần đăng nhập để bình luận, đánh giá hoặc lưu bài viết này."); return false; }
     return true;
   }
   async function mutate(action: () => Promise<void>, refresh: () => Promise<void>, message: string) {
@@ -115,10 +133,10 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
     {error && <div role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} <Link href="/login" className="underline">Đăng nhập</Link><button className="ml-4 underline" onClick={() => window.location.reload()}>Tải lại</button></div>}
     {notice && <p role="status" className="mt-4 text-sm text-[#254B38]">{notice}</p>}
     {initialLoading ? <p role="status" className="py-12">Đang tải bài viết…</p> : removed ? <p className="py-12">Bài viết đã được xóa. <Link href="/community" className="underline">Về cộng đồng</Link></p> : post && <>
-      <header className="py-8"><p className="text-xs tracking-widest text-[#BC4B22]">{post.categoryName || post.postType}</p><h1 className="mt-3 break-words font-serif text-4xl sm:text-5xl">{post.title}</h1><p className="mt-5 text-sm text-[#727974]">{post.authorName}</p><div className="mt-3 flex flex-wrap gap-2">{post.tags.map(tag => <span key={tag} className="rounded-full bg-[#E8EDE4] px-3 py-1 text-xs">#{tag}</span>)}</div></header>
+      <header className="py-8"><p className="text-xs tracking-widest text-[#BC4B22]">{post.postType}</p><h1 className="mt-3 break-words font-serif text-4xl sm:text-5xl">{post.title}</h1><p className="mt-5 text-sm text-[#727974]">{post.authorName}</p></header>
       {post.videoUrl ? <video controls preload="metadata" poster={getMediaUrl(post.thumbnailUrl) || undefined} src={getMediaUrl(post.videoUrl)} className="aspect-video w-full rounded-3xl bg-[#193B2E]" /> : post.thumbnailUrl && <div className="relative aspect-video overflow-hidden rounded-3xl"><Image src={getMediaUrl(post.thumbnailUrl)} alt={post.title} fill unoptimized sizes="100vw" className="object-cover" /></div>}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7DF] py-5 text-sm">
-        <div className="flex items-center gap-4"><span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{ratingError ? "Chưa tải được điểm" : average === null ? "Đang tải điểm…" : `${average.toFixed(1)} / 5`}</strong></span><button disabled={busy || authLoading || ratingLocked} onClick={() => { if (requireLogin()) { setSelection(0); setDialog("rating"); } }} className="text-[#BC4B22] underline disabled:opacity-50">{ratingLocked ? "Đã đánh giá · không thể sửa" : "Đánh giá bài viết"}</button></div>
+        <div className="flex items-center gap-4"><span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{ratingError ? "Chưa tải được điểm" : average === null ? "Đang tải điểm…" : `${average.toFixed(1)} / 5`}</strong></span><button disabled={busy || authLoading} onClick={() => { if (requireLogin()) { setSelection(post.currentUserRating ?? 0); setDialog("rating"); } }} className="text-[#BC4B22] underline disabled:opacity-50">{ratingLocked ? "Sửa đánh giá" : "Đánh giá bài viết"}</button></div>
         <div className="flex items-center gap-5"><a href="#comments">Bình luận</a><button disabled={busy || authLoading || (!!user && !!getStoredToken() && saved === null)} aria-pressed={saved === true} onClick={() => mutate(async () => {
           try { if (saved) await removeBookmark(postId); else await bookmarkPost(postId); }
           catch (e) { if (e instanceof PostApiError && e.status === 409) await refreshBookmarks(); throw e; }
@@ -137,15 +155,14 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
     </>}
     {post && dialog === "edit" && <PostEditor post={post} onSaved={async () => { setNotice("Đã lưu thay đổi."); try { await refreshPost(); } catch (e) { setError(`Bài đã được lưu nhưng tải lại dữ liệu thất bại. ${communityError(e)}`); } }} onClose={() => setDialog(null)} />}
     {dialog === "delete" && <ContentDialog title="Xóa bài viết?" onClose={() => { if (!busy) setDialog(null); }}><div className="p-6"><p className="text-sm">Bài viết sẽ được gỡ khỏi cộng đồng.</p><button disabled={busy} className={`${button} mt-5`} onClick={() => mutate(async () => { await deletePost(postId); setRemoved(true); setDialog(null); }, async () => { await getPosts(); }, "Đã xóa bài viết.")}>{busy ? "Đang xóa…" : "Xác nhận xóa"}</button>{error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}</div></ContentDialog>}
-    {dialog === "rating" && <ContentDialog title="Bạn thấy bài viết thế nào?" onClose={() => { if (!busy) setDialog(null); }}><form className="p-6" onSubmit={e => { e.preventDefault(); if (!selection || ratingLocked) return; mutate(async () => {
-      try { await ratePost(postId, selection); }
+    {dialog === "rating" && <ContentDialog title="Bạn thấy bài viết thế nào?" onClose={() => { if (!busy) setDialog(null); }}><form className="p-6" onSubmit={e => { e.preventDefault(); if (!selection) return; mutate(async () => {
+      try { await ratePost(postId, selection, ratingLocked); }
       catch (e) {
-        if (e instanceof PostApiError && e.status === 409) { setRatingLocked(true); setDialog(null); try { if (ratingKey) localStorage.setItem(ratingKey, "rated"); } catch {} await refreshRating(); throw new PostApiError(409, "Bạn đã đánh giá bài này và không thể sửa."); }
+        if (e instanceof PostApiError && e.status === 409) await refreshRating();
         throw e;
       }
       setRatingLocked(true); setDialog(null);
-      try { if (ratingKey) localStorage.setItem(ratingKey, String(selection)); } catch { /* The successful server vote remains authoritative. */ }
-    }, refreshRating, "Đã gửi đánh giá."); }}><fieldset disabled={busy}><legend className="text-sm text-[#727974]">Chọn số sao của bạn</legend><div className="mt-5 flex justify-center gap-3">{[1, 2, 3, 4, 5].map(star => <label key={star} className="cursor-pointer"><input type="radio" name="post-rating" checked={selection === star} onChange={() => setSelection(star)} aria-label={`${star} sao`} className="peer sr-only" /><span className={`block rounded-lg text-4xl peer-focus-visible:outline-2 ${star <= selection ? "text-[#CB8520]" : "text-[#D8DCD2]"}`}>★</span></label>)}</div></fieldset><p className="mt-5 text-center text-xs text-[#727974]">Đánh giá một lần. Không thể sửa sau khi gửi.</p><button disabled={busy || !selection} className={`${button} mt-6 w-full`}>{busy ? "Đang gửi…" : "Gửi đánh giá"}</button>{error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}</form></ContentDialog>}
+    }, refreshRating, "Đã gửi đánh giá."); }}><fieldset disabled={busy}><legend className="text-sm text-[#727974]">Chọn số sao của bạn</legend><div className="mt-5 flex justify-center gap-3">{[1, 2, 3, 4, 5].map(star => <label key={star} className="cursor-pointer"><input type="radio" name="post-rating" checked={selection === star} onChange={() => setSelection(star)} aria-label={`${star} sao`} className="peer sr-only" /><span className={`block rounded-lg text-4xl peer-focus-visible:outline-2 ${star <= selection ? "text-[#CB8520]" : "text-[#D8DCD2]"}`}>★</span></label>)}</div></fieldset><p className="mt-5 text-center text-xs text-[#727974]">Bạn có thể cập nhật đánh giá của mình.</p><button disabled={busy || !selection} className={`${button} mt-6 w-full`}>{busy ? "Đang gửi…" : "Gửi đánh giá"}</button>{error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}</form></ContentDialog>}
     {commentAction && <ContentDialog title={commentAction.type === "reply" ? "Trả lời bình luận" : commentAction.type === "edit" ? "Sửa bình luận" : "Xóa bình luận?"} onClose={() => { if (!busy) setCommentAction(null); }}><form className="p-6" onSubmit={e => { e.preventDefault(); const action = commentAction; if (action.type !== "delete" && !commentText.trim()) return; mutate(async () => {
       if (action.type === "reply") await replyToComment(action.comment.commentId, commentText.trim());
       else if (action.type === "edit") await updateComment(action.comment.commentId, commentText.trim());

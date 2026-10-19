@@ -3,7 +3,8 @@ import Footer from "@/components/Footer";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 import type { DetailRecipe } from "@/lib/content-detail-data";
 import ContentDetail from "./ContentDetail";
+import PostContentDetail from "./PostContentDetail";
 
-export default function ContentDetailScreen({ recipe }: { recipe: DetailRecipe }) {
-  return <><Navbar /><ContentDetail key={recipe.slug} recipe={recipe} /><Footer /><VeggieAIWidget /></>;
+export default function ContentDetailScreen({ recipe, postId }: { recipe?: DetailRecipe; postId?: number }) {
+  return <><Navbar />{postId ? <PostContentDetail postId={postId} /> : recipe ? <ContentDetail key={recipe.slug} recipe={recipe} /> : null}<Footer /><VeggieAIWidget /></>;
 }

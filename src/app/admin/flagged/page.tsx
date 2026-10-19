@@ -45,7 +45,7 @@ export default function AdminFlaggedPage() {
   const filteredItems = items.filter((item) => {
     const matchTab =
       activeTab === "All" ||
-      (activeTab === "Content" && (item.category === "Recipe & Video" || item.category === "Restaurant Review")) ||
+      (activeTab === "Content" && (item.category === "Recipe & Video" || item.category === "Post")) ||
       (activeTab === "Comments" && item.category === "Comment");
 
     const matchSearch =
