@@ -8,8 +8,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminModeration, BYPASS_ADMIN_ROLE } from "@/context/AdminModerationContext";
-import ContentIcon from "@/components/content/ContentIcon";
-import { useLanguage } from "@/context/LanguageContext";
 
 export default function AdminLayout({
   children,
@@ -17,7 +15,6 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { user, loading, logout } = useAuth();
-  const { t } = useLanguage();
   const { flaggedCount } = useAdminModeration();
   const router = useRouter();
   const pathname = usePathname();
@@ -55,8 +52,6 @@ export default function AdminLayout({
   }
 
   const navItems = [
-    { label: t("Ingredients", "Nguyên liệu"), href: "/admin/ingredients", icon: <ContentIcon name="leaf" />, badge: undefined },
-    { label: "Recipe categories", href: "/admin/recipe-categories", icon: null, badge: undefined },
     {
       label: "Dashboard",
       href: "/admin",

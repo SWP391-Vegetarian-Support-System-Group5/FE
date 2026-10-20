@@ -54,6 +54,10 @@ const recipeTitleVi: Record<string, string> = {
 };
 
 const defaultRecipeTextVi: Record<string, string> = {
+  "Update your height and weight in your profile before creating a meal plan.": "Hãy cập nhật chiều cao và cân nặng trong hồ sơ trước khi tạo thực đơn.",
+  "Choose your vegetarian type in your profile before creating a meal plan.": "Hãy chọn kiểu ăn chay trong hồ sơ trước khi tạo thực đơn.",
+  "Your BMI group could not be determined. Update your profile and try again.": "Chưa xác định được nhóm BMI. Hãy cập nhật hồ sơ rồi thử lại.",
+  "No recipes have been assigned to your BMI group that also match your vegetarian type and allergies. Please try again after an administrator reviews the recipes.": "Chưa tìm thấy món đã được admin gán nhóm BMI phù hợp và đáp ứng kiểu ăn chay, dị ứng của bạn. Admin cần kiểm tra và phân loại công thức trước khi bạn tạo thực đơn.",
   "Underweight": "Thiếu cân",
   "Normal": "Bình thường",
   "Overweight": "Thừa cân",

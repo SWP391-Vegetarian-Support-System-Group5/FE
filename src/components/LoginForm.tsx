@@ -42,29 +42,16 @@ export default function LoginForm() {
   const { signInWithGoogle, loginWithCredentials, user, error: authError, clearError } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => searchParams.get("email") || "");
   const [password, setPassword] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [is401Error, setIs401Error] = useState(false);
   const [isUnverified403, setIsUnverified403] = useState(false);
-  const [isDeactivated403, setIsDeactivated403] = useState(false);
-  const [verifiedSuccess, setVerifiedSuccess] = useState(false);
+  const [verifiedSuccess, setVerifiedSuccess] = useState(() => searchParams.get("verified") === "true");
 
-  useEffect(() => { if (user) router.replace("/"); }, [user, router]);
-
-  useEffect(() => {
-    const verifiedParam = searchParams.get("verified");
-    const emailParam = searchParams.get("email");
-
-    if (verifiedParam === "true") {
-      setVerifiedSuccess(true);
-    }
-    if (emailParam) {
-      setEmail(emailParam);
-    }
-  }, [searchParams]);
+  useEffect(() => { if (user) router.replace(user.role?.toLowerCase() === "admin" ? "/admin" : "/"); }, [user, router]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -72,7 +59,6 @@ export default function LoginForm() {
       setLocalError(null);
       setIs401Error(false);
       setIsUnverified403(false);
-      setIsDeactivated403(false);
       clearError();
       const signedInUser = await signInWithGoogle();
       if (signedInUser) {
@@ -94,7 +80,6 @@ export default function LoginForm() {
     setLocalError(null);
     setIs401Error(false);
     setIsUnverified403(false);
-    setIsDeactivated403(false);
     clearError();
 
     const targetEmail = email.trim();
@@ -106,7 +91,7 @@ export default function LoginForm() {
     try {
       setIsSubmitting(true);
       const loginRes = await loginWithCredentials(targetEmail, password);
-      router.replace("/");
+      router.replace(loginRes.user.role.toLowerCase() === "admin" ? "/admin" : "/");
       if (loginRes.user.role.toLowerCase() !== "admin") void captureLocationAfterLogin(loginRes.token).catch(() => {});
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -143,7 +128,6 @@ export default function LoginForm() {
             lowerMsg.includes("khóa") ||
             lowerMsg.includes("vô hiệu hóa")
           ) {
-            setIsDeactivated403(true);
             setLocalError(
               "Tài khoản của bạn hiện đang bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ."
             );
@@ -267,7 +251,6 @@ export default function LoginForm() {
               setLocalError(null);
               setIs401Error(false);
               setIsUnverified403(false);
-              setIsDeactivated403(false);
               clearError();
             }}
             className="text-[#99462A]/60 hover:text-[#99462A]"

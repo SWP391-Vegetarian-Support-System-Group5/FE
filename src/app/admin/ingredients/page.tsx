@@ -46,7 +46,7 @@ export default function IngredientsPage() {
     } finally { setSaving(false); }
   }
 
-  const visibleItems = items.filter(item => (!categoryFilter || item.dietaryGroup === categoryFilter)
+  const visibleItems = items.filter(item => (!categoryFilter || item.ingredientCategoryId === Number(categoryFilter))
     && `${item.name} ${localizeIngredient(item.name, language)}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   return <div className="space-y-6 text-[#07241A]">
     <h1 className="font-serif text-3xl">{t("Ingredients", "Nguyên liệu")}</h1>
@@ -64,11 +64,11 @@ export default function IngredientsPage() {
     </form>}
     <div className="flex flex-wrap items-end gap-4">
       <label className="min-w-0 flex-1 text-sm">{t("Search", "Tìm kiếm")}<input type="search" value={query} onChange={event => setQuery(event.target.value)} className="mt-1 block w-full rounded border border-[#D9E6DC] bg-white p-2" /></label>
-      <label className="text-sm">{t("Category", "Nhóm nguyên liệu")}<select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} className="mt-1 block max-w-full rounded border border-[#D9E6DC] bg-white p-2"><option value="">{t("All", "Tất cả")}</option>{categories.map(category => <option key={category.id} value={category.code}>{labels[category.code] ? t(...labels[category.code]) : category.name}</option>)}</select></label>
+      <label className="text-sm">{t("Category", "Nhóm nguyên liệu")}<select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} className="mt-1 block max-w-full rounded border border-[#D9E6DC] bg-white p-2"><option value="">{t("All", "Tất cả")}</option>{categories.map(category => <option key={category.id} value={category.id}>{labels[category.code] ? t(...labels[category.code]) : category.name}</option>)}</select></label>
     </div>
     {loading ? <p className="text-sm">{t("Loading...", "Đang tải...")}</p> : <div className="overflow-x-auto">
       <table className="w-full text-left text-sm"><thead><tr className="border-b border-[#D9E6DC]"><th className="py-3">{t("Name", "Tên")}</th><th>{t("Category", "Nhóm nguyên liệu")}</th><th>{t("Allergen", "Chất gây dị ứng")}</th><th><span className="sr-only">{t("Actions", "Thao tác")}</span></th></tr></thead>
-        <tbody>{visibleItems.map(item => <tr key={item.id} className="border-b border-[#EFEEEB]"><td className="py-3 pr-4">{localizeIngredient(item.name, language)}</td><td className="pr-4">{labels[item.dietaryGroup] ? t(...labels[item.dietaryGroup]) : item.dietaryGroup}</td><td className="pr-4">{item.allergenId ? localizeIngredient(allergens.find(allergen => allergen.id === item.allergenId)?.name || "", language) : t("None", "Không có")}</td><td><button type="button" onClick={() => setEditing({ ...item })} title={t("Edit ingredient", "Sửa nguyên liệu")} aria-label={t("Edit ingredient", "Sửa nguyên liệu")} className="flex h-8 w-8 items-center justify-center rounded hover:bg-[#D9E6DC]"><ContentIcon name="edit" /></button></td></tr>)}</tbody>
+        <tbody>{visibleItems.map(item => <tr key={item.id} className="border-b border-[#EFEEEB]"><td className="py-3 pr-4">{localizeIngredient(item.name, language)}</td><td className="pr-4">{categories.find(category => category.id === item.ingredientCategoryId)?.name ?? item.dietaryGroup}</td><td className="pr-4">{item.allergenId ? localizeIngredient(allergens.find(allergen => allergen.id === item.allergenId)?.name || "", language) : t("None", "Không có")}</td><td><button type="button" onClick={() => setEditing({ ...item })} title={t("Edit ingredient", "Sửa nguyên liệu")} aria-label={t("Edit ingredient", "Sửa nguyên liệu")} className="flex h-8 w-8 items-center justify-center rounded hover:bg-[#D9E6DC]"><ContentIcon name="edit" /></button></td></tr>)}</tbody>
       </table>
       {visibleItems.length === 0 && <p className="py-6 text-sm text-[#727974]">{t("No ingredients found.", "Không tìm thấy nguyên liệu.")}</p>}
     </div>}

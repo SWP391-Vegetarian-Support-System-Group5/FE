@@ -7,6 +7,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import type { PostType } from "@/lib/post-api";
 
 import RecipeCategoryPicker from "./RecipeCategoryPicker";
+import BmiTypePicker from "./BmiTypePicker";
 import { getRecipeCategories, type RecipeCategory } from "@/lib/recipe-categories";
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
@@ -93,6 +94,8 @@ function RecipeContentView() {
   const [servings, setServings] = useState<string>("2");
   const [content, setContent] = useState("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [selectedBmiTypeIds, setSelectedBmiTypeIds] = useState<number[]>([]);
+  const isAdmin = user?.role === "ADMIN";
 
   // Ingredients
   const [ingredients, setIngredients] = useState<RecipeIngredientPayload[]>([
@@ -148,6 +151,7 @@ function RecipeContentView() {
       setIngredients(draft.ingredients);
       setSteps(draft.steps);
       setSelectedCategoryIds(draft.selectedCategoryIds || []);
+      setSelectedBmiTypeIds(draft.selectedBmiTypeIds || []);
     });
     return () => { cancelled = true; };
   }, [authLoading, contentOwner]);
@@ -166,7 +170,7 @@ function RecipeContentView() {
           getIngredients(),
         ]);
         if (cancelled) return;
-        setIngredientCategories(ingredientCategoryData.filter(c => c.code !== "UNVERIFIED"));
+        setIngredientCategories(ingredientCategoryData.filter(c => ["PLANT", "DAIRY", "EGG", "HONEY"].includes(c.code)));
         setIngredientCatalog(ingredientData.filter(x => x.dietaryGroup !== "UNVERIFIED"));
         setAllergens(allData);
         setRecipeCategories(recipeCategoryData);
@@ -458,6 +462,7 @@ function RecipeContentView() {
         ingredients,
         steps,
         selectedCategoryIds,
+        selectedBmiTypeIds,
         savedAt: new Date().toISOString(),
       };
       try {
@@ -545,6 +550,7 @@ function RecipeContentView() {
 
         // Step 2: Publish via POST /api/video-recipe-drafts/{id}/publish
         const published = await publishVideoRecipeDraft(draftId, {
+          ...(isAdmin ? { bmiTypeIds: selectedBmiTypeIds } : {}),
           recipeName: recipeName.trim(),
           categoryIds: selectedCategoryIds,
         });
@@ -558,6 +564,7 @@ function RecipeContentView() {
       } else {
         // Manual mode: POST /api/recipes
         const payload = {
+          ...(isAdmin ? { bmiTypeIds: selectedBmiTypeIds } : {}),
           title: title.trim(),
           recipeName: recipeName.trim(),
           content: content.trim(),
@@ -812,6 +819,7 @@ function RecipeContentView() {
           </div>
 
           <RecipeCategoryPicker categories={recipeCategories} selected={selectedCategoryIds} onChange={setSelectedCategoryIds} />
+          {isAdmin && <div className="mt-5"><BmiTypePicker selected={selectedBmiTypeIds} onChange={setSelectedBmiTypeIds} disabled={isSubmitting} /></div>}
 
           {/* Story & flavor profile */}
           <div>

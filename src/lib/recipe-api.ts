@@ -6,6 +6,7 @@ export interface IngredientCategoryItem {
   id: number;
   name: string;
   code: string;
+  dietaryGroup: DietaryGroup | "UNVERIFIED";
 }
 
 export interface IngredientItem {
@@ -35,6 +36,7 @@ export interface RecipeIngredientPayload {
   amount: string | null;
   dietaryGroup: DietaryGroup;
   allergenId: number | null;
+  ingredientCategoryId?: number | null;
 }
 
 export interface RecipeStepPayload {
@@ -43,6 +45,7 @@ export interface RecipeStepPayload {
 }
 
 export interface CreateRecipePayload {
+  bmiTypeIds?: number[];
   title: string;
   recipeName: string;
   content: string;
@@ -56,6 +59,7 @@ export interface CreateRecipePayload {
 }
 
 export interface RecipeResponse {
+  bmiTypes?: import("@/lib/bmi-api").BmiType[];
   postId: number;
   title: string;
   recipeName: string;
@@ -108,6 +112,7 @@ export interface UpdateVideoRecipeDraftPayload {
 }
 
 export interface PublishVideoRecipeDraftPayload {
+  bmiTypeIds?: number[];
   recipeName: string;
   categoryIds: number[];
 }
@@ -116,6 +121,17 @@ export interface PublishVideoRecipeDraftPayload {
 
 export function getIngredientCategories(): Promise<IngredientCategoryItem[]> {
   return apiGet<IngredientCategoryItem[]>("/api/ingredient-categories");
+}
+
+export async function saveIngredientCategory(payload: Pick<IngredientCategoryItem, "code" | "name" | "dietaryGroup">, id?: number): Promise<IngredientCategoryItem> {
+  const response = await apiFetch(`/api/admin/ingredient-categories${id ? `/${id}` : ""}`, {
+    method: id ? "PUT" : "POST", body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message || `Ingredient category save failed (${response.status})`);
+  }
+  return response.json();
 }
 
 export function getIngredients(keyword?: string): Promise<IngredientItem[]> {

@@ -126,13 +126,12 @@ test("both branch conventions for detail URLs resolve, invalid IDs do not", asyn
   }
 });
 
-test("legacy category route uses the real recipe taxonomy after merging main", () => {
-  let destination;
-  const page = loadModule("src/app/admin/categories/page.tsx", {
-    "next/navigation": { redirect: path => { destination = path; } },
-  });
-  page.default();
-  assert.equal(destination, "/admin/recipe-categories");
+test("main category screen is retained and connected to the current taxonomy", () => {
+  const source = readFileSync(new URL("../src/app/admin/categories/page.tsx", import.meta.url), "utf8");
+  assert.match(source, /Dual Filter & Dishes/);
+  assert.match(source, /getRecipeCategories\(true\)/);
+  assert.match(source, /api\/recipe-categories/);
+  assert.doesNotMatch(source, /redirect\(/);
 });
 
 test("merging main does not enable the admin-role bypass", () => {
