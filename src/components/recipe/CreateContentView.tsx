@@ -2,49 +2,47 @@
 
 import UiText, { useUiText } from "@/components/UiText";
 import PostComposer from "@/components/content/PostComposer";
-import DietSelector from "@/components/recipe/DietSelector";
 import UploadProgress from "@/components/ui/UploadProgress";
 import { useLanguage } from "@/context/LanguageContext";
 import type { PostType } from "@/lib/post-api";
 
+import RecipeCategoryPicker from "./RecipeCategoryPicker";
+import BmiTypePicker from "./BmiTypePicker";
+import { getRecipeCategories, type RecipeCategory } from "@/lib/recipe-categories";
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { localizeText } from "@/lib/localized-content";
 import { getStoredToken } from "@/lib/auth";
 import { getMediaUrl } from "@/lib/api";
 import { readMyContent, saveManualContent, removeManualContent, rememberPublishedContent } from "@/lib/my-content";
 import {
-  CategoryItem,
+  IngredientCategoryItem,
+  IngredientItem,
   AllergenItem,
-  TagItem,
-  DietTypeItem,
   DietaryGroup,
   RecipeIngredientPayload,
   RecipeStepPayload,
   RecipeResponse,
   VideoDraftStatus,
   VideoRecipeDraftResponse,
-  getCategories,
+  getIngredientCategories,
+  getIngredients,
   getAllergens,
-  getTags,
-  getDietTypes,
   createRecipe,
   uploadVideoRecipeDraft,
   getVideoRecipeDraft,
   updateVideoRecipeDraft,
   publishVideoRecipeDraft,
   retryVideoRecipeDraft,
-  isDietCompatible,
 } from "@/lib/recipe-api";
 
-const DIETARY_GROUPS: { value: DietaryGroup; label: string; desc: string }[] = [
-  { value: "PLANT", label: "Plant", desc: "100% gốc thực vật" },
-  { value: "DAIRY", label: "Dairy", desc: "Bơ, sữa chua, phô mai..." },
-  { value: "EGG", label: "Egg", desc: "Trứng gà, vịt..." },
-  { value: "HONEY", label: "Honey", desc: "Mật ong tự nhiên" },
-];
+const INGREDIENT_CATEGORY_LABELS: Record<string, [string, string]> = {
+  PLANT: ["Plant", "Thực vật"], DAIRY: ["Dairy", "Sữa và chế phẩm từ sữa"],
+  EGG: ["Egg", "Trứng"], HONEY: ["Honey", "Mật ong"],
+};
 
 const subscribeHydration = () => () => {};
 
@@ -67,9 +65,9 @@ export default function CreateContentView() {
 }
 
 function RecipeContentView() {
-  const { t } = useLanguage();
   const ui = useUiText();
   const router = useRouter();
+  const { t, language } = useLanguage();
   const { user, loading: authLoading } = useAuth();
   const contentOwner = user?.uid || "guest";
   const isMounted = useSyncExternalStore(subscribeHydration, () => true, () => false);
@@ -80,23 +78,24 @@ function RecipeContentView() {
   // Mode: "ai" vs "manual"
   const [creationMode, setCreationMode] = useState<"ai" | "manual">("ai");
 
+  const [recipeCategories, setRecipeCategories] = useState<RecipeCategory[]>([]);
 
   // Master data
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [ingredientCategories, setIngredientCategories] = useState<IngredientCategoryItem[]>([]);
+  const [ingredientCatalog, setIngredientCatalog] = useState<IngredientItem[]>([]);
   const [allergens, setAllergens] = useState<AllergenItem[]>([]);
-  const [, setTags] = useState<TagItem[]>([]);
-  const [dietTypes, setDietTypes] = useState<DietTypeItem[]>([]);
   const [, setIsLoadingMasterData] = useState(true);
 
   // Form fields
   const [title, setTitle] = useState("");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [recipeName, setRecipeName] = useState("");
   const [prepMinutes, setPrepMinutes] = useState<string>("20");
   const [cookMinutes, setCookMinutes] = useState<string>("15");
   const [servings, setServings] = useState<string>("2");
   const [content, setContent] = useState("");
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
-  const [selectedDietTypeIds, setSelectedDietTypeIds] = useState<number[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [selectedBmiTypeIds, setSelectedBmiTypeIds] = useState<number[]>([]);
+  const isAdmin = user?.role === "ADMIN";
 
   // Ingredients
   const [ingredients, setIngredients] = useState<RecipeIngredientPayload[]>([
@@ -144,50 +143,54 @@ function RecipeContentView() {
       restoredDraftRef.current = true;
       setCreationMode("manual");
       setTitle(draft.title);
+      setRecipeName(draft.recipeName || "");
       setContent(draft.content);
-      setCategoryId(draft.categoryId);
       setPrepMinutes(draft.prepMinutes);
       setCookMinutes(draft.cookMinutes);
       setServings(draft.servings);
       setIngredients(draft.ingredients);
       setSteps(draft.steps);
-      setSelectedTagIds(draft.selectedTagIds);
-      setSelectedDietTypeIds(draft.selectedDietTypeIds || []);
+      setSelectedCategoryIds(draft.selectedCategoryIds || []);
+      setSelectedBmiTypeIds(draft.selectedBmiTypeIds || []);
     });
     return () => { cancelled = true; };
   }, [authLoading, contentOwner]);
 
   // Load master data on mount
   useEffect(() => {
+    if (authLoading || !user?.uid) return;
+    let cancelled = false;
     async function fetchMaster() {
       setIsLoadingMasterData(true);
       try {
-        const [catData, allData, tagData, dietData] = await Promise.all([
-          getCategories(),
+        const [ingredientCategoryData, allData, recipeCategoryData, ingredientData] = await Promise.all([
+          getIngredientCategories(),
           getAllergens(),
-          getTags(),
-          getDietTypes(),
+          getRecipeCategories(),
+          getIngredients(),
         ]);
-        setCategories(catData);
+        if (cancelled) return;
+        setIngredientCategories(ingredientCategoryData.filter(c => ["PLANT", "DAIRY", "EGG", "HONEY"].includes(c.code)));
+        setIngredientCatalog(ingredientData.filter(x => x.dietaryGroup !== "UNVERIFIED"));
         setAllergens(allData);
-        setTags(tagData);
-        setDietTypes(dietData);
+        setRecipeCategories(recipeCategoryData);
 
-        if (catData.length > 0 && !restoredDraftRef.current) {
-          setCategoryId(catData[0].id);
-        }
       } catch {
-        // Handled silently
+        if (!cancelled) setStatusMessage({ type: "error", text: t("Could not load ingredient categories. Please try again.", "Không tải được danh mục nguyên liệu. Vui lòng thử lại.") });
       } finally {
-        setIsLoadingMasterData(false);
+        if (!cancelled) setIsLoadingMasterData(false);
       }
     }
     fetchMaster();
-  }, []);
+    return () => { cancelled = true; };
+  }, [authLoading, user?.uid, t]);
 
+  const pollInFlightRef = useRef(false);
   // Poll draft status
   const pollDraft = useCallback(
     async (id: number) => {
+      if (pollInFlightRef.current) return;
+      pollInFlightRef.current = true;
       try {
         const res: VideoRecipeDraftResponse = await getVideoRecipeDraft(id);
         setDraftStatus(res.status);
@@ -205,6 +208,7 @@ function RecipeContentView() {
           }
 
           if (res.title) setTitle(res.title);
+          if (res.recipeName) setRecipeName(res.recipeName);
           if (res.description) setContent(res.description);
           if (res.estimatedPrepMinutes !== null && res.estimatedPrepMinutes !== undefined) {
             setPrepMinutes(String(res.estimatedPrepMinutes));
@@ -222,30 +226,25 @@ function RecipeContentView() {
             );
           }
 
-          setStatusMessage({
-            type: "success",
-            text: "AI đã hoàn tất phân tích video và tạo bản nháp thành công! Vui lòng kiểm tra lại bên dưới.",
-          });
         } else if (res.status === "FAILED") {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          setStatusMessage({
-            type: "error",
-            text: res.errorMessage || "Xử lý video thất bại. Bạn có thể nhấn Thử lại.",
-          });
+          setDraftErrorMessage(localizeText(res.errorMessage || t("Video processing failed. Try again.", "Xử lý video thất bại. Hãy thử lại."), language));
         } else if (res.status === "PUBLISHED") {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
         }
-      } catch {
-        // Polling failure
+      } catch (error: unknown) {
+        setDraftErrorMessage(error instanceof Error ? localizeText(error.message, language) : t("Could not refresh video status. Retrying...", "Chưa tải được trạng thái video. Đang thử lại..."));
+      } finally {
+        pollInFlightRef.current = false;
       }
     },
-    [videoPreviewUrl]
+    [videoPreviewUrl, language, t]
   );
 
   // Clear polling on unmount
@@ -306,32 +305,29 @@ function RecipeContentView() {
     setDraftStatus(null);
     setDraftErrorMessage(null);
     setIsUploading(true);
-    setStatusMessage({
-      type: "info",
-      text: "Đang tải video lên máy chủ... Vui lòng không đóng trang.",
-    });
+    setStatusMessage(null);
+    setDraftId(null);
+    setDraftStatus(null);
+    setDraftErrorMessage(null);
 
     try {
       const res = await uploadVideoRecipeDraft(videoFile, { onProgress: setUploadPercent, signal: controller.signal });
       setDraftId(res.videoRecipeDraftId);
       setDraftStatus(res.status);
-      setStatusMessage({
-        type: "info",
-        text: "Đã tải lên video thành công! VeggieAI đang phân tích âm thanh và các bước nấu...",
-      });
 
       // Start polling
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = setInterval(() => {
         pollDraft(res.videoRecipeDraftId);
-      }, 3000);
+      }, 10000);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {
         setStatusMessage({ type: "info", text: "Upload cancelled." });
         return;
       }
       const msg = err instanceof Error ? err.message : "Tải lên video thất bại";
-      setStatusMessage({ type: "error", text: msg });
+      setDraftStatus("FAILED");
+      setDraftErrorMessage(localizeText(msg, language));
     } finally {
       uploadAbort.current = null;
       setIsUploading(false);
@@ -342,7 +338,8 @@ function RecipeContentView() {
   const handleRetryDraft = async () => {
     if (!draftId) return;
     try {
-      setStatusMessage({ type: "info", text: "Đang thử lại phân tích..." });
+      setStatusMessage(null);
+      setDraftStatus("PENDING");
       const res = await retryVideoRecipeDraft(draftId);
       setDraftStatus(res.status);
       setDraftErrorMessage(null);
@@ -350,10 +347,11 @@ function RecipeContentView() {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = setInterval(() => {
         pollDraft(draftId);
-      }, 3000);
+      }, 10000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Thử lại thất bại";
-      setStatusMessage({ type: "error", text: msg });
+      setDraftStatus("FAILED");
+      setDraftErrorMessage(localizeText(msg, language));
     }
   };
 
@@ -375,9 +373,10 @@ function RecipeContentView() {
     field: Field,
     value: RecipeIngredientPayload[Field]
   ) => {
-    setIngredients((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
-    );
+    const known = field === "ingredientName" ? ingredientCatalog.find(x => x.name.toLocaleLowerCase() === String(value).trim().toLocaleLowerCase() && x.dietaryGroup !== "UNVERIFIED") : undefined;
+    setIngredients((prev) => prev.map((item, i) => i === index
+      ? { ...item, [field]: value, ...(known && known.dietaryGroup !== "UNVERIFIED" ? { dietaryGroup: known.dietaryGroup, allergenId: known.allergenId } : {}) }
+      : item));
   };
 
   const handleRemoveIngredient = (index: number) => {
@@ -434,6 +433,7 @@ function RecipeContentView() {
       try {
         await updateVideoRecipeDraft(draftId, {
           title: title.trim() || "Untitled Recipe",
+          recipeName: recipeName.trim(),
           description: content.trim(),
           transcript: transcript,
           estimatedPrepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
@@ -454,15 +454,15 @@ function RecipeContentView() {
       // Manual mode: Save to localStorage as BE doesn't have draft endpoint for manual recipes
       const manualDraft = {
         title,
+        recipeName,
         content,
-        categoryId,
         prepMinutes,
         cookMinutes,
         servings,
         ingredients,
         steps,
-        selectedTagIds,
-        selectedDietTypeIds,
+        selectedCategoryIds,
+        selectedBmiTypeIds,
         savedAt: new Date().toISOString(),
       };
       try {
@@ -493,10 +493,10 @@ function RecipeContentView() {
       return;
     }
 
-    if (!title.trim()) {
+    if (!title.trim() || !recipeName.trim()) {
       setStatusMessage({
         type: "error",
-        text: "Vui lòng nhập tên công thức món ăn.",
+        text: t("Enter both the post title and dish name.", "Vui lòng nhập cả tiêu đề bài viết và tên món ăn."),
       });
       return;
     }
@@ -525,12 +525,6 @@ function RecipeContentView() {
       return;
     }
 
-    const filledIngredients = ingredients.filter(ingredient => ingredient.ingredientName.trim());
-    if (dietTypes.some(diet => selectedDietTypeIds.includes(diet.id) && !isDietCompatible(diet, filledIngredients))) {
-      setStatusMessage({ type: "error", text: t("Adjust ingredients to match your selected diets, or deselect those diets before publishing.", "Điều chỉnh nguyên liệu cho phù hợp hoặc bỏ chế độ ăn đã chọn trước khi đăng.") });
-      return;
-    }
-
     setIsSubmitting(true);
     setStatusMessage(null);
 
@@ -546,6 +540,7 @@ function RecipeContentView() {
         // Step 1: Save draft modifications via PUT
         await updateVideoRecipeDraft(draftId, {
           title: title.trim(),
+          recipeName: recipeName.trim(),
           description: content.trim(),
           transcript: transcript,
           estimatedPrepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
@@ -555,8 +550,9 @@ function RecipeContentView() {
 
         // Step 2: Publish via POST /api/video-recipe-drafts/{id}/publish
         const published = await publishVideoRecipeDraft(draftId, {
-          categoryId: categoryId,
-          tagIds: selectedTagIds,
+          ...(isAdmin ? { bmiTypeIds: selectedBmiTypeIds } : {}),
+          recipeName: recipeName.trim(),
+          categoryIds: selectedCategoryIds,
         });
 
         setPublishedResult(published);
@@ -568,16 +564,17 @@ function RecipeContentView() {
       } else {
         // Manual mode: POST /api/recipes
         const payload = {
+          ...(isAdmin ? { bmiTypeIds: selectedBmiTypeIds } : {}),
           title: title.trim(),
+          recipeName: recipeName.trim(),
           content: content.trim(),
-          categoryId: categoryId,
           videoUrl: videoPreviewUrl || null,
           prepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
           cookMinutes: cookMinutes ? parseInt(cookMinutes, 10) : null,
           servings: servings ? parseInt(servings, 10) : null,
           ingredients,
           steps,
-          tagIds: selectedTagIds,
+          categoryIds: selectedCategoryIds,
         };
 
         const res = await createRecipe(payload);
@@ -752,7 +749,9 @@ function RecipeContentView() {
             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
               📝
             </span>
-            <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Recipe details"} /></h2>
+            <h2 className="font-serif text-lg font-bold text-[#07241A]">
+              {t("Recipe details", "Chi tiết công thức")}
+            </h2>
           </div>
           <span className="text-[10px] font-bold tracking-wider text-[#99462A] uppercase"><UiText text={"REQUIRED DETAILS"} /></span>
         </div>
@@ -760,37 +759,25 @@ function RecipeContentView() {
         <div className="mt-6 space-y-5">
           {/* Recipe Title */}
           <div>
-            <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Recipe title"} />{" "}<span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-[#07241A]">
+              {t("Post title", "Tiêu đề bài viết")} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={ui("e.g. Easy Tofu in Tomato Sauce")}
+              maxLength={250}
+              placeholder={t("e.g. My favorite weeknight recipe", "Ví dụ: Công thức bữa tối yêu thích của tôi")}
               className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 text-sm text-[#07241A] placeholder-[#727974] outline-none transition focus:border-[#1E3A2F] focus:bg-white"
             />
           </div>
 
           {/* Category, Prep Minutes, Servings */}
+          <label className="block text-xs font-semibold text-[#07241A]">
+            {t("Recipe name", "Tên món ăn")} <span className="text-red-500">*</span>
+            <input type="text" required maxLength={250} value={recipeName} onChange={(event) => setRecipeName(event.target.value)} placeholder={t("e.g. Tofu in tomato sauce", "Ví dụ: Đậu hũ sốt cà chua")} className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 text-sm font-normal text-[#07241A] outline-none focus:border-[#1E3A2F]" />
+          </label>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Category"} />{" "}<span className="text-red-500">*</span>
-              </label>
-              <select
-                value={categoryId ?? ""}
-                onChange={(e) =>
-                  setCategoryId(e.target.value ? Number(e.target.value) : null)
-                }
-                className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2.5 text-xs text-[#07241A] outline-none transition focus:border-[#1E3A2F] focus:bg-white"
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {<UiText text={c.name} />}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             {/* Preparation time */}
             <div>
@@ -811,10 +798,9 @@ function RecipeContentView() {
             </div>
 
             {/* Servings */}
-            <div>
-              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Servings"} />{creationMode === "ai" && (
-                  <span className="ml-1 text-[10px] text-[#727974] font-normal"><UiText text={"(Manual only)"} /></span>
-                )}
+            {creationMode === "manual" && <div>
+              <label className="block text-xs font-semibold text-[#07241A]">
+                {t("Servings", "Khẩu phần")}
               </label>
               <div className="relative mt-1.5">
                 <input
@@ -829,8 +815,11 @@ function RecipeContentView() {
                   👥
                 </span>
               </div>
-            </div>
+            </div>}
           </div>
+
+          <RecipeCategoryPicker categories={recipeCategories} selected={selectedCategoryIds} onChange={setSelectedCategoryIds} />
+          {isAdmin && <div className="mt-5"><BmiTypePicker selected={selectedBmiTypeIds} onChange={setSelectedBmiTypeIds} disabled={isSubmitting} /></div>}
 
           {/* Story & flavor profile */}
           <div>
@@ -909,20 +898,32 @@ function RecipeContentView() {
 
                   {/* Metadata & Status */}
                   <div className="sm:col-span-2 space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2" aria-live="polite">
                       <span className="text-xs font-bold text-[#07241A] truncate max-w-xs">
                         {videoFile?.name || "Uploaded video"}
                       </span>
-                      {draftStatus === "READY" ? (
-                        <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#07241A]"><UiText text={"✓ Ready"} /></span>
+                      {isUploading || draftStatus === "UPLOADING" ? (
+                        <span role="status" className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">{t("Uploading video...", "Đang tải video...")}</span>
+                      ) : draftStatus === "READY" ? (
+                        <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#07241A]">
+                          {t("Analysis complete", "Đã phân tích")}
+                        </span>
                       ) : draftStatus === "PROCESSING" ? (
-                        <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse"><UiText text={"⚙️ Đang phân tích..."} /></span>
+                        <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">
+                          {t("Analyzing...", "Đang phân tích...")}
+                        </span>
                       ) : draftStatus === "PENDING" ? (
-                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-700"><UiText text={"⏳ Chờ xử lý"} /></span>
+                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-700">
+                          {t("Waiting for analysis", "Chờ phân tích")}
+                        </span>
                       ) : draftStatus === "FAILED" ? (
-                        <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-bold text-red-700"><UiText text={"✕ Lỗi xử lý"} /></span>
+                        <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-bold text-red-700">
+                          {t("Processing failed", "Xử lý thất bại")}
+                        </span>
                       ) : (
-                        <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]"><UiText text={"Chưa gửi phân tích"} /></span>
+                        <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]">
+                          {t("Not submitted", "Chưa gửi phân tích")}
+                        </span>
                       )}
                     </div>
 
@@ -933,9 +934,21 @@ function RecipeContentView() {
                       </p>
                     )}
 
+                    {/* Status descriptions */}
+                    {draftStatus === "PROCESSING" && (
+                      <div className="space-y-1 pt-1">
+                        <div className="flex items-center justify-between text-[11px] text-[#727974]">
+                          <span>{t("Speech and cooking step analysis", "Phân tích lời nói và bước nấu")}</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFEEEB]">
+                          <div className="h-full w-2/3 animate-pulse rounded-full bg-[#1E3A2F]" />
+                        </div>
+                      </div>
+                    )}
+
                     {draftErrorMessage && (
-                      <p className="text-xs text-red-600 font-medium">
-                        {<UiText text={draftErrorMessage} />}
+                      <p role="alert" className="whitespace-pre-wrap break-words text-xs text-red-600 font-medium">
+                        {draftErrorMessage}
                       </p>
                     )}
 
@@ -943,16 +956,20 @@ function RecipeContentView() {
                     <div className="flex items-center gap-2 pt-2">
                       <button
                         type="button"
-                        disabled={isUploading}
                         onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading || draftStatus === "UPLOADING" || draftStatus === "PENDING" || draftStatus === "PROCESSING"}
                         className="rounded-xl border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
-                      ><UiText text={"Replace video"} /></button>
-                      {draftStatus === "FAILED" && (
+                      >
+                        {t("Replace video", "Đổi video")}
+                      </button>
+                      {draftStatus === "FAILED" && draftId && (
                         <button
                           type="button"
                           onClick={handleRetryDraft}
                           className="rounded-xl bg-[#07241A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A2F] transition"
-                        ><UiText text={"Retry analysis"} /></button>
+                        >
+                          {t("Retry analysis", "Thử phân tích lại")}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -961,23 +978,27 @@ function RecipeContentView() {
             )}
 
             {/* Generate draft button */}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-col items-start gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={handleGenerateDraft}
-                disabled={isUploading || !videoFile || draftStatus === "PROCESSING" || draftStatus === "PENDING"}
+                disabled={isUploading || !videoFile || draftStatus === "UPLOADING" || draftStatus === "PENDING" || draftStatus === "PROCESSING"}
                 className="flex items-center gap-2 rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span>✨</span>
                 <span>
-                  {isUploading
-                    ? ui("Đang tải video...")
+                  {isUploading || draftStatus === "UPLOADING"
+                    ? t("Uploading video...", "Đang tải video...")
                     : draftStatus === "PROCESSING"
-                    ? ui("AI đang phân tích...")
-                    : ui("Generate draft")}
+                    ? t("Analyzing...", "Đang phân tích...")
+                    : draftStatus === "PENDING"
+                    ? t("Waiting for analysis", "Chờ phân tích")
+                    : t("Generate draft", "Tạo bản nháp")}
                 </span>
               </button>
-              <span className="text-[11px] text-[#727974] italic"><UiText text={"AI draft - review required before publishing"} /></span>
+              <span className="text-[11px] text-[#727974] italic">
+                {t("Review the draft before publishing", "Kiểm tra bản nháp trước khi đăng")}
+              </span>
             </div>
           </div>
           {(isUploading || draftStatus === "PENDING" || draftStatus === "PROCESSING") && <UploadProgress percent={uploadPercent} processing={!isUploading} onCancel={() => uploadAbort.current?.abort()} />}
@@ -1007,6 +1028,9 @@ function RecipeContentView() {
         </div>
 
         {/* Ingredients list */}
+        <datalist id="ingredient-catalog">
+          {ingredientCatalog.map(x => <option key={x.id} value={x.name} />)}
+        </datalist>
         <div className="mt-6 space-y-3">
           {ingredients.map((ing, index) => {
             const isNonPlant = ing.dietaryGroup !== "PLANT";
@@ -1033,6 +1057,7 @@ function RecipeContentView() {
                   <div className="col-span-12 sm:col-span-4">
                     <input
                       type="text"
+                      list="ingredient-catalog"
                       value={ing.ingredientName}
                       onChange={(e) =>
                         handleUpdateIngredient(
@@ -1059,9 +1084,9 @@ function RecipeContentView() {
                       }
                       className="w-full rounded-xl border border-[#EFEEEB] bg-white px-2 py-2 text-xs text-[#07241A] outline-none font-medium"
                     >
-                      {DIETARY_GROUPS.map((g) => (
-                        <option key={g.value} value={g.value}>
-                          {<UiText text={g.label} />}
+                      {ingredientCategories.map((g) => (
+                        <option key={g.id} value={g.code}>
+                          {INGREDIENT_CATEGORY_LABELS[g.code] ? t(...INGREDIENT_CATEGORY_LABELS[g.code]) : g.name}
                         </option>
                       ))}
                     </select>
@@ -1105,7 +1130,7 @@ function RecipeContentView() {
                 {/* Non-plant clarification warning */}
                 {isNonPlant && (
                   <div className="rounded-xl bg-[#FDE8E4] px-3 py-1.5 text-[11px] text-[#99462A] flex items-center justify-between">
-                    <span><UiText text={"⚠️ Nhóm nguyên liệu"} />{" "}<strong>{ui(DIETARY_GROUPS.find(group => group.value === ing.dietaryGroup)?.label || ing.dietaryGroup)}</strong>{" "}<UiText text={"affects vegan diet compatibility."} /></span>
+                    <span><UiText text={"⚠️ Nhóm nguyên liệu"} />{" "}<strong>{t(...INGREDIENT_CATEGORY_LABELS[ing.dietaryGroup])}</strong>{" "}<UiText text={"affects vegan diet compatibility."} /></span>
                     <span className="font-semibold text-[10px] uppercase"><UiText text={"Needs Clarification"} /></span>
                   </div>
                 )}
@@ -1115,7 +1140,6 @@ function RecipeContentView() {
         </div>
       </section>
 
-      <DietSelector diets={dietTypes} ingredients={ingredients} selectedIds={selectedDietTypeIds} onChange={setSelectedDietTypeIds} />
 
       {/* ── Section: Cooking steps ──────────────────────────────────────── */}
       <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">

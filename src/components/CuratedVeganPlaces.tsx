@@ -4,19 +4,23 @@ import UiText, { useUiText } from "@/components/UiText";
 
 
 import { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
+import { useNearbyPlaces, displayPlaceCategory } from "@/hooks/useNearbyPlaces";
 import Image from "next/image";
 
 interface VeganPlace {
   id: string;
+  latitude?: number;
+  longitude?: number;
   name: string;
   image: string;
   rating: number;
   reviewsCount: number;
-  dietTag: "Vegetarian" | "100% Vegan";
+  dietTag: string;
   district: string;
   description: string;
   specialtyTag: string;
-  priceLevel: "$ · Everyday Warmth" | "$$ · Moderate" | "$$$ · Premium";
+  priceLevel: string;
   address: string;
   phone: string;
   openHours: string;
@@ -25,7 +29,7 @@ interface VeganPlace {
   walkingTime?: string;
 }
 
-const VEGAN_PLACES_DATA: VeganPlace[] = [
+export const VEGAN_PLACES_DATA: VeganPlace[] = [
   {
     id: "green-garden",
     name: "Green Garden Vegetarian",
@@ -122,6 +126,16 @@ const VEGAN_PLACES_DATA: VeganPlace[] = [
 
 export default function CuratedVeganPlaces() {
   const ui = useUiText();
+  const { t } = useLanguage();
+  const { places: nearby, loading, message } = useNearbyPlaces();
+  const places: VeganPlace[] = nearby.map(place => ({
+    id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude,
+    image: "/images/hero_slide.png", rating: place.rating, reviewsCount: place.reviewCount,
+    dietTag: displayPlaceCategory(place.category, t), district: place.areaCode === "all" ? t("Nearby", "Gần đây") : place.areaCode,
+    description: place.address, specialtyTag: "OpenStreetMap", priceLevel: t("Not available", "Chưa có"),
+    address: place.address, phone: "", openHours: t("Not available", "Chưa có"), signatureDishes: [],
+    distance: place.distanceKm != null ? `${place.distanceKm.toFixed(1)} km` : t("Nearby", "Gần đây"), walkingTime: "",
+  }));
   const [selectedPlace, setSelectedPlace] = useState<VeganPlace | null>(null);
 
   return (
@@ -133,17 +147,19 @@ export default function CuratedVeganPlaces() {
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#C25E48]">
               <span><UiText text={"Featured Botanical Kitchens"} /></span>
             </div>
-            <h2 className="mt-1 font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl"><UiText text={"Curated Vegan Places in Saigon"} /></h2>
-            <p className="mt-1 text-xs text-[#727974] sm:text-sm"><UiText text={"Curated serene kitchens celebrated for mindful ingredients and culinary depth."} /></p>
+            <h2 className="mt-1 font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl">{t("Vegetarian places near you", "Địa điểm chay gần bạn")}</h2>
+            <p className="mt-1 text-xs text-[#727974] sm:text-sm">{message}</p>
           </div>
 
           <div className="rounded-full border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-1 text-xs font-medium text-[#727974] shrink-0 self-start sm:self-auto">
-            {VEGAN_PLACES_DATA.length}{" "}<UiText text={"Curated Tables"} /></div>
+            {places.length}{" "}<UiText text={"Curated Tables"} /></div>
         </div>
 
+        {loading && <p role="status" className="py-6">{t("Loading...", "Đang tải...")}</p>}
+        {!loading && places.length === 0 && <p className="py-6">{message}</p>}
         {/* 2. CARDS GRID */}
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-          {VEGAN_PLACES_DATA.map((place) => (
+          {places.map((place) => (
             <div
               key={place.id}
               onClick={() => setSelectedPlace(place)}
@@ -158,6 +174,7 @@ export default function CuratedVeganPlaces() {
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
 
+                <span className="absolute bottom-3 left-3 rounded bg-white/90 px-2 py-1 text-xs">{t("Illustration", "Ảnh minh họa")}</span>
                 <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5">
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold shadow-md backdrop-blur-xs ${
@@ -175,7 +192,7 @@ export default function CuratedVeganPlaces() {
 
                 <div className="absolute bottom-3.5 right-3.5 flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#07241A] shadow-md backdrop-blur-xs">
                   <span className="text-[#F59E0B] text-xs">★</span>
-                  <span>{place.rating.toFixed(1)}</span>
+                  <span>{place.rating > 0 ? place.rating.toFixed(1) : t("Not rated", "Chưa có điểm")}</span>
                   <span className="text-[#727974] font-normal">({place.reviewsCount})</span>
                 </div>
               </div>
@@ -237,7 +254,7 @@ export default function CuratedVeganPlaces() {
                   {selectedPlace.dietTag}
                 </span>
                 <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-[#07241A]">
-                  ★ {selectedPlace.rating} ({selectedPlace.reviewsCount}{" "}<UiText text={"reviews)"} /></span>
+                  ★ {selectedPlace.rating > 0 ? selectedPlace.rating : t("Not rated", "Chưa có điểm")} ({selectedPlace.reviewsCount}{" "}<UiText text={"reviews)"} /></span>
               </div>
             </div>
 
@@ -295,9 +312,9 @@ export default function CuratedVeganPlaces() {
                   className="rounded-xl border border-[#EFEEEB] bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] hover:bg-[#F5F3F0] transition"
                 ><UiText text={"Close"} /></button>
                 <a
-                  href={`tel:${selectedPlace.phone}`}
+                  href={`https://www.openstreetmap.org/?mlat=${selectedPlace.latitude}&mlon=${selectedPlace.longitude}#map=18/${selectedPlace.latitude}/${selectedPlace.longitude}`} target="_blank" rel="noreferrer"
                   className="rounded-xl bg-[#07241A] px-6 py-2.5 text-center text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F] transition"
-                ><UiText text={"Reserve Table / Call"} /></a>
+                >{t("Open in OpenStreetMap", "Mở trong OpenStreetMap")}</a>
               </div>
             </div>
           </div>

@@ -1,8 +1,7 @@
 import { fallbackAreas, vietnamProvinces } from "@/lib/location-data";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import type { Area, Province, Restaurant } from "@/types/location";
 
-const apiUrl = `${API_BASE_URL.replace(/\/+$/, "")}/api`;
 const nearbyRadiusKm = 5;
 
 type BackendRestaurant = {
@@ -48,12 +47,14 @@ type NearbyPlace = {
 
 // Keep the page usable while the backend is starting or the persistence layer is not ready.
 // Once the real API responds, the exact same UI automatically switches to server data.
-async function getJson<T>(path: string, fallback: T, timeoutMs = 2500): Promise<T> {
+async function getJson<T>(path: string, fallback: T, timeoutMs = 2500, propagateError = false): Promise<T> {
   try {
-    const response = await fetch(`${apiUrl}${path}`, { signal: AbortSignal.timeout(timeoutMs) });
+    const response = await apiFetch(`/api${path}`, { signal: AbortSignal.timeout(timeoutMs) });
+    if (response.status === 401 || response.status === 403) throw new Error("Bạn cần đăng nhập lại để tìm địa điểm.");
     if (!response.ok) throw new Error(`API returned ${response.status}`);
     return (await response.json()) as T;
-  } catch {
+  } catch (error) {
+    if (propagateError) throw error;
     return fallback;
   }
 }
@@ -71,7 +72,7 @@ export const locationApi = {
     return getJson<AddressSuggestion[]>(`/locations/address-suggestions?${params}`, []);
   },
   geocode: (address: string) =>
-    getJson<GeocodeResult | null>(`/locations/geocode?${new URLSearchParams({ address })}`, null),
+    getJson<GeocodeResult | null>(`/locations/geocode?${new URLSearchParams({ address })}`, null, 60000, true),
   reverseGeocode: (latitude: number, longitude: number) =>
     getJson<ReverseGeocodeResult | null>(
       `/locations/reverse-geocode?${new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) })}`,
@@ -94,8 +95,8 @@ export const locationApi = {
       areaCode,
     });
 
-    return getJson<NearbyPlace[] | null>(`/locations/nearby-places?${nearbyParams}`, null, 12000).then(async (places) => {
-      if (places && places.length > 0) return places;
+    return getJson<NearbyPlace[]>(`/locations/nearby-places?${nearbyParams}`, [], 45000, true).then(async (places) => {
+      if (places.length > 0) return places;
 
       const items = await getJson<BackendRestaurant[] | null>(`/restaurants/nearby?${params}`, null, 8000);
       if (items === null) return [];

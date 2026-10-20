@@ -5,6 +5,8 @@
  * in a single place via the NEXT_PUBLIC_API_BASE_URL environment variable.
  */
 
+import { readSessionToken } from "./auth-session";
+
 export const API_BASE_URL: string =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ||
@@ -46,9 +48,9 @@ export async function apiFetch(
     headers.set("Content-Type", "application/json");
   }
 
-  // Automatically attach Bearer token if present in localStorage
+  // Use the same session token for JSON requests and multipart uploads.
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
+    const token = readSessionToken();
     if (token && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${token}`);
     }
@@ -73,7 +75,7 @@ export function apiUpload(path: string, body: FormData, options: UploadOptions =
     const abort = () => xhr.abort();
     const cleanup = () => options.signal?.removeEventListener("abort", abort);
     xhr.open("POST", `${API_BASE_URL.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`);
-    const token = localStorage.getItem("token");
+    const token = readSessionToken();
     if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     // The browser supplies the multipart Content-Type and boundary.
     xhr.upload.onprogress = event => options.onProgress?.(event.lengthComputable && event.total > 0 ? Math.min(100, Math.floor(event.loaded / event.total * 100)) : null);

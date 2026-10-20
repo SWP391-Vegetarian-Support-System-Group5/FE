@@ -103,7 +103,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     { label: t("Vegan Places", "Địa điểm chay"), href: "/vegan-places" },
     { label: t("Meal Planner", "Thực đơn"), href: "/meal-planner" },
     { label: t("AI Chatbox", "Trợ lý AI"), href: "/ai-chatbox" },
-  ];
+  ].filter(link => user || !["/vegan-places", "/meal-planner"].includes(link.href));
 
   const isLinkActive = (href: string) => {
     if (href === "/" && pathname === "/") return true;

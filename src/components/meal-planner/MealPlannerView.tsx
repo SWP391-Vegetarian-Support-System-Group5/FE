@@ -3,12 +3,14 @@
 import UiText, { useUiText } from "@/components/UiText";
 
 
-import { useState } from "react";
+import { useMealPlanner } from "./useMealPlanner";
 import Link from "next/link";
 import Image from "next/image";
 
 export interface MealItem {
   id: string;
+  recipeId?: number;
+  mealPlanMealId?: number;
   slot: "BREAKFAST" | "LUNCH" | "DINNER";
   timeLabel: string;
   durationCalories: string;
@@ -20,14 +22,14 @@ export interface MealItem {
   steps: string[];
 }
 
-interface DayPlan {
+export interface DayPlan {
   dayName: string;
   theme: string;
   totalPrep: string;
   meals: MealItem[];
 }
 
-const INITIAL_DAYS: DayPlan[] = [
+export const INITIAL_DAYS: DayPlan[] = [
   {
     dayName: "Monday",
     theme: "Day 1 · Fresh Larder Start",
@@ -186,7 +188,7 @@ const INITIAL_DAYS: DayPlan[] = [
   },
 ];
 
-const ALTERNATIVE_DISHES: Record<string, Partial<MealItem>> = {
+export const ALTERNATIVE_DISHES: Record<string, Partial<MealItem>> = {
   BREAKFAST: {
     title: "Toasted Sourdough with Edamame Herb Mash",
     description: "Lemony crushed green soybeans, extra virgin olive oil, and toasted coriander seeds.",
@@ -209,96 +211,13 @@ const ALTERNATIVE_DISHES: Record<string, Partial<MealItem>> = {
 
 export default function MealPlannerView() {
   const ui = useUiText();
-  const [days, setDays] = useState<DayPlan[]>(INITIAL_DAYS);
-  const [allergens, setAllergens] = useState<string[]>([
-    "Peanuts",
-    "Dairy",
-    "Egg White",
-  ]);
-  const [newAllergen, setNewAllergen] = useState("");
-  const [showAddAllergen, setShowAddAllergen] = useState(false);
-
-  const [pantryIngredients, setPantryIngredients] = useState<string[]>([
-    "Pressed Tofu",
-    "Vine Tomatoes",
-    "King Oyster Mushrooms",
-    "Baby Bok Choy",
-  ]);
-  const [newPantryItem, setNewPantryItem] = useState("");
-
-  const [isWednesdayOpen, setIsWednesdayOpen] = useState(false);
-  const [selectedMealForView, setSelectedMealForView] = useState<MealItem | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
-  // Add / remove allergen
-  const handleRemoveAllergen = (item: string) => {
-    setAllergens((prev) => prev.filter((a) => a !== item));
-    showToast(`Đã gỡ dị ứng "${item}".`);
-  };
-
-  const handleAddAllergen = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAllergen.trim()) return;
-    setAllergens((prev) => [...prev, newAllergen.trim()]);
-    setNewAllergen("");
-    setShowAddAllergen(false);
-    showToast(`Đã thêm dị ứng "${newAllergen.trim()}".`);
-  };
-
-  // Add / remove pantry item
-  const handleRemovePantry = (item: string) => {
-    setPantryIngredients((prev) => prev.filter((p) => p !== item));
-    showToast(`Đã bỏ nguyên liệu "${item}".`);
-  };
-
-  const handleAddPantry = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPantryItem.trim()) return;
-    setPantryIngredients((prev) => [...prev, newPantryItem.trim()]);
-    setNewPantryItem("");
-    showToast(`Đã thêm "${newPantryItem.trim()}" vào kho nguyên liệu!`);
-  };
-
-  // Replace a meal
-  const handleReplaceMeal = (dayIndex: number, mealId: string, slot: "BREAKFAST" | "LUNCH" | "DINNER") => {
-    const alt = ALTERNATIVE_DISHES[slot];
-    setDays((prev) =>
-      prev.map((day, dIdx) => {
-        if (dIdx !== dayIndex) return day;
-        return {
-          ...day,
-          meals: day.meals.map((m) => {
-            if (m.id !== mealId) return m;
-            return {
-              ...m,
-              title: alt.title || m.title,
-              description: alt.description || m.description,
-              durationCalories: alt.durationCalories || m.durationCalories,
-              image: alt.image || m.image,
-              isSavedInCollection: false,
-            };
-          }),
-        };
-      })
-    );
-    showToast(`Đã đổi món ăn bữa ${slot} thành "${alt.title}"!`);
-  };
-
-  // Regenerate plan
-  const handleRegenerate = () => {
-    setIsRegenerating(true);
-    setTimeout(() => {
-      setIsRegenerating(false);
-      showToast("VeggieAI đã lên lại kế hoạch thực đơn 7 ngày dựa trên nguyên liệu của bạn!");
-    }, 900);
-  };
-
+  const {
+    days, allergens, newAllergen, setNewAllergen, showAddAllergen, setShowAddAllergen,
+    pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
+    toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
+    handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal, profileName, bmi, bmiCategory,
+    dietName, savedCount, loading, error, startDate, setStartDate,
+  } = useMealPlanner();
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Toast */}
@@ -314,11 +233,11 @@ export default function MealPlannerView() {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#727974]">
             <span className="h-2 w-2 rounded-full bg-[#16a34a]" />
-            <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[11px] font-bold text-[#07241A]"><UiText text={"Week 14 · Autumn Nourishment Table"} /></span>
+            <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[11px] font-bold text-[#07241A]">{ui("Weekly meal plan")}</span>
           </div>
 
           <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]"><UiText text={"Plan My Week"} /></h1>
-          <p className="mt-1.5 text-sm text-[#424844] max-w-2xl"><UiText text={"A bespoke vegetarian harvest tailored to Minh's pantry, thoughtful routines, and curated recipe collection."} /></p>
+          <p className="mt-1.5 text-sm text-[#424844] max-w-2xl">{ui("Meals selected for your ingredients, vegetarian type and BMI group.")}</p>
         </div>
 
         {/* Action Buttons Top Right */}
@@ -326,7 +245,7 @@ export default function MealPlannerView() {
           <button
             type="button"
             onClick={handleRegenerate}
-            disabled={isRegenerating}
+            disabled={isRegenerating || loading}
             className="flex items-center gap-2 rounded-xl bg-white border border-[#EFEEEB] px-4 py-2.5 text-xs font-semibold text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition cursor-pointer"
           >
             <span>✨</span>
@@ -357,6 +276,10 @@ export default function MealPlannerView() {
         </div>
       </div>
 
+      {loading && <p role="status" className="py-4">{ui("Loading...")}</p>}
+      {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+      {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
+      <label className="mt-4 block text-sm">{ui("Start date")} <input type="text" inputMode="numeric" placeholder="dd/mm/yy" maxLength={10} value={startDate} onChange={e => setStartDate(e.target.value)} className="ml-3 w-36 rounded-lg border p-2" /></label>
       {/* ── Main Two-Column Layout ─────────────────────────────────────── */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
         {/* =============================================================== */}
@@ -369,16 +292,16 @@ export default function MealPlannerView() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#07241A] font-serif text-lg font-bold text-white shadow-xs">
-                  M
+                  {profileName.slice(0, 1)}
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm text-[#07241A]">
-                    Minh Tran
+                    {profileName}
                   </h3>
-                  <p className="text-[11px] text-[#727974]"><UiText text={"Intentional Eater · Hanoi Studio"} /></p>
+                  <p className="text-[11px] text-[#727974]">{dietName}</p>
                 </div>
               </div>
-              <span className="rounded-full bg-[#FDE8E4] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]"><UiText text={"Gentle Cut"} /></span>
+              <span className="rounded-full bg-[#FDE8E4] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]">{bmiCategory}</span>
             </div>
 
             {/* Metrics Row */}
@@ -386,12 +309,12 @@ export default function MealPlannerView() {
               <div>
                 <span className="text-[11px] font-medium text-[#727974]"><UiText text={"Body Tempo"} /></span>
                 <p className="mt-0.5 text-xs font-bold text-[#07241A]">
-                  22.5 <span className="font-normal text-[#727974]"><UiText text={"Norm"} /></span>
+                  {bmi ?? ui("Not available")}
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-medium text-[#727974]"><UiText text={"Focus"} /></span>
-                <p className="mt-0.5 text-xs font-bold text-[#99462A]"><UiText text={"Weight Loss"} /></p>
+                <span className="text-[11px] font-medium text-[#727974]">BMI</span>
+                <p className="mt-0.5 text-xs font-bold text-[#99462A]">{bmiCategory}</p>
               </div>
             </div>
 
@@ -452,7 +375,7 @@ export default function MealPlannerView() {
             >
               <div className="flex items-center gap-2">
                 <span>🔖</span>
-                <span><UiText text={"12 Saved Recipes in Box"} /></span>
+                <span>{savedCount} {ui("Saved recipes")}</span>
               </div>
               <span>→</span>
             </Link>
@@ -505,12 +428,13 @@ export default function MealPlannerView() {
               ><UiText text={"+ Add"} /></button>
             </form>
 
-            <p className="text-[11px] text-[#727974] italic"><UiText text={"AI prioritizes these ingredients in Monday & Tuesday courses."} /></p>
+            <p className="text-[11px] text-[#727974] italic">{ui("Available ingredients")}</p>
 
             {/* Big Action Button */}
             <button
               type="button"
               onClick={handleRegenerate}
+              disabled={isRegenerating || loading}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#07241A] py-3 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] cursor-pointer"
             >
               <span>⚡</span>
@@ -522,9 +446,9 @@ export default function MealPlannerView() {
           <div className="rounded-3xl bg-[#FBF9F6] p-5 border border-[#EFEEEB] space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[#07241A]">
               <span>🥕</span>
-              <span><UiText text={"Pantry Utilization: 84%"} /></span>
+              <span>{pantryIngredients.length} {ui("Available ingredients")}</span>
             </div>
-            <p className="text-xs leading-relaxed text-[#727974]"><UiText text={"By prioritizing your tofu and mushrooms within 48 hours, you avoid food waste while staying aligned with your light deficit."} /></p>
+            <p className="text-xs leading-relaxed text-[#727974]">{dietName}</p>
           </div>
         </div>
 
@@ -536,11 +460,11 @@ export default function MealPlannerView() {
             <section key={day.dayName} className="space-y-4">
               {/* Day Header */}
               <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-2.5">
-                <div className="flex items-baseline gap-2.5">
+                <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
                   <h2 className="font-serif text-2xl font-bold text-[#07241A]">
                     {<UiText text={day.dayName} />}
                   </h2>
-                  <span className="text-xs text-[#727974]">
+                  <span className="text-sm text-[#727974]">
                     {<UiText text={day.theme} />}
                   </span>
                 </div>
@@ -561,7 +485,7 @@ export default function MealPlannerView() {
                       {/* Dish Photo */}
                       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#EFEEEB]">
                         <Image
-                          src={meal.image}
+                          src={meal.image || "/images/hero_slide.png"}
                           alt={meal.title}
                           fill
                           className="object-cover"
@@ -600,12 +524,12 @@ export default function MealPlannerView() {
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                       <button
                         type="button"
-                        onClick={() => setSelectedMealForView(meal)}
+                        onClick={() => viewMeal(meal)}
                         className="rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-white hover:shadow-xs transition cursor-pointer"
                       ><UiText text={"View Recipe"} /></button>
                       <button
                         type="button"
-                        onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
+                        disabled={isRegenerating} onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
                         className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition cursor-pointer"
                       >
                         <span>🔄</span>
@@ -618,167 +542,7 @@ export default function MealPlannerView() {
             </section>
           ))}
 
-          {/* ── Wednesday Collapsible Accordion ───────────────────────────── */}
-          <section className="rounded-3xl bg-white border border-[#EFEEEB] p-5 shadow-xs space-y-4">
-            <button
-              type="button"
-              onClick={() => setIsWednesdayOpen(!isWednesdayOpen)}
-              className="flex w-full items-center justify-between text-left cursor-pointer"
-            >
-              <div className="flex items-baseline gap-2.5">
-                <h2 className="font-serif text-2xl font-bold text-[#07241A]"><UiText text={"Wednesday"} /></h2>
-                <span className="text-xs text-[#727974]"><UiText text={"Day 3 · Clean Greens & Broths"} /></span>
-              </div>
-              <span className="rounded-full bg-[#EFEEEB] px-3 py-1 text-xs font-semibold text-[#07241A] flex items-center gap-1.5">
-                <span><UiText text={"3 Dishes Planned"} /></span>
-                <span className={`transition-transform ${isWednesdayOpen ? "rotate-180" : ""}`}>
-                  ⌵
-                </span>
-              </span>
-            </button>
 
-            {isWednesdayOpen && (
-              <div className="space-y-3 pt-2 border-t border-[#EFEEEB] animate-fade-in">
-                <div className="flex items-center justify-between rounded-2xl bg-[#FBF9F6] p-4 text-xs">
-                  <div>
-                    <span className="font-bold uppercase text-[10px] text-[#727974]"><UiText text={"BREAKFAST · 15 MINS"} /></span>
-                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5"><UiText text={"Toasted Sourdough with Edamame Herb Mash"} /></h4>
-                    <p className="text-[11px] text-[#727974]"><UiText text={"Lemony crushed green soybeans, olive oil, and toasted coriander seeds."} /></p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedMealForView({
-                          id: "m-wed-1",
-                          slot: "BREAKFAST",
-                          timeLabel: "Morning",
-                          durationCalories: "15 mins",
-                          title: "Toasted Sourdough with Edamame Herb Mash",
-                          description: "Lemony crushed green soybeans with herbs.",
-                          image: "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80",
-                          ingredients: ["2 Slices sourdough", "100g Shelled edamame", "Fresh mint, lemon juice"],
-                          steps: ["Toast sourdough.", "Mash warm edamame with lemon & oil.", "Spread and garnish."],
-                        })
-                      }
-                      className="px-3 py-1 font-semibold text-[#07241A] hover:underline"
-                    ><UiText text={"View"} /></button>
-                    <button
-                      type="button"
-                      onClick={() => showToast("Đã đổi món thứ 4!")}
-                      className="px-3 py-1 font-semibold text-[#727974] hover:text-[#07241A]"
-                    ><UiText text={"Replace"} /></button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between rounded-2xl bg-[#FBF9F6] p-4 text-xs">
-                  <div>
-                    <span className="font-bold uppercase text-[10px] text-[#727974]"><UiText text={"LUNCH · 20 MINS"} /></span>
-                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5"><UiText text={"Garlic Bok Choy & Glass Noodle Tangle"} /></h4>
-                    <p className="text-[11px] text-[#727974]"><UiText text={"Wok-tossed farm greens with ginger, light tamari, and roasted sesame."} /></p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedMealForView({
-                          id: "m-wed-2",
-                          slot: "LUNCH",
-                          timeLabel: "Midday",
-                          durationCalories: "20 mins",
-                          title: "Garlic Bok Choy & Glass Noodle Tangle",
-                          description: "Wok-tossed greens with glass noodles.",
-                          image: "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=800&q=80",
-                          ingredients: ["100g Glass noodles", "3 Bok choy heads", "Minced garlic", "Tamari"],
-                          steps: ["Soak glass noodles.", "Wok fry garlic & bok choy.", "Toss noodles together."],
-                        })
-                      }
-                      className="px-3 py-1 font-semibold text-[#07241A] hover:underline"
-                    ><UiText text={"View"} /></button>
-                    <button
-                      type="button"
-                      onClick={() => showToast("Đã đổi món thứ 4!")}
-                      className="px-3 py-1 font-semibold text-[#727974] hover:text-[#07241A]"
-                    ><UiText text={"Replace"} /></button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between rounded-2xl bg-[#FBF9F6] p-4 text-xs">
-                  <div>
-                    <span className="font-bold uppercase text-[10px] text-[#727974]"><UiText text={"DINNER · 30 MINS"} /></span>
-                    <h4 className="font-serif text-sm font-bold text-[#07241A] mt-0.5"><UiText text={"Kabocha Pumpkin & Coconut Gentle Curry"} /></h4>
-                    <p className="text-[11px] text-[#727974]"><UiText text={"Sweet squash simmered with light coconut nectar, turmeric, and crisp long beans."} /></p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedMealForView({
-                          id: "m-wed-3",
-                          slot: "DINNER",
-                          timeLabel: "Evening",
-                          durationCalories: "30 mins",
-                          title: "Kabocha Pumpkin & Coconut Gentle Curry",
-                          description: "Sweet squash curry with coconut milk.",
-                          image: "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?auto=format&fit=crop&w=800&q=80",
-                          ingredients: ["300g Kabocha pumpkin", "200ml Coconut milk", "Turmeric, long beans"],
-                          steps: ["Cube and steam pumpkin.", "Simmer with curry paste and coconut milk.", "Add long beans."],
-                        })
-                      }
-                      className="px-3 py-1 font-semibold text-[#07241A] hover:underline"
-                    ><UiText text={"View"} /></button>
-                    <button
-                      type="button"
-                      onClick={() => showToast("Đã đổi món thứ 4!")}
-                      className="px-3 py-1 font-semibold text-[#727974] hover:text-[#07241A]"
-                    ><UiText text={"Replace"} /></button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* ── Thursday – Sunday Overview ──────────────────────────────── */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-2.5">
-              <h2 className="font-serif text-xl font-bold text-[#07241A]"><UiText text={"Thursday – Sunday Overview"} /></h2>
-              <span className="text-xs text-[#727974]"><UiText text={"4 Days Remaining"} /></span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-[#EFEEEB] shadow-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-[#727974] uppercase"><UiText text={"Thursday · Day 4"} /></span>
-                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5"><UiText text={"Braised Tofu with Lemongrass & Chili"} /></p>
-                </div>
-                <span className="text-sm text-[#16a34a]">✓</span>
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-[#EFEEEB] shadow-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-[#727974] uppercase"><UiText text={"Friday · Day 5"} /></span>
-                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5"><UiText text={"Vietnamese Sweet & Sour Tamarind Soup"} /></p>
-                </div>
-                <span className="text-sm text-[#16a34a]">✓</span>
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-[#EFEEEB] shadow-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-[#727974] uppercase"><UiText text={"Saturday · Day 6"} /></span>
-                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5"><UiText text={"Mushroom & Green Herb Rice Pot"} /></p>
-                </div>
-                <span className="text-sm text-[#16a34a]">✓</span>
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl bg-white p-4 border border-[#EFEEEB] shadow-xs">
-                <div>
-                  <span className="text-[10px] font-bold text-[#727974] uppercase"><UiText text={"Sunday · Day 7"} /></span>
-                  <p className="font-serif text-xs font-bold text-[#07241A] mt-0.5"><UiText text={"Family Feast: Mushroom Hotpot Table"} /></p>
-                </div>
-                <span className="text-base">🍲</span>
-              </div>
-            </div>
-          </section>
         </div>
       </div>
 
@@ -795,7 +559,7 @@ export default function MealPlannerView() {
             {/* Modal Image Header */}
             <div className="relative aspect-video w-full bg-[#EFEEEB]">
               <Image
-                src={selectedMealForView.image}
+                src={selectedMealForView.image || "/images/hero_slide.png"}
                 alt={selectedMealForView.title}
                 fill
                 className="object-cover"

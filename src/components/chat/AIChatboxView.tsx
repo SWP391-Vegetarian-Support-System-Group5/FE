@@ -6,6 +6,7 @@ import UiText, { useUiText } from "@/components/UiText";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { getStoredToken } from "@/lib/auth";
 import {
   ChatMessageItem,
@@ -43,7 +44,8 @@ const SAMPLE_PROMPTS = [
 
 export default function AIChatboxView() {
   const ui = useUiText();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
 
   // Sessions and active conversation state
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
@@ -61,6 +63,14 @@ export default function AIChatboxView() {
   const [remainingGuestMessages, setRemainingGuestMessages] = useState<number | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    if (!user && activeSessionId !== null && !isLoadingSession && !isThinking) {
+      const remaining = Math.max(0, 5 - messages.filter(message => message.sender === "USER").length);
+      setRemainingGuestMessages(remaining);
+      setSignupRequired(remaining === 0);
+    }
+  }, [user, activeSessionId, isLoadingSession, isThinking, messages]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -93,11 +103,16 @@ export default function AIChatboxView() {
 
   // Initial setup: load sessions or guest session
   useEffect(() => {
+    if (authLoading) return;
     let isCancelled = false;
 
     async function init() {
       setIsLoadingSession(true);
       setError(null);
+      setMessages([]);
+      setSessions([]);
+      setSignupRequired(false);
+      setRemainingGuestMessages(null);
       const token = getStoredToken();
 
       try {
@@ -175,7 +190,7 @@ export default function AIChatboxView() {
     return () => {
       isCancelled = true;
     };
-  }, [loadUserSessions]);
+  }, [loadUserSessions, user?.uid, authLoading]);
 
   // Select a session from the sidebar
   const handleSelectSession = async (sessionId: number) => {
@@ -212,8 +227,10 @@ export default function AIChatboxView() {
       const newSession = await createChatSession();
       setActiveSessionId(newSession.chatSessionId);
       setGuestToken(newSession.guestAccessToken || null);
-      setMessages([]);
-      setRemainingGuestMessages(null);
+      setMessages(newSession.messages || []);
+      const remaining = Math.max(0, 5 - newSession.messages.filter(message => message.sender === "USER").length);
+      setRemainingGuestMessages(newSession.userId === null ? remaining : null);
+      setSignupRequired(newSession.userId === null && remaining === 0);
 
       // Prepend to sessions list if user is logged in
       const token = getStoredToken();
@@ -272,6 +289,9 @@ export default function AIChatboxView() {
 
       if (res.signupRequired) {
         setSignupRequired(true);
+        setRemainingGuestMessages(0);
+        setMessages(prev => prev.filter(message => message !== optimisticMsg));
+        return;
       }
       if (res.remainingGuestMessages !== undefined) {
         setRemainingGuestMessages(res.remainingGuestMessages);
@@ -304,11 +324,17 @@ export default function AIChatboxView() {
         );
       }
     } catch (err: unknown) {
-      const errorObj = err as { message?: string; signupRequired?: boolean };
+      setMessages(prev => prev.filter(message => message !== optimisticMsg));
+      setInputValue(current => current || content);
+      const errorObj = err as { message?: string; signupRequired?: boolean; status?: number };
       if (errorObj?.signupRequired) {
         setSignupRequired(true);
       }
-      setError(errorObj?.message || "Lỗi khi gửi tin nhắn. Vui lòng thử lại.");
+      setError(errorObj?.status === 503
+        ? t("The AI service is temporarily unavailable. Please try again shortly.", "Dịch vụ AI đang tạm thời không khả dụng. Vui lòng thử lại sau ít phút.")
+        : errorObj?.status === 429
+          ? t("The AI request limit was reached. Please retry shortly.", "Đã đạt giới hạn yêu cầu AI. Vui lòng thử lại sau.")
+          : errorObj?.message || t("Could not send your message. Please try again.", "Không thể gửi tin nhắn. Vui lòng thử lại."));
     } finally {
       setIsThinking(false);
     }
@@ -370,7 +396,7 @@ export default function AIChatboxView() {
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              <span><UiText text={"New Chat"} /></span>
+              <span>{t("New Chat", "Cuộc trò chuyện mới")}</span>
             </button>
 
             {/* History Groupings List */}
@@ -383,7 +409,9 @@ export default function AIChatboxView() {
                     <div className="h-8 animate-pulse rounded-xl bg-[#E4E2DF]" />
                   </div>
                 ) : groupedSessions.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[#727974]"><UiText text={"Chưa có cuộc trò chuyện nào. Bấm \"New Chat\" để bắt đầu!"} /></div>
+                  <div className="py-8 text-center text-xs text-[#727974]">
+                    {t('No conversations yet. Click "New Chat" to start!', 'Chưa có cuộc trò chuyện nào. Bấm "Cuộc trò chuyện mới" để bắt đầu!')}
+                  </div>
                 ) : (
                   groupedSessions.map((group) => (
                     <div key={group.category} className="space-y-1">
@@ -435,14 +463,16 @@ export default function AIChatboxView() {
                   <div className="rounded-xl bg-white/70 p-3 text-xs leading-relaxed text-[#424844] border border-[#EFEEEB]">
                     <div className="flex items-center gap-1.5 font-semibold text-[#07241A] mb-1">
                       <span>👤</span>
-                      <span><UiText text={"Chế độ khách"} /></span>
-                    </div><UiText text={"Bạn đang sử dụng phiên khách (tối đa 5 tin nhắn/phiên). Đăng nhập để lưu trữ toàn bộ lịch sử trò chuyện lâu dài!"} /></div>
+                      <span>{t("Guest mode", "Chế độ khách")}</span>
+                    </div>
+                    {t("You are using a guest session (maximum 5 messages per session). Sign in to save your full chat history.", "Bạn đang sử dụng phiên khách (tối đa 5 tin nhắn/phiên). Đăng nhập để lưu trữ toàn bộ lịch sử trò chuyện lâu dài!")}
+                  </div>
                   {activeSessionId && (
                     <div className="rounded-xl bg-[#D9E6DC] px-3 py-2 text-xs font-semibold text-[#07241A] flex items-center gap-2 shadow-xs">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                       </svg>
-                      <span className="truncate"><UiText text={"Hội thoại khách hiện tại"} /></span>
+                      <span className="truncate">{t("Current guest conversation", "Hội thoại khách hiện tại")}</span>
                     </div>
                   )}
                 </div>
@@ -457,7 +487,9 @@ export default function AIChatboxView() {
                 <Link
                   href="/login"
                   className="flex w-full items-center justify-center rounded-xl bg-[#07241A] py-2 text-xs font-semibold text-white transition hover:bg-[#1E3A2F]"
-                ><UiText text={"Đăng nhập để lưu lịch sử"} /></Link>
+                >
+                  {t("Sign in to save history", "Đăng nhập để lưu lịch sử")}
+                </Link>
               </div>
             ) : (
               <div className="flex items-center gap-2.5 px-1 text-xs text-[#727974]">
@@ -526,11 +558,13 @@ export default function AIChatboxView() {
                   <h1 className="font-serif text-xl font-bold leading-tight text-[#07241A]">
                     VeggieAI
                   </h1>
-                  <span className="hidden text-xs text-[#727974] sm:inline"><UiText text={"· Culinary & Nutrition Guide"} /></span>
+                  <span className="hidden text-xs text-[#727974] sm:inline">
+                    · {t("Culinary & Nutrition Guide", "Hướng dẫn ẩm thực & dinh dưỡng")}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-[#424844]">
                   <span className="h-2 w-2 rounded-full bg-[#16a34a]" />
-                  <span><UiText text={"Active · Tailored to vegetarian nutrition"} /></span>
+                  <span>{t("Active · Tailored to vegetarian nutrition", "Đang hoạt động · Cá nhân hóa cho dinh dưỡng chay")}</span>
                 </div>
               </div>
             </div>
@@ -591,7 +625,7 @@ export default function AIChatboxView() {
                         onClick={() => handleSendMessage(ui(prompt))}
                         className="rounded-xl bg-white border border-[#EFEEEB] p-3 text-left text-xs font-medium text-[#07241A] shadow-xs hover:border-[#1E3A2F] hover:bg-[#F5F3F0] transition cursor-pointer"
                       >
-                        "{ui(prompt)}"
+                        &quot;{ui(prompt)}&quot;
                       </button>
                     ))}
                   </div>

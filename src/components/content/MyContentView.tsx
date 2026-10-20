@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getRecipeById } from "@/lib/recipe-api";
+import { createCommunityEventSource, getMyPosts, postToRecipe, type PostResponse } from "@/lib/community-api";
 import { MY_CONTENT_EVENT, getMyContentSnapshot, getVideoThumbnailUrl, parseMyContent, removeManualContent, sampleContent, saveContentItem, type MyContentItem } from "@/lib/my-content";
+import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount } from "@/lib/localized-content";
 import ContentDialog from "./ContentDialog";
 import CardSkeleton from "@/components/ui/CardSkeleton";
 import ContentIcon, { type ContentIconName } from "./ContentIcon";
@@ -23,7 +25,12 @@ function subscribeContent(callback: () => void) {
 }
 
 function displayText(item: MyContentItem, language: string) {
-  return language === "vi" && item.translations ? item.translations : { title: item.title, description: item.description };
+  const text = language === "vi" && item.translations ? item.translations : { title: item.title, description: item.description };
+  if (language !== "vi") return text;
+  return {
+    title: localizeRecipeTitle(text.title, "vi"),
+    description: localizeText(text.description, "vi"),
+  };
 }
 
 function itemThumbnail(item: MyContentItem) {
@@ -36,13 +43,34 @@ function recipeIdFromItem(item: MyContentItem) {
   return match ? Number(match[1]) : null;
 }
 
+function postToContentItem(post: PostResponse): MyContentItem {
+  const recipe = postToRecipe(post);
+  return {
+    id: `recipe-${post.postId}`,
+    title: post.title,
+    description: post.content,
+    kind: post.videoUrl ? "video" : "recipe",
+    status: post.status === "PUBLISHED" ? "published" : "draft",
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+    image: post.thumbnailUrl || getVideoThumbnailUrl(post.videoUrl),
+    recipe,
+  };
+}
+
 export default function MyContentView() {
   const { user, loading } = useAuth();
   const { language, locale, t } = useLanguage();
   const owner = user?.uid || "guest";
   const getSnapshot = useCallback(() => getMyContentSnapshot(owner), [owner]);
   const snapshot = useSyncExternalStore(subscribeContent, getSnapshot, () => "[]");
-  const savedItems = useMemo(() => parseMyContent(snapshot), [snapshot]);
+  const localSavedItems = useMemo(() => parseMyContent(snapshot), [snapshot]);
+  const [serverItems, setServerItems] = useState<MyContentItem[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const savedItems = useMemo(() => [
+    ...serverItems,
+    ...localSavedItems.filter((item) => item.status === "draft"),
+  ], [localSavedItems, serverItems]);
   const [samples, setSamples] = useState(sampleContent);
   const [source, setSource] = useState<"mine" | "sample" | null>(null);
   const sampleMode = source === "sample" || (source === null && savedItems.length === 0);
@@ -57,6 +85,51 @@ export default function MyContentView() {
   const [notice, setNotice] = useState<{ en: string; vi: string; tone?: "error"; undo?: { item: MyContentItem; sample: boolean; owner: string } } | null>(null);
   const [storageError, setStorageError] = useState(false);
   const hydratedRecipeIds = useRef(new Set<number>());
+
+  const loadServerItems = useCallback(async () => {
+    if (!user) {
+      setServerItems([]);
+      return;
+    }
+    setRemoteLoading(true);
+    try {
+      const posts = await getMyPosts();
+      const items = await Promise.all(posts.map(async (post) => {
+        const item = postToContentItem(post);
+        if (post.postType !== "RECIPE") return item;
+        try {
+          const recipe = await getRecipeById(post.postId);
+          return {
+            ...item,
+            title: recipe.title || item.title,
+            description: recipe.content || item.description,
+            recipe,
+            image: recipe.thumbnailUrl || item.image || getVideoThumbnailUrl(recipe.videoUrl),
+            minutes: (recipe.prepMinutes || 0) + (recipe.cookMinutes || 0) || item.minutes,
+          };
+        } catch {
+          return item;
+        }
+      }));
+      setServerItems(items);
+    } catch {
+      setServerItems([]);
+    } finally {
+      setRemoteLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadServerItems();
+    if (!user) return;
+    const source = createCommunityEventSource();
+    const refresh = () => loadServerItems();
+    source.addEventListener("open", refresh);
+    source.addEventListener("postCreated", refresh);
+    source.addEventListener("postUpdated", refresh);
+    source.addEventListener("postRemoved", refresh);
+    return () => source.close();
+  }, [loadServerItems, user]);
 
   useEffect(() => {
     if (sampleMode) return;
@@ -209,7 +282,7 @@ export default function MyContentView() {
 
         {notice && <div role={notice.tone === "error" ? "alert" : "status"} className={`vm-feedback mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-xs ${notice.tone === "error" ? "border-red-200 bg-red-50 text-red-800" : "border-[#CCDCCB] bg-[#E8F0E5] text-[#1E3A2F]"}`}><span>{t(notice.en, notice.vi)}</span><div className="flex items-center gap-4">{notice.undo?.owner === owner && <button type="button" onClick={undoDelete} className="vm-button font-semibold underline underline-offset-4">{t("Undo", "Hoàn tác")}</button>}<button type="button" onClick={() => setNotice(null)} aria-label={t("Dismiss notification", "Đóng thông báo")}><ContentIcon name="close" width="16" height="16" /></button></div></div>}
 
-        {loading && !sampleMode ? <CardSkeleton /> : visibleItems.length > 0 ? (
+        {(loading || remoteLoading) && !sampleMode ? <CardSkeleton /> : visibleItems.length > 0 ? (
           <div className={layout === "grid" ? "grid gap-5 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-4"}>
             {visibleItems.map((item) => {
               const text = displayText(item, language);
@@ -246,7 +319,7 @@ export default function MyContentView() {
 
       {action?.type === "preview" && (() => {
         const previewImage = itemThumbnail(action.item);
-        return <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={previewImage} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {ingredient.amount} {ingredient.ingredientName}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{step.instruction}</li>)}</ol></>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>;
+        return <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={previewImage} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><dl className="mt-5 border-b border-[#EFEEEB] pb-4"><dt className="text-xs font-semibold text-[#647068]">{t("Recipe name", "Tên món ăn")}</dt><dd className="mt-1 break-words text-lg font-semibold">{localizeRecipeTitle(action.item.recipe?.recipeName || action.item.draft?.recipeName, language) || t("Not provided", "Chưa có tên món ăn")}</dd></dl><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {localizeAmount(ingredient.amount, language)} {localizeIngredient(ingredient.ingredientName, language)}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{localizeText(step.instruction, language)}</li>)}</ol></>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>;
       })()}
 
       {action?.type === "edit" && <SampleEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSave={(next) => { setSamples((current) => current.map((item) => item.id === next.id ? next : item)); setAction(null); setNotice({ en: "Sample changes saved for this preview session.", vi: "Đã lưu thay đổi bài mẫu trong phiên xem trước này." }); }} />}

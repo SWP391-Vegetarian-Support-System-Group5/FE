@@ -2,428 +2,158 @@
 
 import { LanguageSwitch } from "@/components/UiText";
 import UiText, { useUiText } from "@/components/UiText";
-
-
-import { useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { useAdminModeration } from "@/context/AdminModerationContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { getMediaUrl } from "@/lib/api";
+import {
+  deleteAdminComment, deleteAdminPost, getAdminContent, setAdminCommentVisibility,
+  type AdminComment, type AdminFlag, type AdminPost,
+} from "@/lib/admin-content-api";
 
-// Content Entry type definition
-interface ContentItem {
-  id: string;
-  title: string;
-  fullTitle: string;
-  subtitle: string;
-  category: string;
-  type: "Video & Recipe" | "Restaurant Review";
-  author: string;
-  authorInitials: string;
-  authorBg?: string;
-  status: "Published" | "Draft" | "Pending";
-  image: string;
-  commentsCount: number;
-  comments: CommentItem[];
+const PAGE_SIZE = 10;
+
+function initials(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "?";
 }
-
-interface CommentItem {
-  id: string;
-  author: string;
-  authorInitials: string;
-  date: string;
-  badge?: string;
-  dotColor: "green" | "orange";
-  text: string;
-  status: "active" | "flagged" | "hidden";
-  isHidden?: boolean;
-}
-
-// Predefined culinary categories for tagging content entries
-const PREDEFINED_CATEGORIES = [
-  "Tofu & Soy",
-  "Vegetables",
-  "Legumes",
-  "Grains",
-  "Mushroom",
-  "Vegan Desserts",
-  "Other",
-];
 
 export default function AdminContentPage() {
   const ui = useUiText();
+  const { locale, t } = useLanguage();
   const { user } = useAuth();
-  const { flaggedCount } = useAdminModeration();
-
-  // Toast feedback
-  const [feedback, setFeedback] = useState<string | null>(null);
-
-  const showToast = (message: string) => {
-    setFeedback(message);
-    setTimeout(() => setFeedback(null), 3500);
-  };
-
-  // Filters
-  const [typeFilter, setTypeFilter] = useState<"All" | "Video & Recipe" | "Restaurant Review">("All");
+  const [feedback, setFeedback] = useState<{ en: string; vi: string; error?: boolean } | null>(null);
+  const [posts, setPosts] = useState<AdminPost[]>([]);
+  const [comments, setComments] = useState<AdminComment[]>([]);
+  const [flags, setFlags] = useState<AdminFlag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyCommentId, setBusyCommentId] = useState<number | null>(null);
+  const [busyPostId, setBusyPostId] = useState<number | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"All" | "Video & Recipe" | "Post">("All");
   const [searchContentQuery, setSearchContentQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("All");
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Moderation panel state
+  const [statusFilter, setStatusFilter] = useState("All");
   const [showModerationStream, setShowModerationStream] = useState(true);
   const [commentFilter, setCommentFilter] = useState<"All" | "Flagged" | "Hidden">("All");
-  const [isThreadMuted, setIsThreadMuted] = useState(false);
+  const [selectedContentId, setSelectedContentId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
 
-  // Modal Create Entry
-  const [showCreateEntryModal, setShowCreateEntryModal] = useState(false);
+  const notify = useCallback((en: string, vi: string, error = false) => setFeedback({ en, vi, error }), []);
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = setTimeout(() => setFeedback(null), 3500);
+    return () => clearTimeout(timer);
+  }, [feedback]);
 
-  // Form states for Create Entry
-  const [newEntryTitle, setNewEntryTitle] = useState("");
-  const [newEntrySubtitle, setNewEntrySubtitle] = useState("");
-  const [newEntryType, setNewEntryType] = useState<"Video & Recipe" | "Restaurant Review">("Video & Recipe");
-  const [newEntryCategory, setNewEntryCategory] = useState("Tofu & Soy");
-  const [newEntryAuthor, setNewEntryAuthor] = useState("Admin Supervisor");
-  const [newEntryStatus, setNewEntryStatus] = useState<"Published" | "Draft">("Published");
-  const [newEntryImage, setNewEntryImage] = useState("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80");
-
-  // Stories & Guides Data
-  const [contents, setContents] = useState<ContentItem[]>([
-    {
-      id: "cnt-1",
-      title: "Easy Tofu",
-      fullTitle: "Easy Tofu in Tomato Sauce",
-      subtitle: "Plant-based staple • 25 mins",
-      category: "Tofu & Soy",
-      type: "Video & Recipe",
-      author: "Linh Nguyen",
-      authorInitials: "LN",
-      status: "Published",
-      image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
-      commentsCount: 38,
-      comments: [
-        {
-          id: "comm-1",
-          author: "Linh Nguyen",
-          authorInitials: "LN",
-          date: "12 Mar 2026",
-          badge: "Verified Reader",
-          dotColor: "green",
-          text: "Love the texture of this tofu! Best family dinner recipe this week. Swapped in shallot oil for an extra layer of aroma.",
-          status: "active",
-          isHidden: false,
-        },
-        {
-          id: "comm-2",
-          author: "Duc Hoang",
-          authorInitials: "DH",
-          date: "11 Mar 2026",
-          dotColor: "orange",
-          text: "Can I replace the fresh tomatoes with canned plum tomatoes? Tomatoes are currently out of season where I live.",
-          status: "flagged",
-          isHidden: false,
-        },
-        {
-          id: "comm-3",
-          author: "Mai Huynh",
-          authorInitials: "MH",
-          date: "10 Mar 2026",
-          badge: "Top Contributor",
-          dotColor: "green",
-          text: "A tranquil dining memory and great preparation tips. Reminded me of childhood summer lunches with grandma.",
-          status: "active",
-          isHidden: false,
-        },
-      ],
-    },
-    {
-      id: "cnt-2",
-      title: "A Calm...",
-      fullTitle: "A Calm Vegetarian Dinner in District 9",
-      subtitle: "District 9 review • Ambient dining",
-      category: "Vegetables",
-      type: "Restaurant Review",
-      author: "Minh Tran",
-      authorInitials: "MT",
-      status: "Published",
-      image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=400&q=80",
-      commentsCount: 16,
-      comments: [
-        {
-          id: "comm-21",
-          author: "An Pham",
-          authorInitials: "AP",
-          date: "10 Mar 2026",
-          badge: "Food Critic",
-          dotColor: "green",
-          text: "The garden space is so peaceful. Definitely recommend booking outdoor seating on weekends.",
-          status: "active",
-          isHidden: false,
-        },
-        {
-          id: "comm-22",
-          author: "Thu Le",
-          authorInitials: "TL",
-          date: "09 Mar 2026",
-          dotColor: "green",
-          text: "Does the restaurant offer full vegan set menus without fish sauce or honey?",
-          status: "active",
-          isHidden: false,
-        },
-      ],
-    },
-    {
-      id: "cnt-3",
-      title: "Green...",
-      fullTitle: "Green Gathering Spotlight Feast",
-      subtitle: "Gathering spotlight • Communal feast",
-      category: "Legumes",
-      type: "Restaurant Review",
-      author: "An Pham",
-      authorInitials: "AP",
-      status: "Published",
-      image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80",
-      commentsCount: 22,
-      comments: [
-        {
-          id: "comm-31",
-          author: "Linh Nguyen",
-          authorInitials: "LN",
-          date: "08 Mar 2026",
-          dotColor: "green",
-          text: "Such vibrant colors and wholesome vegan options. Ideal for large family gatherings.",
-          status: "active",
-          isHidden: false,
-        },
-      ],
-    },
-    {
-      id: "cnt-4",
-      title: "Mushroom",
-      fullTitle: "Mushroom Culinary Lab Innovations",
-      subtitle: "Culinary lab • In development",
-      category: "Mushroom",
-      type: "Video & Recipe",
-      author: "Minh Tran",
-      authorInitials: "MT",
-      status: "Draft",
-      image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=400&q=80",
-      commentsCount: 5,
-      comments: [
-        {
-          id: "comm-41",
-          author: "Hoa Dang",
-          authorInitials: "HD",
-          date: "07 Mar 2026",
-          dotColor: "green",
-          text: "Draft testing went well! Can't wait for the official video release.",
-          status: "active",
-          isHidden: false,
-        },
-      ],
-    },
-    {
-      id: "cnt-5",
-      title: "Crispy Spring Rolls",
-      fullTitle: "Crispy Mushroom & Taro Spring Rolls",
-      subtitle: "Appetizer perfection • 30 mins",
-      category: "Mushroom",
-      type: "Video & Recipe",
-      author: "Anna Le",
-      authorInitials: "AL",
-      status: "Published",
-      image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80",
-      commentsCount: 29,
-      comments: [
-        {
-          id: "comm-51",
-          author: "Duc Hoang",
-          authorInitials: "DH",
-          date: "06 Mar 2026",
-          dotColor: "green",
-          text: "The wood ear mushrooms give such a wonderful crunch. Followed step 3 and it didn't soak oil!",
-          status: "active",
-          isHidden: false,
-        },
-      ],
-    },
-  ]);
-
-  // Selected Content for Comments stream (default: first item)
-  const [selectedContentId, setSelectedContentId] = useState<string>("cnt-1");
-
-  const selectedContent = useMemo(() => {
-    return contents.find((c) => c.id === selectedContentId) || contents[0];
-  }, [contents, selectedContentId]);
-
-  // Filtered Content
-  const filteredContents = useMemo(() => {
-    return contents.filter((item) => {
-      // Filter by type
-      const matchType = typeFilter === "All" || item.type === typeFilter;
-      // Filter by status
-      const matchStatus = statusFilter === "All" || item.status === statusFilter;
-      // Filter by search query
-      const query = searchContentQuery.toLowerCase().trim();
-      const matchSearch =
-        !query ||
-        item.title.toLowerCase().includes(query) ||
-        item.fullTitle.toLowerCase().includes(query) ||
-        item.subtitle.toLowerCase().includes(query) ||
-        item.author.toLowerCase().includes(query) ||
-        item.category.toLowerCase().includes(query);
-
-      return matchType && matchStatus && matchSearch;
-    });
-  }, [contents, typeFilter, statusFilter, searchContentQuery]);
-
-  // Filtered Comments in Moderation Stream
-  const filteredComments = useMemo(() => {
-    if (!selectedContent?.comments) return [];
-    return selectedContent.comments.filter((c) => {
-      if (commentFilter === "Flagged") return c.status === "flagged";
-      if (commentFilter === "Hidden") return c.isHidden === true;
-      return true;
-    });
-  }, [selectedContent, commentFilter]);
-
-  // Refresh handler
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setSearchContentQuery("");
-      setStatusFilter("All");
-      setTypeFilter("All");
-      showToast("Đã đồng bộ và làm mới danh sách bài viết!");
-    }, 450);
-  };
-
-  // Hide/Unhide comment
-  const handleToggleHideComment = (commentId: string) => {
-    setContents((prev) =>
-      prev.map((c) => {
-        if (c.id !== selectedContentId) return c;
-        return {
-          ...c,
-          comments: c.comments.map((cm) => {
-            if (cm.id !== commentId) return cm;
-            const newHidden = !cm.isHidden;
-            showToast(newHidden ? "Đã ẩn bình luận khỏi bài viết." : "Đã bỏ ẩn bình luận.");
-            return { ...cm, isHidden: newHidden };
-          }),
-        };
-      })
-    );
-  };
-
-  // Remove comment
-  const handleRemoveComment = (commentId: string) => {
-    setContents((prev) =>
-      prev.map((c) => {
-        if (c.id !== selectedContentId) return c;
-        const updated = c.comments.filter((cm) => cm.id !== commentId);
-        return {
-          ...c,
-          commentsCount: Math.max(0, c.commentsCount - 1),
-          comments: updated,
-        };
-      })
-    );
-    showToast("Đã xóa bình luận thành công.");
-  };
-
-  // Approve all comments
-  const handleApproveAllComments = () => {
-    setContents((prev) =>
-      prev.map((c) => {
-        if (c.id !== selectedContentId) return c;
-        return {
-          ...c,
-          comments: c.comments.map((cm) => ({
-            ...cm,
-            status: "active" as const,
-            dotColor: "green" as const,
-          })),
-        };
-      })
-    );
-    showToast(`Đã duyệt tất cả bình luận cho "${selectedContent.fullTitle}"!`);
-  };
-
-  // Mute thread
-  const handleMuteThread = () => {
-    setIsThreadMuted((prev) => {
-      const next = !prev;
-      showToast(next ? "Đã tắt thông báo & tạm khóa thread này." : "Đã mở lại thông báo cho thread này.");
-      return next;
-    });
-  };
-
-  // Export CSV
-  const handleExportCSV = () => {
-    const headers = ["ID", "Title", "Type", "Category", "Author", "Status", "Comments Count"];
-    const rows = filteredContents.map((c) => [
-      c.id,
-      `"${c.fullTitle.replace(/"/g, '""')}"`,
-      `"${c.type}"`,
-      `"${c.category}"`,
-      `"${c.author}"`,
-      c.status,
-      c.commentsCount,
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `veggiemate_content_catalog_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showToast("Đã trích xuất và tải về tập tin CSV thành công!");
-  };
-
-  // Create new content entry
-  const handleCreateEntry = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newEntryTitle.trim()) {
-      showToast("Vui lòng nhập tiêu đề bài viết!");
-      return;
+  const loadContent = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const [nextPosts, nextComments, nextFlags] = await getAdminContent(signal);
+      if (signal?.aborted) return;
+      setPosts(nextPosts);
+      setComments(nextComments);
+      setFlags(nextFlags);
+      setSelectedContentId(current => nextPosts.some(post => post.postId === current) ? current : nextPosts[0]?.postId ?? null);
+    } catch {
+      if (!signal?.aborted) notify("Could not load content. Try refreshing.", "Không thể tải nội dung. Hãy thử làm mới.", true);
+    } finally {
+      if (!signal?.aborted) setLoading(false);
     }
+  }, [notify]);
 
-    const newItem: ContentItem = {
-      id: `cnt-${Date.now()}`,
-      title: newEntryTitle.length > 15 ? newEntryTitle.slice(0, 15) + "..." : newEntryTitle,
-      fullTitle: newEntryTitle,
-      subtitle: newEntrySubtitle || `${newEntryCategory} • Just added`,
-      category: newEntryCategory,
-      type: newEntryType,
-      author: newEntryAuthor || "Admin Supervisor",
-      authorInitials: (newEntryAuthor || "AD").slice(0, 2).toUpperCase(),
-      status: newEntryStatus,
-      image: newEntryImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80",
-      commentsCount: 0,
-      comments: [],
-    };
+  useEffect(() => {
+    const controller = new AbortController();
+    void Promise.resolve().then(() => { if (!controller.signal.aborted) return loadContent(controller.signal); });
+    return () => controller.abort();
+  }, [loadContent]);
 
-    setContents((prev) => [newItem, ...prev]);
-    setSelectedContentId(newItem.id);
-    setShowCreateEntryModal(false);
-    setNewEntryTitle("");
-    setNewEntrySubtitle("");
-    showToast(`Đã thêm thành công bài viết: "${newItem.fullTitle}"!`);
-  };
+  const selectedPost = posts.find(post => post.postId === selectedContentId);
+  const selectedComments = comments.filter(comment => comment.postId === selectedContentId && comment.status !== "REMOVED");
+  const flaggedIds = useMemo(() => new Set(flags.filter(flag => flag.status === "PENDING" && flag.commentId != null).map(flag => flag.commentId)), [flags]);
+  const filteredComments = selectedComments.filter(comment =>
+    commentFilter === "Hidden" ? comment.status === "HIDDEN" :
+    commentFilter === "Flagged" ? flaggedIds.has(comment.commentId) : true
+  );
+  const filteredPosts = posts.filter(post => {
+    const type = post.postType === "RECIPE" || post.postType === "VIDEO" ? "Video & Recipe" : "Post";
+    const query = searchContentQuery.toLowerCase().trim();
+    return (typeFilter === "All" || type === typeFilter)
+      && (statusFilter === "All" || post.status === statusFilter.toUpperCase())
+      && (!query || [post.title, post.authorName, post.content].some(value => value.toLowerCase().includes(query)));
+  });
+  const pageCount = Math.max(1, Math.ceil(filteredPosts.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const visiblePosts = filteredPosts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const publishedCount = posts.filter(post => post.status === "PUBLISHED").length;
+  const recipeCount = posts.filter(post => post.postType === "RECIPE" || post.postType === "VIDEO").length;
+  const pendingCount = flags.filter(flag => flag.status === "PENDING").length;
+
+  async function handleRefresh() {
+    setLoading(true);
+    await loadContent();
+  }
+
+  async function handleToggleHideComment(comment: AdminComment) {
+    setBusyCommentId(comment.commentId);
+    try {
+      await setAdminCommentVisibility(comment.commentId, comment.status !== "HIDDEN");
+      await loadContent();
+      notify("Comment visibility updated.", "Đã cập nhật trạng thái hiển thị bình luận.");
+    } catch {
+      notify("Could not update the comment.", "Không thể cập nhật bình luận.", true);
+    } finally {
+      setBusyCommentId(null);
+    }
+  }
+
+  async function handleRemoveComment(comment: AdminComment) {
+    if (!window.confirm(t("Remove this comment?", "Xóa bình luận này?"))) return;
+    setBusyCommentId(comment.commentId);
+    try {
+      await deleteAdminComment(comment.commentId);
+      await loadContent();
+      notify("Comment removed.", "Đã xóa bình luận.");
+    } catch {
+      notify("Could not remove the comment.", "Không thể xóa bình luận.", true);
+    } finally {
+      setBusyCommentId(null);
+    }
+  }
+
+  async function handleRemovePost(post: AdminPost) {
+    if (!window.confirm(t("Remove this post?", "Xóa bài viết này?"))) return;
+    setBusyPostId(post.postId);
+    try {
+      await deleteAdminPost(post.postId);
+      await loadContent();
+      notify("Post removed.", "Đã xóa bài viết.");
+    } catch {
+      notify("Could not remove the post.", "Không thể xóa bài viết.", true);
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  function handleExportCSV() {
+    const rows = [["ID", "Title", "Type", "Author", "Status", "Comments"], ...filteredPosts.map(post =>
+      [String(post.postId), post.title, post.postType, post.authorName, post.status, String(post.commentCount)]
+    )];
+    const csv = rows.map(row => row.map(value => `"${value.replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
+    link.download = `veggiemate_content_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
 
   return (
     <div className="space-y-6">
       {/* Toast Feedback */}
       {feedback && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-[#07241A] px-4 py-3 text-xs font-semibold text-white shadow-xl animate-fade-in">
+        <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 rounded-xl ${feedback.error ? "bg-red-700" : "bg-[#07241A]"} px-4 py-3 text-xs font-semibold text-white shadow-xl animate-fade-in`}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          <span>{feedback}</span>
+          <span role="status">{t(feedback.en, feedback.vi)}</span>
         </div>
       )}
 
@@ -448,7 +178,9 @@ export default function AdminContentPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder={ui("Search admin...")}
+              placeholder={ui("Search content by title or author...")}
+              value={searchContentQuery}
+              onChange={event => { setSearchContentQuery(event.target.value); setPage(1); }}
               className="w-60 rounded-full border border-[#EFEEEB] bg-white py-1.5 pl-8 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-sm focus:border-[#1E3A2F] focus:outline-none"
             />
             <svg
@@ -492,8 +224,12 @@ export default function AdminContentPage() {
             <span className="text-[11px] font-bold tracking-wider uppercase"><UiText text={"Editorial Desk"} /></span>
           </div>
 
-          <h1 className="font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]"><UiText text={"Content Management"} /></h1>
-          <p className="mt-1 text-xs text-[#727974]"><UiText text={"Manage recipes, restaurant reviews, and community discourse."} /></p>
+          <h1 className="font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]">
+            {t("Content Management", "Quản lý nội dung")}
+          </h1>
+          <p className="mt-1 text-xs text-[#727974]">
+            {t("Manage recipes, posts, and community discourse.", "Quản lý công thức, bài viết và thảo luận cộng đồng.")}
+          </p>
         </div>
 
         {/* Stat Badges */}
@@ -503,7 +239,7 @@ export default function AdminContentPage() {
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-[#727974] flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#F97316]" /><UiText text={"Total Library"} /></span>
-              <span className="font-serif text-2xl font-bold text-[#07241A]">486</span>
+              <span className="font-serif text-2xl font-bold text-[#07241A]">{posts.length}</span>
             </div>
           </div>
 
@@ -512,7 +248,7 @@ export default function AdminContentPage() {
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-[#727974] flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#10B981]" /><UiText text={"Pending Moderation"} /></span>
-              <span className="font-serif text-2xl font-bold text-[#07241A]">14</span>
+              <span className="font-serif text-2xl font-bold text-[#07241A]">{pendingCount}</span>
             </div>
           </div>
         </div>
@@ -530,12 +266,12 @@ export default function AdminContentPage() {
             </svg>
             <span><UiText text={"All Published Content"} /></span>
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
-              486
+              {publishedCount}
             </span>
           </div>
         </div>
 
-        {/* Right Actions: Export CSV & Create Entry */}
+        {/* Right Actions */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
@@ -549,16 +285,7 @@ export default function AdminContentPage() {
             <span><UiText text={"Export CSV"} /></span>
           </button>
 
-          <button
-            onClick={() => setShowCreateEntryModal(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-[#1E3A2F] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#152A22] transition"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span><UiText text={"Create Entry"} /></span>
-          </button>
+
         </div>
       </div>
 
@@ -567,29 +294,31 @@ export default function AdminContentPage() {
         {/* Quick Format Pills */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setTypeFilter("All")}
+            onClick={() => { setTypeFilter("All"); setPage(1); }}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
               typeFilter === "All"
                 ? "bg-[#07241A] text-white shadow-sm"
                 : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
             }`}
-          ><UiText text={"All (486)"} /></button>
+          >{t(`All (${posts.length})`, `Tất cả (${posts.length})`)}</button>
           <button
-            onClick={() => setTypeFilter("Video & Recipe")}
+            onClick={() => { setTypeFilter("Video & Recipe"); setPage(1); }}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
               typeFilter === "Video & Recipe"
                 ? "bg-[#07241A] text-white shadow-sm"
                 : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
             }`}
-          ><UiText text={"Video & Recipes (312)"} /></button>
+          >{t(`Video & Recipes (${recipeCount})`, `Video & công thức (${recipeCount})`)}</button>
           <button
-            onClick={() => setTypeFilter("Restaurant Review")}
+            onClick={() => { setTypeFilter("Post"); setPage(1); }}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-              typeFilter === "Restaurant Review"
+              typeFilter === "Post"
                 ? "bg-[#07241A] text-white shadow-sm"
                 : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
             }`}
-          ><UiText text={"Restaurant Reviews (174)"} /></button>
+          >
+            {t(`Posts (${posts.length - recipeCount})`, `Bài viết (${posts.length - recipeCount})`)}
+          </button>
         </div>
 
         {/* Search, Status & Refresh */}
@@ -599,7 +328,7 @@ export default function AdminContentPage() {
               type="text"
               placeholder={ui("Search content by title or author...")}
               value={searchContentQuery}
-              onChange={(e) => setSearchContentQuery(e.target.value)}
+              onChange={(e) => { setSearchContentQuery(e.target.value); setPage(1); }}
               className="w-64 rounded-full border border-[#EFEEEB] bg-white py-1.5 pl-8 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-sm focus:border-[#1E3A2F] focus:outline-none"
             />
             <svg
@@ -620,7 +349,7 @@ export default function AdminContentPage() {
           <div className="relative">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               className="appearance-none rounded-xl border border-[#EFEEEB] bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-[#07241A] shadow-sm focus:border-[#1E3A2F] focus:outline-none cursor-pointer"
             >
               <option value="All"><UiText text={"Status: All"} /></option>
@@ -655,7 +384,7 @@ export default function AdminContentPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={isRefreshing ? "animate-spin" : ""}
+              className={loading ? "animate-spin" : ""}
             >
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
             </svg>
@@ -680,7 +409,7 @@ export default function AdminContentPage() {
                 </svg>
                 <h2 className="font-serif text-base font-bold text-[#07241A]"><UiText text={"Published Stories & Guides"} /></h2>
               </div>
-              <span className="text-xs text-[#727974]"><UiText text={"Showing"} />{" "}{filteredContents.length}{" "}<UiText text={"of 486 entries"} /></span>
+              <span className="text-xs text-[#727974]"><UiText text={"Showing"} />{" "}{filteredPosts.length}{" "}{t(`of ${posts.length} entries`, `trong ${posts.length} mục`)}</span>
             </div>
 
             {/* Table */}
@@ -695,18 +424,18 @@ export default function AdminContentPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EFEEEB]/60 text-xs">
-                  {filteredContents.length === 0 ? (
+                  {visiblePosts.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-8 text-center text-[#727974]"><UiText text={"Không tìm thấy bài viết phù hợp."} /></td>
+                      <td colSpan={4} className="py-8 text-center text-[#727974]">{loading ? t("Loading content...", "Đang tải nội dung...") : t("No matching content.", "Không tìm thấy nội dung phù hợp.")}</td>
                     </tr>
                   ) : (
-                    filteredContents.map((item) => {
-                      const isSelected = selectedContentId === item.id;
+                    visiblePosts.map((item) => {
+                      const isSelected = selectedContentId === item.postId;
                       return (
                         <tr
-                          key={item.id}
+                          key={item.postId}
                           onClick={() => {
-                            setSelectedContentId(item.id);
+                            setSelectedContentId(item.postId);
                             if (!showModerationStream) setShowModerationStream(true);
                           }}
                           className={`group cursor-pointer transition ${
@@ -719,20 +448,20 @@ export default function AdminContentPage() {
                           <td className="py-3.5 pr-4">
                             <div className="flex items-center gap-3">
                               <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-[#EFEEEB]">
-                                <Image
-                                  src={item.image}
+                                {item.thumbnailUrl ? <Image
+                                  src={getMediaUrl(item.thumbnailUrl)}
                                   alt={item.title}
                                   fill
                                   className="object-cover"
                                   unoptimized
-                                />
+                                /> : <span className="flex h-full items-center justify-center text-[#727974]">•</span>}
                               </div>
                               <div>
                                 <p className="font-bold text-[#07241A] group-hover:text-[#1E3A2F] transition">
                                   {item.title}
                                 </p>
                                 <p className="text-[11px] italic text-[#727974]">
-                                  {item.subtitle}
+                                  {item.content.slice(0, 70)}
                                 </p>
                               </div>
                             </div>
@@ -740,7 +469,7 @@ export default function AdminContentPage() {
 
                           {/* Type */}
                           <td className="py-3.5 pr-4">
-                            {item.type === "Video & Recipe" ? (
+                            {item.postType === "RECIPE" || item.postType === "VIDEO" ? (
                               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-2.5 py-1 text-[11px] font-semibold text-[#2E7D32]">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                   <polygon points="5 3 19 12 5 21 5 3" />
@@ -753,7 +482,7 @@ export default function AdminContentPage() {
                                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                                   <polyline points="9 22 9 12 15 12 15 22" />
                                 </svg>
-                                <span><UiText text={"Restaurant Review"} /></span>
+                                <span>Post</span>
                               </span>
                             )}
                           </td>
@@ -762,9 +491,9 @@ export default function AdminContentPage() {
                           <td className="py-3.5 pr-4">
                             <div className="flex items-center gap-2">
                               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1E3A2F] text-[10px] font-bold text-white shadow-sm">
-                                {item.authorInitials}
+                                {initials(item.authorName)}
                               </div>
-                              <span className="font-medium text-[#07241A]">{item.author}</span>
+                              <span className="font-medium text-[#07241A]">{item.authorName}</span>
                             </div>
                           </td>
 
@@ -773,22 +502,23 @@ export default function AdminContentPage() {
                             <div className="flex items-center gap-1.5">
                               <span
                                 className={`h-2 w-2 rounded-full ${
-                                  item.status === "Published"
+                                  item.status === "PUBLISHED"
                                     ? "bg-[#10B981]"
-                                    : item.status === "Draft"
+                                    : item.status === "DRAFT"
                                     ? "bg-gray-400"
                                     : "bg-[#F97316]"
                                 }`}
                               />
                               <span
                                 className={`font-medium ${
-                                  item.status === "Published"
+                                  item.status === "PUBLISHED"
                                     ? "text-[#07241A]"
                                     : "text-[#727974]"
                                 }`}
                               >
-                                {item.status}
+                                {t(item.status === "PUBLISHED" ? "Published" : item.status === "DRAFT" ? "Draft" : "Removed", item.status === "PUBLISHED" ? "Đã xuất bản" : item.status === "DRAFT" ? "Bản nháp" : "Đã xóa")}
                               </span>
+                              {item.status !== "REMOVED" && <button type="button" disabled={busyPostId === item.postId} onClick={event => { event.stopPropagation(); void handleRemovePost(item); }} title={t("Remove post", "Xóa bài viết")} aria-label={t(`Remove ${item.title}`, `Xóa ${item.title}`)} className="ml-2 text-red-600 hover:text-red-700 disabled:opacity-40">✕</button>}
                             </div>
                           </td>
                         </tr>
@@ -801,52 +531,18 @@ export default function AdminContentPage() {
 
             {/* Pagination */}
             <div className="mt-4 flex items-center justify-between pt-4 border-t border-[#EFEEEB] text-xs text-[#727974]">
-              <span><UiText text={"Page 1 of 123"} /></span>
+              <span>{t(`Page ${currentPage} of ${pageCount}`, `Trang ${currentPage} / ${pageCount}`)}</span>
               <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EFEEEB] hover:bg-gray-50 transition"
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#07241A] font-bold text-white shadow-sm"
-                >
-                  1
-                </button>
-                <button
-                  type="button"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EFEEEB] hover:bg-gray-50 transition"
-                >
-                  2
-                </button>
-                <button
-                  type="button"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EFEEEB] hover:bg-gray-50 transition"
-                >
-                  3
-                </button>
-                <span className="px-1 text-gray-400">...</span>
-                <button
-                  type="button"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EFEEEB] hover:bg-gray-50 transition"
-                >
-                  123
-                </button>
-                <button
-                  type="button"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EFEEEB] hover:bg-gray-50 transition"
-                >
-                  ›
-                </button>
+                <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label={t("Previous page", "Trang trước")} className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EFEEEB] disabled:opacity-40">‹</button>
+                <span className="px-2 font-bold text-[#07241A]">{currentPage}</span>
+                <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label={t("Next page", "Trang sau")} className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EFEEEB] disabled:opacity-40">›</button>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Column: Moderation Stream */}
-        {showModerationStream && (
+        {showModerationStream && selectedPost && (
           <div className="space-y-4 lg:col-span-5 xl:col-span-4">
             <div className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-sm flex flex-col justify-between h-full">
               <div>
@@ -873,16 +569,13 @@ export default function AdminContentPage() {
                 </div>
 
                 {/* Subject Heading */}
-                <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Comments on:"} />{" "}{selectedContent.fullTitle || selectedContent.title}
+                <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Comments on:"} />{" "}{selectedPost.title}
                 </h3>
 
                 {/* Sub-counter and live sync */}
                 <div className="mt-1 flex items-center gap-3 text-xs">
                   <span className="rounded-md bg-[#FDF2F0] px-2 py-0.5 font-semibold text-[#C2410C]">
-                    {selectedContent.commentsCount}{" "}<UiText text={"Total Comments"} /></span>
-                  <span className="flex items-center gap-1.5 text-[11px] text-[#727974]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#10B981] animate-pulse" /><UiText text={"Live sync"} />{" "}{isThreadMuted && "• (Muted)"}
-                  </span>
+                    {selectedComments.length}{" "}<UiText text={"Total Comments"} /></span>
                 </div>
 
                 {/* Filter Pills */}
@@ -903,7 +596,7 @@ export default function AdminContentPage() {
                         ? "bg-[#FEE2E2] text-[#B91C1C]"
                         : "text-[#727974] hover:text-[#07241A]"
                     }`}
-                  ><UiText text={"Flagged (1)"} /></button>
+                  >{t(`Flagged (${selectedComments.filter(comment => flaggedIds.has(comment.commentId)).length})`, `Bị báo cáo (${selectedComments.filter(comment => flaggedIds.has(comment.commentId)).length})`)}</button>
                   <button
                     onClick={() => setCommentFilter("Hidden")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
@@ -921,11 +614,11 @@ export default function AdminContentPage() {
                   ) : (
                     filteredComments.map((c) => (
                       <div
-                        key={c.id}
+                        key={c.commentId}
                         className={`rounded-xl border p-3 text-xs space-y-2 transition ${
-                          c.isHidden
+                          c.status === "HIDDEN"
                             ? "border-dashed border-gray-300 bg-gray-50/70 opacity-60"
-                            : c.status === "flagged"
+                            : flaggedIds.has(c.commentId)
                             ? "border-amber-200 bg-amber-50/40"
                             : "border-[#EFEEEB] bg-[#FBF9F6]/60"
                         }`}
@@ -933,41 +626,43 @@ export default function AdminContentPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
                             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1E3A2F] text-[10px] font-bold text-white shadow-sm">
-                              {c.authorInitials}
+                              {initials(c.authorName)}
                             </div>
                             <div>
-                              <p className="text-[11px] font-bold text-[#07241A]">{c.author}</p>
+                              <p className="text-[11px] font-bold text-[#07241A]">{c.authorName}</p>
                               <p className="text-[10px] text-[#727974]">
-                                {c.date} {c.badge && `• ${c.badge}`}
+                                {new Date(c.createdAt).toLocaleDateString(locale)}
                               </p>
                             </div>
                           </div>
                           <span
                             className={`h-2 w-2 rounded-full ${
-                              c.dotColor === "orange" ? "bg-[#F97316]" : "bg-[#10B981]"
+                              flaggedIds.has(c.commentId) ? "bg-[#F97316]" : "bg-[#10B981]"
                             }`}
                           />
                         </div>
 
                         <p className="text-[11px] leading-relaxed text-[#424844]">
-                          "{c.text}"
+                          &quot;{c.content}&quot;
                         </p>
 
                         <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#EFEEEB]/60">
                           <button
                             type="button"
-                            onClick={() => handleToggleHideComment(c.id)}
+                            onClick={() => void handleToggleHideComment(c)}
+                            disabled={busyCommentId === c.commentId}
                             className="flex items-center gap-1 text-[11px] font-medium text-[#727974] hover:text-[#07241A] transition"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
                               <line x1="1" y1="1" x2="23" y2="23" />
                             </svg>
-                            <span>{c.isHidden ? ui("Unhide") : ui("Hide")}</span>
+                            <span>{c.status === "HIDDEN" ? ui("Unhide") : ui("Hide")}</span>
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleRemoveComment(c.id)}
+                            onClick={() => void handleRemoveComment(c)}
+                            disabled={busyCommentId === c.commentId}
                             className="flex items-center gap-1 text-[11px] font-medium text-red-600 hover:text-red-700 transition"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -983,145 +678,12 @@ export default function AdminContentPage() {
                 </div>
               </div>
 
-              {/* Bulk Action Footer */}
-              <div className="mt-4 pt-3.5 border-t border-[#EFEEEB] flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#727974]"><UiText text={"Bulk Action:"} /></span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleMuteThread}
-                    className="rounded-xl border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-gray-50 transition"
-                  >
-                    {isThreadMuted ? ui("Unmute Thread") : ui("Mute Thread")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleApproveAllComments}
-                    className="rounded-xl bg-[#1E3A2F] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#152A22] transition"
-                  ><UiText text={"Approve All"} /></button>
-                </div>
-              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* MODAL: Create Entry */}
-      {showCreateEntryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-[#EFEEEB] bg-white p-6 shadow-xl space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
-              <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Create Content Entry"} /></h3>
-              <button
-                onClick={() => setShowCreateEntryModal(false)}
-                className="text-[#727974] hover:text-[#07241A]"
-              >
-                ✕
-              </button>
-            </div>
 
-            <form onSubmit={handleCreateEntry} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Tiêu đề bài viết / Review"} /></label>
-                <input
-                  type="text"
-                  required
-                  placeholder={ui("e.g. Canh Rong Biển Hạt Sen")}
-                  value={newEntryTitle}
-                  onChange={(e) => setNewEntryTitle(e.target.value)}
-                  className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Mô tả phụ / Thông tin tóm tắt"} /></label>
-                <input
-                  type="text"
-                  placeholder={ui("e.g. Món canh dưỡng sinh • 20 phút")}
-                  value={newEntrySubtitle}
-                  onChange={(e) => setNewEntrySubtitle(e.target.value)}
-                  className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Loại định dạng"} /></label>
-                  <select
-                    value={newEntryType}
-                    onChange={(e) => setNewEntryType(e.target.value as any)}
-                    className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
-                  >
-                    <option value="Video & Recipe"><UiText text={"Video & Recipe"} /></option>
-                    <option value="Restaurant Review"><UiText text={"Restaurant Review"} /></option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Phân loại ẩm thực"} /></label>
-                  <select
-                    value={newEntryCategory}
-                    onChange={(e) => setNewEntryCategory(e.target.value)}
-                    className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
-                  >
-                    {PREDEFINED_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Tác giả"} /></label>
-                  <input
-                    type="text"
-                    value={newEntryAuthor}
-                    onChange={(e) => setNewEntryAuthor(e.target.value)}
-                    className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"Trạng thái xuất bản"} /></label>
-                  <select
-                    value={newEntryStatus}
-                    onChange={(e) => setNewEntryStatus(e.target.value as any)}
-                    className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
-                  >
-                    <option value="Published"><UiText text={"Published (Công khai)"} /></option>
-                    <option value="Draft"><UiText text={"Draft (Bản nháp)"} /></option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#07241A] mb-1"><UiText text={"URL Ảnh minh họa"} /></label>
-                <input
-                  type="url"
-                  value={newEntryImage}
-                  onChange={(e) => setNewEntryImage(e.target.value)}
-                  className="w-full rounded-xl border border-[#EFEEEB] px-3 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#EFEEEB]">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateEntryModal(false)}
-                  className="rounded-xl border border-[#EFEEEB] bg-white px-4 py-2 text-xs font-semibold text-[#727974] hover:bg-gray-50"
-                ><UiText text={"Hủy bỏ"} /></button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-[#1E3A2F] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#152A22]"
-                ><UiText text={"Lưu bài viết"} /></button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
