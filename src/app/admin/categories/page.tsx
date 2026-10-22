@@ -21,17 +21,6 @@ export interface CategoryData {
   updatedAt: string;
 }
 
-export interface DishItem {
-  id: number;
-  title: string;
-  titleVi: string;
-  recipeCategorySlug: string;
-  ingredientGroupSlug: string;
-  prepTime: string;
-  difficulty: "Easy" | "Medium" | "Advanced";
-  status: "Published" | "Draft";
-  rating: number;
-}
 
 const DEFAULT_RECIPE_CATEGORIES: CategoryData[] = [
   {
@@ -183,42 +172,17 @@ const DEFAULT_INGREDIENT_CATEGORIES: CategoryData[] = [
   },
 ];
 
-const SAMPLE_DISHES: DishItem[] = [
-  { id: 1, title: "Phở nấm chay thanh vị", titleVi: "Phở nấm chay thanh vị Hà Nội", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "30 mins", difficulty: "Medium", status: "Published", rating: 4.9 },
-  { id: 2, title: "Bún bò Huế chay sa tế đậu hũ", titleVi: "Bún bò Huế chay sa tế đậu hũ", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "40 mins", difficulty: "Medium", status: "Published", rating: 4.8 },
-  { id: 3, title: "Đậu phụ sốt cà chua & nấm rơm", titleVi: "Đậu phụ sốt cà chua & nấm rơm", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "20 mins", difficulty: "Easy", status: "Published", rating: 4.9 },
-  { id: 4, title: "Bánh xèo giòn nhân nấm đậu hũ", titleVi: "Bánh xèo giòn rụm nhân nấm", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "35 mins", difficulty: "Medium", status: "Published", rating: 4.7 },
-  { id: 5, title: "Chả giò chay nhân khoai môn nấm", titleVi: "Chả giò chay giòn rụm", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "45 mins", difficulty: "Medium", status: "Published", rating: 4.8 },
-  { id: 6, title: "Gỏi cuốn đậu hũ bơ sốt tương", titleVi: "Gỏi cuốn đậu hũ bơ sốt tương mè", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "25 mins", difficulty: "Easy", status: "Published", rating: 4.9 },
-  { id: 7, title: "Cơm chiên trái thơm hạt sen hạt đậu", titleVi: "Cơm chiên trái thơm hạt sen", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "25 mins", difficulty: "Easy", status: "Published", rating: 4.6 },
-  { id: 8, title: "Canh chua chay đậu phụ bắp non", titleVi: "Canh chua chay Nam Bộ", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "30 mins", difficulty: "Easy", status: "Published", rating: 4.8 },
-  { id: 9, title: "Đậu hũ kho nấm hương tiêu xanh", titleVi: "Đậu hũ kho nấm hương tiêu xanh", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "25 mins", difficulty: "Easy", status: "Published", rating: 4.9 },
-  { id: 10, title: "Mì Quảng chay nước dùng thanh", titleVi: "Mì Quảng chay sợi vàng", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "35 mins", difficulty: "Medium", status: "Published", rating: 4.7 },
-  { id: 11, title: "Bún riêu chay đậu hũ cà chua", titleVi: "Bún riêu chay sữa hạt", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "40 mins", difficulty: "Medium", status: "Published", rating: 4.8 },
-  { id: 12, title: "Nấm đùi gà áp chảo sốt tiêu đen", titleVi: "Nấm đùi gà áp chảo tempeh", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "20 mins", difficulty: "Easy", status: "Published", rating: 4.9 },
-  { id: 13, title: "Cà ri chay nước cốt dừa khoai lang", titleVi: "Cà ri chay béo bùi khoai lang", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "35 mins", difficulty: "Medium", status: "Published", rating: 4.8 },
-  { id: 14, title: "Bánh mì chay pate đậu nành chả nấm", titleVi: "Bánh mì chay giòn pate hạt", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "15 mins", difficulty: "Easy", status: "Published", rating: 5.0 },
-  { id: 15, title: "Lẩu nấm chay thanh đạm ngũ sắc", titleVi: "Lẩu nấm chay thanh đạm ngũ sắc", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "50 mins", difficulty: "Advanced", status: "Published", rating: 4.9 },
-  { id: 16, title: "Hủ tiếu Nam Vang chay", titleVi: "Hủ tiếu Nam Vang thanh ngọt", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "35 mins", difficulty: "Medium", status: "Published", rating: 4.7 },
-  { id: 17, title: "Súp bí đỏ đậu gà cốt dừa bùi béo", titleVi: "Súp bí đỏ đậu gà cốt dừa", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "25 mins", difficulty: "Easy", status: "Published", rating: 4.8 },
-  { id: 18, title: "Chả lụa chay hấp lá chuối truyền thống", titleVi: "Chả lụa chay hấp lá chuối", recipeCategorySlug: "vietnamese-cuisine", ingredientGroupSlug: "plant-based-proteins", prepTime: "40 mins", difficulty: "Medium", status: "Published", rating: 4.9 },
-];
 
 export default function AdminCategoriesPage() {
   const ui = useUiText();
   const { language, setLanguage } = useLanguage();
   const { user } = useAuth();
 
-  // Tab State: "recipes" | "ingredients" | "dual-dishes"
-  const [activeTab, setActiveTab] = useState<"recipes" | "ingredients" | "dual-dishes">("recipes");
+  // Tab State: "recipes" | "ingredients"
+  const [activeTab, setActiveTab] = useState<"recipes" | "ingredients">("recipes");
 
   // Search input top right of tab row
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
-
-  // Dual Category Filter States
-  const [selectedRecipeCategory, setSelectedRecipeCategory] = useState("vietnamese-cuisine");
-  const [selectedIngredientCategory, setSelectedIngredientCategory] = useState("plant-based-proteins");
-  const [dishSearchQuery, setDishSearchQuery] = useState("");
 
   // Top header admin search
   const [topAdminSearch, setTopAdminSearch] = useState("");
@@ -282,20 +246,6 @@ export default function AdminCategoriesPage() {
     );
   }, [currentCategoryList, categorySearchQuery]);
 
-  // Filter Dishes for Dual Filter
-  const filteredDishes = useMemo(() => {
-    return SAMPLE_DISHES.filter((d) => {
-      const matchRecipe =
-        !selectedRecipeCategory || selectedRecipeCategory === "all" || d.recipeCategorySlug === selectedRecipeCategory;
-      const matchIngredient =
-        !selectedIngredientCategory || selectedIngredientCategory === "all" || d.ingredientGroupSlug === selectedIngredientCategory;
-      const matchQuery =
-        !dishSearchQuery.trim() ||
-        d.title.toLowerCase().includes(dishSearchQuery.toLowerCase()) ||
-        d.titleVi.toLowerCase().includes(dishSearchQuery.toLowerCase());
-      return matchRecipe && matchIngredient && matchQuery;
-    });
-  }, [selectedRecipeCategory, selectedIngredientCategory, dishSearchQuery]);
 
   const activeRecipeCount = recipeCategories.filter((c) => c.status === "Active").length;
   const activeIngredientCount = ingredientCategories.filter((c) => c.status === "Active").length;
@@ -391,12 +341,6 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleResetFilters = () => {
-    setSelectedRecipeCategory("vietnamese-cuisine");
-    setSelectedIngredientCategory("plant-based-proteins");
-    setDishSearchQuery("");
-    showToast("Dual filters reset to default");
-  };
 
   // Badge icon renderer matching screenshot accurately
   const renderBadgeIcon = (badgeType: CategoryData["badgeType"], name: string) => {
@@ -614,11 +558,10 @@ export default function AdminCategoriesPage() {
           <button
             type="button"
             onClick={() => setActiveTab("recipes")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
-              activeTab === "recipes"
-                ? "bg-white text-[#0B1E17] shadow-xs"
-                : "text-[#6A736E] hover:text-[#0B1E17]"
-            }`}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${activeTab === "recipes"
+              ? "bg-white text-[#0B1E17] shadow-xs"
+              : "text-[#6A736E] hover:text-[#0B1E17]"
+              }`}
           >
             {/* Chef Pot / Recipe icon */}
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -632,11 +575,10 @@ export default function AdminCategoriesPage() {
           <button
             type="button"
             onClick={() => setActiveTab("ingredients")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
-              activeTab === "ingredients"
-                ? "bg-white text-[#0B1E17] shadow-xs"
-                : "text-[#6A736E] hover:text-[#0B1E17]"
-            }`}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${activeTab === "ingredients"
+              ? "bg-white text-[#0B1E17] shadow-xs"
+              : "text-[#6A736E] hover:text-[#0B1E17]"
+              }`}
           >
             {/* Leaf / Sprout icon */}
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -646,30 +588,7 @@ export default function AdminCategoriesPage() {
             <span><UiText text="Category Ingredients" /> ({ingredientCategories.length})</span>
           </button>
 
-          {/* Tab 3: Dual Filter & Dishes */}
-          <button
-            type="button"
-            onClick={() => setActiveTab("dual-dishes")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
-              activeTab === "dual-dishes"
-                ? "bg-white text-[#0B1E17] shadow-xs"
-                : "text-[#6A736E] hover:text-[#0B1E17]"
-            }`}
-          >
-            {/* Sliders / Filter icon */}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="4" y1="21" x2="4" y2="14" />
-              <line x1="4" y1="10" x2="4" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12" y2="3" />
-              <line x1="20" y1="21" x2="20" y2="16" />
-              <line x1="20" y1="12" x2="20" y2="3" />
-              <line x1="1" y1="14" x2="7" y2="14" />
-              <line x1="9" y1="8" x2="15" y2="8" />
-              <line x1="17" y1="16" x2="23" y2="16" />
-            </svg>
-            <span><UiText text="Dual Filter & Dishes" /> ({filteredDishes.length})</span>
-          </button>
+
         </div>
 
         {/* Right Search Input */}
@@ -688,406 +607,153 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
 
-      {/* ── DUAL CATEGORY FILTER & RECIPE EXPLORER CARD ───────────────────── */}
-      <div className="rounded-2xl border border-[#E6E3DA] bg-[#FBF9F6] p-5 shadow-xs space-y-4">
-        {/* Card Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            {/* Soft Green Funnel Icon Container */}
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#DCEDE2] text-[#246B49] shadow-2xs">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#07241A]">
-                <UiText text="Dual Category Filter & Recipe Explorer" />
-              </h3>
-              <p className="text-xs text-[#727974]">
-                <UiText text="Cross-reference culinary regional styles with nutrition and pantry ingredient classifications" />
-              </p>
-            </div>
-          </div>
-
+      {/* ── CATEGORIES TABLE VIEW (Tab 1: Category Recipes OR Tab 2: Category Ingredients) ── */}
+      <div className="overflow-hidden rounded-2xl border border-[#E6E3DA] bg-white shadow-xs">
+        {/* Section Sub-header */}
+        <div className="flex items-center justify-between border-b border-[#F0EFEB] px-6 py-4">
           <div className="flex items-center gap-2">
-            {/* Pill: 18 Dishes Matching Selection */}
-            <button
-              type="button"
-              onClick={() => setActiveTab("dual-dishes")}
-              className="flex items-center gap-1.5 rounded-full border border-[#CDE5D8] bg-[#E7F3EC] px-3.5 py-1.5 text-xs font-semibold text-[#1E4D36] transition hover:bg-[#DCEDE2]"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1E4D36]" />
-              <span>{filteredDishes.length} <UiText text="Dishes Matching Selection" /></span>
-            </button>
-
-            {/* Reset Filters Button */}
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-[#636C66] transition hover:bg-[#EFECE6] hover:text-[#07241A]"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-              </svg>
-              <span><UiText text="Reset Filters" /></span>
-            </button>
-          </div>
-        </div>
-
-        {/* Card Controls Grid: 3 columns */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {/* Column 1: Category Recipes (Region/Style) */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#525B55]">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {activeTab === "recipes" ? (
+              /* Pot icon */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
                 <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
                 <line x1="6" y1="17" x2="18" y2="17" />
               </svg>
-              <span><UiText text="1. Category Recipes (Region/Style)" /></span>
-            </label>
-            <div className="relative">
-              <select
-                value={selectedRecipeCategory}
-                onChange={(e) => setSelectedRecipeCategory(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-[#E3E1DB] bg-white px-3.5 py-2.5 pr-8 text-xs font-medium text-[#07241A] shadow-2xs outline-none transition focus:border-[#1E3A2F]"
-              >
-                {recipeCategories.map((cat) => (
-                  <option key={cat.id} value={cat.slug}>
-                    {cat.name} ({cat.itemCount} recipes)
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#727974]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Column 2: Category Ingredients (Pantry / Group) */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#525B55]">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            ) : (
+              /* Leaf icon */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
                 <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
               </svg>
-              <span><UiText text="2. Category Ingredients (Pantry / Group)" /></span>
-            </label>
-            <div className="relative">
-              <select
-                value={selectedIngredientCategory}
-                onChange={(e) => setSelectedIngredientCategory(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-[#E3E1DB] bg-white px-3.5 py-2.5 pr-8 text-xs font-medium text-[#07241A] shadow-2xs outline-none transition focus:border-[#1E3A2F]"
-              >
-                {ingredientCategories.map((cat) => (
-                  <option key={cat.id} value={cat.slug}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#727974]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Column 3: Search Dishes or Ingredients */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#525B55]">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-              <span><UiText text="Search Dishes or Ingredients" /></span>
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={dishSearchQuery}
-                onChange={(e) => {
-                  setDishSearchQuery(e.target.value);
-                  if (activeTab !== "dual-dishes") {
-                    // Stay on current tab, but users can see filtered count
-                  }
-                }}
-                placeholder="e.g. Bún bò chay, Phở nấm, Tofu..."
-                className="w-full rounded-xl border border-[#E3E1DB] bg-white py-2.5 pl-9 pr-3.5 text-xs font-medium text-[#07241A] placeholder-[#9CA3AF] shadow-2xs outline-none transition focus:border-[#1E3A2F]"
+            )}
+            <h2 className="text-sm font-bold text-[#07241A]">
+              <UiText text={activeTab === "recipes" ? "Category Recipes" : "Category Ingredients"} />
+            </h2>
+            <span className="text-xs text-[#727974]">
+              —{" "}
+              <UiText
+                text={
+                  activeTab === "recipes"
+                    ? "Organized for culinary discovery"
+                    : "Pantry & nutrition classifications"
+                }
               />
-              <svg className="absolute left-3 top-3 text-[#9CA3AF]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── MAIN CONTENT: TABLE OR DUAL DISHES EXPLORER ──────────────────── */}
-      {activeTab === "dual-dishes" ? (
-        /* DUAL DISHES EXPLORER VIEW */
-        <div className="overflow-hidden rounded-2xl border border-[#E6E3DA] bg-white shadow-xs">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-[#F0EFEB] px-6 py-4">
-            <div className="flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
-                <line x1="4" y1="21" x2="4" y2="14" />
-                <line x1="4" y1="10" x2="4" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12" y2="3" />
-                <line x1="20" y1="21" x2="20" y2="16" />
-                <line x1="20" y1="12" x2="20" y2="3" />
-                <line x1="1" y1="14" x2="7" y2="14" />
-                <line x1="9" y1="8" x2="15" y2="8" />
-                <line x1="17" y1="16" x2="23" y2="16" />
-              </svg>
-              <h2 className="text-sm font-bold text-[#07241A]">
-                <UiText text="Dual Filtered Dishes Explorer" />
-              </h2>
-              <span className="text-xs text-[#727974]">
-                — <UiText text="Cross-referenced community recipe database" />
-              </span>
-            </div>
-
-            <span className="rounded-full bg-[#DCEDE2] px-3 py-1 text-xs font-bold text-[#1E4D36]">
-              {filteredDishes.length} <UiText text="Dishes Found" />
             </span>
           </div>
 
-          {/* Dishes Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#F0EFEB] bg-[#FAF9F5] text-[11px] font-bold uppercase tracking-wider text-[#727974]">
+          <span className="rounded-full bg-[#DCEDE2] px-3 py-1 text-xs font-bold text-[#1E4D36]">
+            {activeTab === "recipes" ? activeRecipeCount : activeIngredientCount} <UiText text="Active" />
+          </span>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-[#F0EFEB] bg-[#FAF9F5] text-[11px] font-bold uppercase tracking-wider text-[#727974]">
+              <tr>
+                <th className="py-3.5 pl-6 pr-4"><UiText text="Category Name" /></th>
+                <th className="px-4 py-3.5"><UiText text="Description & Highlights" /></th>
+                <th className="px-4 py-3.5"><UiText text="Associated Items" /></th>
+                <th className="px-4 py-3.5"><UiText text="Status" /></th>
+                <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Actions" /></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0EFEB]">
+              {filteredCategories.length === 0 ? (
                 <tr>
-                  <th className="py-3.5 pl-6 pr-4"><UiText text="Dish / Recipe" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Cuisine Category" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Pantry Group" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Prep & Cook" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Rating" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Status" /></th>
-                  <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Actions" /></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0EFEB]">
-                {filteredDishes.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-xs text-[#727974]">
-                      <p className="font-semibold text-[#07241A]"><UiText text="No dishes match the selected dual filters." /></p>
+                  <td colSpan={5} className="py-12 text-center text-xs text-[#727974]">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="text-3xl">🏷️</span>
+                      <p className="font-semibold text-[#07241A]"><UiText text="No categories found matching your search." /></p>
                       <button
                         type="button"
-                        onClick={handleResetFilters}
+                        onClick={handleOpenAddModal}
                         className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
                       >
-                        <UiText text="Reset dual filters" />
+                        <UiText text="Create a new category" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredCategories.map((cat) => (
+                  <tr key={cat.id} className="transition-colors hover:bg-[#FAF9F5]/80">
+                    {/* CATEGORY NAME COLUMN */}
+                    <td className="py-4 pl-6 pr-4">
+                      <div className="flex items-center gap-3.5">
+                        {renderBadgeIcon(cat.badgeType, cat.name)}
+                        <div>
+                          <div className="font-bold text-[#07241A] text-sm leading-snug">{cat.name}</div>
+                          <div className="font-mono text-[11px] text-[#727974] leading-tight">{cat.slug}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* DESCRIPTION & HIGHLIGHTS COLUMN */}
+                    <td className="px-4 py-4 max-w-md">
+                      <p className="text-xs text-[#4E5651] leading-relaxed">{cat.description}</p>
+                    </td>
+
+                    {/* ASSOCIATED ITEMS COLUMN */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <span className="font-bold text-sm text-[#07241A]">{cat.itemCount}</span>{" "}
+                      <span className="text-xs text-[#727974]">recipes</span>
+                    </td>
+
+                    {/* STATUS COLUMN */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(cat)}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${cat.status === "Active"
+                          ? "bg-[#E7F3EC] text-[#1E4D36] hover:bg-[#DCEDE2]"
+                          : "bg-[#F1F0EB] text-[#727974] hover:bg-[#E6E4DC]"
+                          }`}
+                        title="Click to toggle status"
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${cat.status === "Active" ? "bg-[#1E4D36]" : "bg-[#8D948F]"
+                            }`}
+                        />
+                        <span>{cat.status}</span>
                       </button>
                     </td>
-                  </tr>
-                ) : (
-                  filteredDishes.map((dish) => {
-                    const rCat = recipeCategories.find((r) => r.slug === dish.recipeCategorySlug);
-                    const iCat = ingredientCategories.find((i) => i.slug === dish.ingredientGroupSlug);
-                    return (
-                      <tr key={dish.id} className="transition-colors hover:bg-[#FAF9F5]/70">
-                        <td className="py-3.5 pl-6 pr-4">
-                          <div className="font-bold text-[#07241A]">{dish.title}</div>
-                          <div className="text-[11px] text-[#727974]">{dish.titleVi}</div>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-block rounded-md border border-[#CDE5D8] bg-[#E7F3EC] px-2.5 py-0.5 text-[11px] font-semibold text-[#1E4D36]">
-                            {rCat?.name || dish.recipeCategorySlug}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-block rounded-md border border-[#F2DEB0] bg-[#FEF7E6] px-2.5 py-0.5 text-[11px] font-semibold text-[#925B08]">
-                            {iCat?.name || dish.ingredientGroupSlug}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-[#525B55]">
-                          {dish.prepTime} • <span className="font-medium text-[#727974]">{dish.difficulty}</span>
-                        </td>
-                        <td className="px-4 py-3.5 font-semibold text-[#07241A]">
-                          ★ {dish.rating}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E7F3EC] px-2.5 py-0.5 text-xs font-semibold text-[#1E4D36]">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#1E4D36]" />
-                            {dish.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 pl-4 pr-6 text-right">
-                          <button
-                            type="button"
-                            onClick={() => showToast(`Viewing recipe: ${dish.title}`)}
-                            className="rounded-lg p-1.5 text-[#6D7570] transition hover:bg-[#F2EFE9] hover:text-[#07241A]"
-                            title="View recipe"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        /* CATEGORIES TABLE VIEW (Tab 1: Category Recipes OR Tab 2: Category Ingredients) */
-        <div className="overflow-hidden rounded-2xl border border-[#E6E3DA] bg-white shadow-xs">
-          {/* Section Sub-header */}
-          <div className="flex items-center justify-between border-b border-[#F0EFEB] px-6 py-4">
-            <div className="flex items-center gap-2">
-              {activeTab === "recipes" ? (
-                /* Pot icon */
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
-                  <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
-                  <line x1="6" y1="17" x2="18" y2="17" />
-                </svg>
-              ) : (
-                /* Leaf icon */
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
-                  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-                </svg>
-              )}
-              <h2 className="text-sm font-bold text-[#07241A]">
-                <UiText text={activeTab === "recipes" ? "Category Recipes" : "Category Ingredients"} />
-              </h2>
-              <span className="text-xs text-[#727974]">
-                —{" "}
-                <UiText
-                  text={
-                    activeTab === "recipes"
-                      ? "Organized for culinary discovery"
-                      : "Pantry & nutrition classifications"
-                  }
-                />
-              </span>
-            </div>
 
-            <span className="rounded-full bg-[#DCEDE2] px-3 py-1 text-xs font-bold text-[#1E4D36]">
-              {activeTab === "recipes" ? activeRecipeCount : activeIngredientCount} <UiText text="Active" />
-            </span>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#F0EFEB] bg-[#FAF9F5] text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                <tr>
-                  <th className="py-3.5 pl-6 pr-4"><UiText text="Category Name" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Description & Highlights" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Associated Items" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Status" /></th>
-                  <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Actions" /></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0EFEB]">
-                {filteredCategories.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-xs text-[#727974]">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <span className="text-3xl">🏷️</span>
-                        <p className="font-semibold text-[#07241A]"><UiText text="No categories found matching your search." /></p>
+                    {/* ACTIONS COLUMN */}
+                    <td className="py-4 pl-4 pr-6 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Edit button */}
                         <button
                           type="button"
-                          onClick={handleOpenAddModal}
-                          className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
+                          onClick={() => handleOpenEditModal(cat)}
+                          className="rounded-lg p-1.5 text-[#6D7570] transition hover:bg-[#F2EFE9] hover:text-[#07241A]"
+                          title="Edit Category"
                         >
-                          <UiText text="Create a new category" />
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+
+                        {/* Delete button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(cat.id, cat.name, cat.type)}
+                          className="rounded-lg p-1.5 text-[#6D7570] transition hover:bg-red-50 hover:text-red-600"
+                          title="Delete Category"
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
                         </button>
                       </div>
                     </td>
                   </tr>
-                ) : (
-                  filteredCategories.map((cat) => (
-                    <tr key={cat.id} className="transition-colors hover:bg-[#FAF9F5]/80">
-                      {/* CATEGORY NAME COLUMN */}
-                      <td className="py-4 pl-6 pr-4">
-                        <div className="flex items-center gap-3.5">
-                          {renderBadgeIcon(cat.badgeType, cat.name)}
-                          <div>
-                            <div className="font-bold text-[#07241A] text-sm leading-snug">{cat.name}</div>
-                            <div className="font-mono text-[11px] text-[#727974] leading-tight">{cat.slug}</div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* DESCRIPTION & HIGHLIGHTS COLUMN */}
-                      <td className="px-4 py-4 max-w-md">
-                        <p className="text-xs text-[#4E5651] leading-relaxed">{cat.description}</p>
-                      </td>
-
-                      {/* ASSOCIATED ITEMS COLUMN */}
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span className="font-bold text-sm text-[#07241A]">{cat.itemCount}</span>{" "}
-                        <span className="text-xs text-[#727974]">recipes</span>
-                      </td>
-
-                      {/* STATUS COLUMN */}
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(cat)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-                            cat.status === "Active"
-                              ? "bg-[#E7F3EC] text-[#1E4D36] hover:bg-[#DCEDE2]"
-                              : "bg-[#F1F0EB] text-[#727974] hover:bg-[#E6E4DC]"
-                          }`}
-                          title="Click to toggle status"
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              cat.status === "Active" ? "bg-[#1E4D36]" : "bg-[#8D948F]"
-                            }`}
-                          />
-                          <span>{cat.status}</span>
-                        </button>
-                      </td>
-
-                      {/* ACTIONS COLUMN */}
-                      <td className="py-4 pl-4 pr-6 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
-                          {/* Edit button */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(cat)}
-                            className="rounded-lg p-1.5 text-[#6D7570] transition hover:bg-[#F2EFE9] hover:text-[#07241A]"
-                            title="Edit Category"
-                          >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </button>
-
-                          {/* Delete button */}
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCategory(cat.id, cat.name, cat.type)}
-                            className="rounded-lg p-1.5 text-[#6D7570] transition hover:bg-red-50 hover:text-red-600"
-                            title="Delete Category"
-                          >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       {/* ── MODAL: CREATE / EDIT CATEGORY ─────────────────────────────────── */}
       {isModalOpen && (
@@ -1116,22 +782,20 @@ export default function AdminCategoriesPage() {
                   <button
                     type="button"
                     onClick={() => setFormType("Recipe Category")}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                      formType === "Recipe Category"
-                        ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
-                        : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
-                    }`}
+                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${formType === "Recipe Category"
+                      ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
+                      : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
+                      }`}
                   >
                     <UiText text="Recipe Category" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormType("Ingredient Group")}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                      formType === "Ingredient Group"
-                        ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
-                        : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
-                    }`}
+                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${formType === "Ingredient Group"
+                      ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
+                      : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
+                      }`}
                   >
                     <UiText text="Ingredient Group" />
                   </button>
@@ -1227,11 +891,10 @@ export default function AdminCategoriesPage() {
                       key={badge.id}
                       type="button"
                       onClick={() => setFormBadgeType(badge.id as CategoryData["badgeType"])}
-                      className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-                        formBadgeType === badge.id
-                          ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
-                          : "border-[#EFEEEB] bg-[#FBF9F6] text-[#525B55] hover:bg-white"
-                      }`}
+                      className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${formBadgeType === badge.id
+                        ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
+                        : "border-[#EFEEEB] bg-[#FBF9F6] text-[#525B55] hover:bg-white"
+                        }`}
                     >
                       <span>{badge.label}</span>
                     </button>
