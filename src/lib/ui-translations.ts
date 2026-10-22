@@ -2,6 +2,20 @@ import type { Language } from "@/context/LanguageContext";
 
 // UI copy only. Author-entered content and arbitrary backend messages are not translated.
 const copy = `
+Weekly meal plan|Thực đơn tuần
+Meals selected for your ingredients, vegetarian type and BMI group.|Món ăn được chọn theo nguyên liệu, kiểu ăn chay và nhóm BMI của bạn.
+Saved recipes|Công thức đã lưu
+Remaining days|Các ngày còn lại
+Days|ngày
+Start date|Ngày bắt đầu
+No meal plan yet.|Chưa có thực đơn.
+Could not load meal planner.|Không tải được thực đơn.
+Could not update meal plan.|Không cập nhật được thực đơn.
+Saved successfully.|Đã lưu thành công.
+Could not save category.|Không lưu được danh mục.
+Could not load categories.|Không tải được danh mục.
+Hide Category|Ẩn danh mục
+Ingredient groups are fixed. Manage ingredient assignments in Ingredients.|Nhóm nguyên liệu được cấu hình cố định. Quản lý phân nhóm tại mục Nguyên liệu.
 EDITORIAL WORKBENCH|GÓC BIÊN SOẠN
 Create Content|Tạo bài viết
 Share your plant-based recipe with the community.|Chia sẻ công thức món chay của bạn với cộng đồng.
@@ -679,6 +693,8 @@ Vegetarian dishes rich in calcium and iron for beginners|Các món chay giàu ca
 `.trim();
 
 const mealCopy = `
+Upload cancelled.|Đã hủy tải video lên.
+Upload connection failed|Kết nối tải video bị lỗi. Kiểm tra kết nối và thử lại.
 Could not save the video draft|Lỗi lưu bản nháp video
 TODAY|HÔM NAY
 YESTERDAY|HÔM QUA

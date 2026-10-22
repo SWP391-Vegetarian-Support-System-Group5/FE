@@ -5,8 +5,11 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getRecipeById } from "@/lib/recipe-api";
+import { createCommunityEventSource, getMyPosts, postToRecipe, type PostResponse } from "@/lib/community-api";
 import { MY_CONTENT_EVENT, getMyContentSnapshot, getVideoThumbnailUrl, parseMyContent, removeManualContent, sampleContent, saveContentItem, type MyContentItem } from "@/lib/my-content";
+import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount } from "@/lib/localized-content";
 import ContentDialog from "./ContentDialog";
+import CardSkeleton from "@/components/ui/CardSkeleton";
 import ContentIcon, { type ContentIconName } from "./ContentIcon";
 
 type KindFilter = "all" | "recipe" | "video";
@@ -22,7 +25,12 @@ function subscribeContent(callback: () => void) {
 }
 
 function displayText(item: MyContentItem, language: string) {
-  return language === "vi" && item.translations ? item.translations : { title: item.title, description: item.description };
+  const text = language === "vi" && item.translations ? item.translations : { title: item.title, description: item.description };
+  if (language !== "vi") return text;
+  return {
+    title: localizeRecipeTitle(text.title, "vi"),
+    description: localizeText(text.description, "vi"),
+  };
 }
 
 function itemThumbnail(item: MyContentItem) {
@@ -35,13 +43,34 @@ function recipeIdFromItem(item: MyContentItem) {
   return match ? Number(match[1]) : null;
 }
 
+function postToContentItem(post: PostResponse): MyContentItem {
+  const recipe = postToRecipe(post);
+  return {
+    id: `recipe-${post.postId}`,
+    title: post.title,
+    description: post.content,
+    kind: post.videoUrl ? "video" : "recipe",
+    status: post.status === "PUBLISHED" ? "published" : "draft",
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+    image: post.thumbnailUrl || getVideoThumbnailUrl(post.videoUrl),
+    recipe,
+  };
+}
+
 export default function MyContentView() {
   const { user, loading } = useAuth();
   const { language, locale, t } = useLanguage();
   const owner = user?.uid || "guest";
   const getSnapshot = useCallback(() => getMyContentSnapshot(owner), [owner]);
   const snapshot = useSyncExternalStore(subscribeContent, getSnapshot, () => "[]");
-  const savedItems = useMemo(() => parseMyContent(snapshot), [snapshot]);
+  const localSavedItems = useMemo(() => parseMyContent(snapshot), [snapshot]);
+  const [serverItems, setServerItems] = useState<MyContentItem[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const savedItems = useMemo(() => [
+    ...serverItems,
+    ...localSavedItems.filter((item) => item.status === "draft"),
+  ], [localSavedItems, serverItems]);
   const [samples, setSamples] = useState(sampleContent);
   const [source, setSource] = useState<"mine" | "sample" | null>(null);
   const sampleMode = source === "sample" || (source === null && savedItems.length === 0);
@@ -53,9 +82,54 @@ export default function MyContentView() {
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
   const [action, setAction] = useState<ContentAction | null>(null);
-  const [notice, setNotice] = useState<{ en: string; vi: string } | null>(null);
+  const [notice, setNotice] = useState<{ en: string; vi: string; tone?: "error"; undo?: { item: MyContentItem; sample: boolean; owner: string } } | null>(null);
   const [storageError, setStorageError] = useState(false);
   const hydratedRecipeIds = useRef(new Set<number>());
+
+  const loadServerItems = useCallback(async () => {
+    if (!user) {
+      setServerItems([]);
+      return;
+    }
+    setRemoteLoading(true);
+    try {
+      const posts = await getMyPosts();
+      const items = await Promise.all(posts.map(async (post) => {
+        const item = postToContentItem(post);
+        if (post.postType !== "RECIPE") return item;
+        try {
+          const recipe = await getRecipeById(post.postId);
+          return {
+            ...item,
+            title: recipe.title || item.title,
+            description: recipe.content || item.description,
+            recipe,
+            image: recipe.thumbnailUrl || item.image || getVideoThumbnailUrl(recipe.videoUrl),
+            minutes: (recipe.prepMinutes || 0) + (recipe.cookMinutes || 0) || item.minutes,
+          };
+        } catch {
+          return item;
+        }
+      }));
+      setServerItems(items);
+    } catch {
+      setServerItems([]);
+    } finally {
+      setRemoteLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadServerItems();
+    if (!user) return;
+    const source = createCommunityEventSource();
+    const refresh = () => loadServerItems();
+    source.addEventListener("open", refresh);
+    source.addEventListener("postCreated", refresh);
+    source.addEventListener("postUpdated", refresh);
+    source.addEventListener("postRemoved", refresh);
+    return () => source.close();
+  }, [loadServerItems, user]);
 
   useEffect(() => {
     if (sampleMode) return;
@@ -123,8 +197,28 @@ export default function MyContentView() {
       else return;
       setAction(null);
       setStorageError(false);
-      setNotice(sampleMode ? { en: "Sample post removed. Your published content is unchanged.", vi: "Đã xóa bài mẫu. Nội dung đã đăng của bạn không thay đổi." } : { en: "Draft deleted.", vi: "Đã xóa bản nháp." });
+      setNotice({ ...(sampleMode ? { en: "Sample post removed.", vi: "Đã xóa bài mẫu." } : { en: "Draft deleted.", vi: "Đã xóa bản nháp." }), undo: { item, sample: sampleMode, owner } });
     } catch { setStorageError(true); }
+  }
+
+  function undoDelete() {
+    const undo = notice?.undo;
+    if (!undo || undo.owner !== owner) return;
+    try {
+      if (undo.sample) setSamples(current => current.some(item => item.id === undo.item.id) ? current : [undo.item, ...current]);
+      else {
+        if (parseMyContent(getMyContentSnapshot(owner)).some(item => item.id === undo.item.id)) {
+          setNotice({ en: "A newer draft already exists. It has been kept.", vi: "Đã có bản nháp mới hơn. Bản nháp mới được giữ nguyên." });
+          return;
+        }
+        saveContentItem(owner, undo.item);
+      }
+      setSource(undo.sample ? "sample" : "mine");
+      resetFilters();
+      setNotice({ en: "Post restored.", vi: "Đã khôi phục bài viết." });
+    } catch {
+      setNotice({ en: "Could not restore the draft. Check browser storage and retry.", vi: "Không thể khôi phục bản nháp. Kiểm tra bộ nhớ trình duyệt và thử lại.", tone: "error", undo });
+    }
   }
 
   const stats: { label: string; value: number; detail: string; icon: ContentIconName; onClick: () => void }[] = [
@@ -173,7 +267,7 @@ export default function MyContentView() {
 
         <div className="mt-5 flex flex-col justify-between gap-4 border-b border-[#E5E7DF] pb-5 lg:flex-row lg:items-center">
           <div className="flex flex-wrap gap-1.5" aria-label={t("Content type", "Loại nội dung")}>
-            {([{ value: "all", label: t("All posts", "Tất cả"), count: counts.all }, { value: "recipe", label: t("Recipes", "Công thức"), count: counts.recipe }, { value: "video", label: t("Videos & Recipes", "Video & Công thức"), count: counts.video }] as const).map((tab) => <button key={tab.value} type="button" aria-pressed={kind === tab.value} onClick={() => { setKind(tab.value); setPage(1); }} className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition ${kind === tab.value ? "bg-[#1E3A2F] text-white" : "bg-[#F0F0E9] text-[#68766A] hover:bg-[#E8EDE4]"}`}>{tab.label}<span className={kind === tab.value ? "text-[#C3D5C8]" : "text-[#899388]"}>{tab.count}</span></button>)}
+            {([{ value: "all", label: t("All posts", "Tất cả"), count: counts.all }, { value: "recipe", label: t("Recipes", "Công thức"), count: counts.recipe }, { value: "video", label: t("Videos & Recipes", "Video & Công thức"), count: counts.video }] as const).map((tab) => <button key={tab.value} type="button" aria-pressed={kind === tab.value} onClick={() => { setKind(tab.value); setPage(1); }} className={`vm-button inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition ${kind === tab.value ? "bg-[#1E3A2F] text-white" : "bg-[#F0F0E9] text-[#68766A] hover:bg-[#E8EDE4]"}`}>{tab.label}<span className={kind === tab.value ? "text-[#C3D5C8]" : "text-[#899388]"}>{tab.count}</span></button>)}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="relative min-w-[160px] flex-1 sm:w-60 sm:flex-none"><span className="sr-only">{t("Search your posts", "Tìm bài viết của bạn")}</span><ContentIcon name="search" className="pointer-events-none absolute left-3 top-3 text-[#899388]" width="16" height="16" /><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder={t("Search your stories…", "Tìm câu chuyện của bạn…")} className="h-10 w-full rounded-xl border border-[#E5E7DF] bg-white/80 pl-9 pr-3 text-xs outline-none transition placeholder:text-[#899388] focus:border-[#658266] focus:ring-2 focus:ring-[#658266]/10" /></label>
@@ -186,15 +280,15 @@ export default function MyContentView() {
           <div className="flex items-center gap-3"><label><span className="sr-only">{t("Sort posts", "Sắp xếp bài viết")}</span><select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="max-w-[190px] bg-transparent py-2 text-xs text-[#647068] outline-none focus:underline"><option value="newest">{t("Recently updated", "Mới cập nhật")}</option><option value="oldest">{t("Oldest first", "Cũ nhất trước")}</option><option value="title">{t("Title A–Z", "Tên bài A–Z")}</option></select></label><span className="h-5 w-px bg-[#E5E7DF]" /><div className="inline-flex gap-1 rounded-lg bg-[#EEEEE7] p-1">{(["grid", "list"] as const).map((mode) => <button key={mode} type="button" aria-label={mode === "grid" ? t("Grid view", "Xem dạng lưới") : t("List view", "Xem danh sách")} aria-pressed={layout === mode} onClick={() => setLayout(mode)} className={`rounded-md p-1.5 transition ${layout === mode ? "bg-white text-[#1E3A2F] shadow-sm" : "text-[#899388] hover:text-[#1E3A2F]"}`}><ContentIcon name={mode} width="16" height="16" /></button>)}</div></div>
         </div>
 
-        {notice && <div role="status" className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-[#CCDCCB] bg-[#E8F0E5] px-4 py-3 text-xs text-[#1E3A2F]"><span>{t(notice.en, notice.vi)}</span><button type="button" onClick={() => setNotice(null)} aria-label={t("Dismiss notification", "Đóng thông báo")}><ContentIcon name="close" width="16" height="16" /></button></div>}
+        {notice && <div role={notice.tone === "error" ? "alert" : "status"} className={`vm-feedback mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-xs ${notice.tone === "error" ? "border-red-200 bg-red-50 text-red-800" : "border-[#CCDCCB] bg-[#E8F0E5] text-[#1E3A2F]"}`}><span>{t(notice.en, notice.vi)}</span><div className="flex items-center gap-4">{notice.undo?.owner === owner && <button type="button" onClick={undoDelete} className="vm-button font-semibold underline underline-offset-4">{t("Undo", "Hoàn tác")}</button>}<button type="button" onClick={() => setNotice(null)} aria-label={t("Dismiss notification", "Đóng thông báo")}><ContentIcon name="close" width="16" height="16" /></button></div></div>}
 
-        {loading && !sampleMode ? <div className="py-20 text-center text-sm text-[#727974]" role="status">{t("Loading your collection…", "Đang tải bộ sưu tập…")}</div> : visibleItems.length > 0 ? (
+        {(loading || remoteLoading) && !sampleMode ? <CardSkeleton /> : visibleItems.length > 0 ? (
           <div className={layout === "grid" ? "grid gap-5 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-4"}>
             {visibleItems.map((item) => {
               const text = displayText(item, language);
               const canEdit = sampleMode || item.status === "draft";
               const thumbnail = itemThumbnail(item);
-              return <article key={item.id} className={`group overflow-hidden rounded-2xl border border-[#E5E7DF] bg-white transition duration-200 hover:border-[#BBCAB7] hover:shadow-[0_8px_28px_#1E3A2F08] ${layout === "list" ? "flex flex-col sm:flex-row" : "flex flex-col"}`}>
+              return <article key={item.id} className={`vm-card vm-enter group overflow-hidden rounded-2xl border border-[#E5E7DF] bg-white transition duration-200 hover:border-[#BBCAB7] hover:shadow-[0_8px_28px_#1E3A2F08] ${layout === "list" ? "flex flex-col sm:flex-row" : "flex flex-col"}`}>
                 <button type="button" onClick={() => setAction({ type: "preview", item })} aria-label={`${t("Preview", "Xem trước")}: ${text.title}`} className={`relative shrink-0 overflow-hidden bg-[#E8EDE4] ${layout === "list" ? "h-48 w-full sm:h-auto sm:min-h-44 sm:w-56" : "aspect-[16/9] w-full"}`}>
                   {thumbnail ? <img src={thumbnail} alt={text.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,#D9E6DC,transparent)]"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="64" height="64" className="text-[#8AA18B]" /></div>}
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#FBF9F6]/95 px-2.5 py-1.5 text-[10px] font-semibold text-[#1E3A2F] shadow-sm"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="12" height="12" />{item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")}</span>
@@ -225,12 +319,12 @@ export default function MyContentView() {
 
       {action?.type === "preview" && (() => {
         const previewImage = itemThumbnail(action.item);
-        return <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={previewImage} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {ingredient.amount} {ingredient.ingredientName}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{step.instruction}</li>)}</ol></>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>;
+        return <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={previewImage} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><dl className="mt-5 border-b border-[#EFEEEB] pb-4"><dt className="text-xs font-semibold text-[#647068]">{t("Recipe name", "Tên món ăn")}</dt><dd className="mt-1 break-words text-lg font-semibold">{localizeRecipeTitle(action.item.recipe?.recipeName || action.item.draft?.recipeName, language) || t("Not provided", "Chưa có tên món ăn")}</dd></dl><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {localizeAmount(ingredient.amount, language)} {localizeIngredient(ingredient.ingredientName, language)}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{localizeText(step.instruction, language)}</li>)}</ol></>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>;
       })()}
 
       {action?.type === "edit" && <SampleEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSave={(next) => { setSamples((current) => current.map((item) => item.id === next.id ? next : item)); setAction(null); setNotice({ en: "Sample changes saved for this preview session.", vi: "Đã lưu thay đổi bài mẫu trong phiên xem trước này." }); }} />}
 
-      {action?.type === "delete" && <ContentDialog title={sampleMode ? t("Delete sample post?", "Xóa bài mẫu?") : t("Delete this draft?", "Xóa bản nháp này?")} onClose={() => setAction(null)}><div className="p-6"><p className="text-sm leading-7 text-[#647068]">{sampleMode ? t("This removes the sample from your preview session. Reloading the page restores all sample posts.", "Bài mẫu sẽ được xóa trong phiên xem trước. Tải lại trang để khôi phục tất cả bài mẫu.") : t("Your saved draft will be removed from this browser. This cannot be undone.", "Bản nháp đã lưu sẽ bị xóa khỏi trình duyệt này. Bạn không thể hoàn tác thao tác này.")}</p><p className="mt-4 rounded-xl bg-[#F0F0E9] p-4 font-serif text-xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</p>{storageError && <p role="alert" className="mt-4 text-sm text-red-600">{t("Could not delete the draft. Check your browser storage settings and try again.", "Không thể xóa bản nháp. Kiểm tra quyền lưu trữ của trình duyệt rồi thử lại.")}</p>}<div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setAction(null)} className="rounded-xl border border-[#E5E7DF] px-5 py-3 text-sm font-semibold hover:bg-[#E8EDE4]">{t("Keep it", "Giữ lại")}</button><button type="button" onClick={() => deleteItem(action.item)} className="inline-flex items-center gap-2 rounded-xl bg-[#A24635] px-5 py-3 text-sm font-semibold text-white hover:bg-[#883727]"><ContentIcon name="trash" width="16" height="16" />{t("Delete", "Xóa")}</button></div></div></ContentDialog>}
+      {action?.type === "delete" && <ContentDialog title={sampleMode ? t("Delete sample post?", "Xóa bài mẫu?") : t("Delete this draft?", "Xóa bản nháp này?")} onClose={() => setAction(null)}><div className="p-6"><p className="text-sm leading-7 text-[#647068]">{sampleMode ? t("This removes the sample from your preview session. Reloading the page restores all sample posts.", "Bài mẫu sẽ được xóa trong phiên xem trước. Tải lại trang để khôi phục tất cả bài mẫu.") : t("Your draft will be removed from this browser. You can undo while the confirmation message remains visible.", "Bản nháp sẽ bị xóa khỏi trình duyệt. Bạn có thể hoàn tác khi thông báo xác nhận vẫn còn hiển thị.")}</p><p className="mt-4 rounded-xl bg-[#F0F0E9] p-4 font-serif text-xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</p>{storageError && <p role="alert" className="mt-4 text-sm text-red-600">{t("Could not delete the draft. Check your browser storage settings and try again.", "Không thể xóa bản nháp. Kiểm tra quyền lưu trữ của trình duyệt rồi thử lại.")}</p>}<div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setAction(null)} className="rounded-xl border border-[#E5E7DF] px-5 py-3 text-sm font-semibold hover:bg-[#E8EDE4]">{t("Keep it", "Giữ lại")}</button><button type="button" onClick={() => deleteItem(action.item)} className="inline-flex items-center gap-2 rounded-xl bg-[#A24635] px-5 py-3 text-sm font-semibold text-white hover:bg-[#883727]"><ContentIcon name="trash" width="16" height="16" />{t("Delete", "Xóa")}</button></div></div></ContentDialog>}
     </div>
   );
 }

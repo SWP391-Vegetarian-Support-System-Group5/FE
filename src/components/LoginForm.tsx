@@ -7,7 +7,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, updateCurrentUserLocation } from "@/lib/auth";
+import { ApiError, getStoredToken, updateCurrentUserLocation } from "@/lib/auth";
+import { useLanguage } from "@/context/LanguageContext";
 
 function requestBrowserLocation(): Promise<GeolocationPosition | null> {
   if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -23,9 +24,9 @@ function requestBrowserLocation(): Promise<GeolocationPosition | null> {
   });
 }
 
-async function captureLocationAfterLogin() {
+async function captureLocationAfterLogin(expectedToken: string) {
   const position = await requestBrowserLocation();
-  if (!position) return;
+  if (!position || getStoredToken() !== expectedToken) return;
 
   await updateCurrentUserLocation(
     position.coords.latitude,
@@ -35,32 +36,22 @@ async function captureLocationAfterLogin() {
 
 export default function LoginForm() {
   const ui = useUiText();
+  const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signInWithGoogle, loginWithCredentials, user, error: authError, clearError } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => searchParams.get("email") || "");
   const [password, setPassword] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [is401Error, setIs401Error] = useState(false);
   const [isUnverified403, setIsUnverified403] = useState(false);
-  const [isDeactivated403, setIsDeactivated403] = useState(false);
-  const [verifiedSuccess, setVerifiedSuccess] = useState(false);
+  const [verifiedSuccess, setVerifiedSuccess] = useState(() => searchParams.get("verified") === "true");
 
-  useEffect(() => {
-    const verifiedParam = searchParams.get("verified");
-    const emailParam = searchParams.get("email");
-
-    if (verifiedParam === "true") {
-      setVerifiedSuccess(true);
-    }
-    if (emailParam) {
-      setEmail(emailParam);
-    }
-  }, [searchParams]);
+  useEffect(() => { if (user) router.replace(user.role?.toLowerCase() === "admin" ? "/admin" : "/"); }, [user, router]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -68,11 +59,10 @@ export default function LoginForm() {
       setLocalError(null);
       setIs401Error(false);
       setIsUnverified403(false);
-      setIsDeactivated403(false);
       clearError();
       const signedInUser = await signInWithGoogle();
       if (signedInUser) {
-        router.push("/");
+        router.replace("/");
       }
     } catch (err: unknown) {
       const msg =
@@ -90,7 +80,6 @@ export default function LoginForm() {
     setLocalError(null);
     setIs401Error(false);
     setIsUnverified403(false);
-    setIsDeactivated403(false);
     clearError();
 
     const targetEmail = email.trim();
@@ -102,17 +91,8 @@ export default function LoginForm() {
     try {
       setIsSubmitting(true);
       const loginRes = await loginWithCredentials(targetEmail, password);
-      try {
-        await captureLocationAfterLogin();
-      } catch {
-        // Location is useful for recommendations, but login must still succeed.
-      }
-      // Điều hướng theo phân quyền: Admin vào /admin, user thường vào trang chủ /
-      if (loginRes?.user?.role?.toLowerCase() === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/");
-      }
+      router.replace(loginRes.user.role.toLowerCase() === "admin" ? "/admin" : "/");
+      if (loginRes.user.role.toLowerCase() !== "admin") void captureLocationAfterLogin(loginRes.token).catch(() => {});
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         const lowerMsg = (err.message || "").toLowerCase();
@@ -148,7 +128,6 @@ export default function LoginForm() {
             lowerMsg.includes("khóa") ||
             lowerMsg.includes("vô hiệu hóa")
           ) {
-            setIsDeactivated403(true);
             setLocalError(
               "Tài khoản của bạn hiện đang bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ."
             );
@@ -197,8 +176,12 @@ export default function LoginForm() {
             VeggieMate
           </span>
         </Link>
-        <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]"><UiText text={"Welcome to VeggieMate"} /></h1>
-        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"Sign in to save recipes, join mindful discussions, and access personalized plant-based nutrition."} /></p>
+        <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]">
+          {t("Welcome to VeggieMate", "Chào mừng đến VeggieMate")}
+        </h1>
+        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]">
+          {t("Sign in to save recipes, join discussions, and access personalized meal plans.", "Đăng nhập để lưu công thức, bình luận và sử dụng thực đơn cá nhân hóa.")}
+        </p>
       </div>
 
       {/* Verified Success Banner */}
@@ -220,19 +203,7 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* Logged in notification if already authenticated */}
-      {user && (
-        <div className="mt-4 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
-          <div className="flex items-center justify-between">
-            <span><UiText text={"Đã đăng nhập:"} />{" "}<strong>{user.displayName || user.email}</strong>
-            </span>
-            <Link
-              href="/"
-              className="font-semibold text-[#1E3A2F] underline hover:text-[#07241A]"
-            ><UiText text={"Về trang chủ"} /></Link>
-          </div>
-        </div>
-      )}
+
 
       {/* Error Banner */}
       {activeError && (
@@ -280,7 +251,6 @@ export default function LoginForm() {
               setLocalError(null);
               setIs401Error(false);
               setIsUnverified403(false);
-              setIsDeactivated403(false);
               clearError();
             }}
             className="text-[#99462A]/60 hover:text-[#99462A]"
@@ -342,7 +312,7 @@ export default function LoginForm() {
             </svg>
           )}
           <span>
-            {isGoogleLoading ? ui("Connecting to Google...") : ui("Continue with Google")}
+            {isGoogleLoading ? t("Connecting to Google...", "Đang kết nối Google...") : t("Continue with Google", "Tiếp tục với Google")}
           </span>
         </button>
       </div>
@@ -350,7 +320,9 @@ export default function LoginForm() {
       {/* Divider */}
       <div className="relative my-6 flex items-center justify-center">
         <div className="w-full border-t border-[#EFEEEB]" />
-        <span className="absolute bg-white px-3 text-xs font-medium text-[#727974]"><UiText text={"or"} /></span>
+        <span className="absolute bg-white px-3 text-xs font-medium text-[#727974]">
+          {t("or", "hoặc")}
+        </span>
       </div>
 
       {/* Form Fields */}
@@ -359,7 +331,9 @@ export default function LoginForm() {
           <label
             htmlFor="email"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          ><UiText text={"Email address"} /></label>
+          >
+            {t("Email address", "Địa chỉ email")}
+          </label>
           <div className="relative">
             <input
               id="email"
@@ -384,11 +358,15 @@ export default function LoginForm() {
             <label
               htmlFor="password"
               className="block text-xs font-semibold text-[#07241A]"
-            ><UiText text={"Password"} /></label>
+            >
+              {t("Password", "Mật khẩu")}
+            </label>
             <a
               href="#forgot-password"
               className="text-[11px] font-semibold text-[#99462A] hover:underline"
-            ><UiText text={"Forgot password?"} /></a>
+            >
+              {t("Forgot password?", "Quên mật khẩu?")}
+            </a>
           </div>
           <div className="relative">
             <input
@@ -470,11 +448,13 @@ export default function LoginForm() {
 
       {/* Switch to Register */}
       <div className="mt-5 text-center text-xs text-[#424844]">
-        <span><UiText text={"Don't have an account?"} />{" "}</span>
+        <span>{t("Don’t have an account? ", "Chưa có tài khoản? ")}</span>
         <Link
           href="/register"
           className="font-semibold text-[#07241A] underline underline-offset-2 hover:text-[#1E3A2F]"
-        ><UiText text={"Create New Account"} /></Link>
+        >
+          {t("Create New Account", "Tạo tài khoản")}
+        </Link>
       </div>
 
       {/* Terms & Privacy */}

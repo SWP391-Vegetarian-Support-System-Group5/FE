@@ -1,11 +1,20 @@
-import { apiFetch, apiGet } from "@/lib/api";
+import { apiFetch, apiGet, apiUpload, type UploadOptions } from "@/lib/api";
 
 export type DietaryGroup = "PLANT" | "DAIRY" | "EGG" | "HONEY";
 
-export interface CategoryItem {
+export interface IngredientCategoryItem {
   id: number;
   name: string;
-  type: string | null;
+  code: string;
+  dietaryGroup: DietaryGroup | "UNVERIFIED";
+}
+
+export interface IngredientItem {
+  id: number;
+  name: string;
+  ingredientCategoryId: number;
+  dietaryGroup: DietaryGroup | "UNVERIFIED";
+  allergenId: number | null;
 }
 
 export interface AllergenItem {
@@ -14,11 +23,6 @@ export interface AllergenItem {
   type: string | null;
 }
 
-export interface TagItem {
-  id: number;
-  name: string;
-  type: string | null;
-}
 
 export interface DietTypeItem {
   id: number;
@@ -32,6 +36,7 @@ export interface RecipeIngredientPayload {
   amount: string | null;
   dietaryGroup: DietaryGroup;
   allergenId: number | null;
+  ingredientCategoryId?: number | null;
 }
 
 export interface RecipeStepPayload {
@@ -40,43 +45,48 @@ export interface RecipeStepPayload {
 }
 
 export interface CreateRecipePayload {
+  bmiTypeIds?: number[];
   title: string;
+  recipeName: string;
   content: string;
-  categoryId: number | null;
   videoUrl: string | null;
   prepMinutes: number | null;
   cookMinutes: number | null;
   servings: number | null;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
-  tagIds: number[];
+  categoryIds: number[];
 }
 
 export interface RecipeResponse {
+  bmiTypes?: import("@/lib/bmi-api").BmiType[];
   postId: number;
   title: string;
+  recipeName: string;
   content: string;
   status: "PUBLISHED" | string;
   servings: number | null;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
   compatibleDietTypeIds: number[];
-  categoryId?: number | null;
+  categories: import("@/lib/recipe-categories").RecipeCategory[];
   videoUrl?: string | null;
   thumbnailUrl?: string | null;
   prepMinutes?: number | null;
   cookMinutes?: number | null;
-  tagIds?: number[];
+  categoryIds?: number[];
 }
 
 export type VideoDraftStatus =
   | "PENDING"
+  | "UPLOADING"
   | "PROCESSING"
   | "READY"
   | "FAILED"
   | "PUBLISHED";
 
 export interface VideoRecipeDraftResponse {
+  recipeName: string | null;
   videoRecipeDraftId: number;
   status: VideoDraftStatus;
   videoUrl: string;
@@ -92,6 +102,7 @@ export interface VideoRecipeDraftResponse {
 }
 
 export interface UpdateVideoRecipeDraftPayload {
+  recipeName: string;
   title: string;
   description: string;
   transcript: string | null;
@@ -101,33 +112,45 @@ export interface UpdateVideoRecipeDraftPayload {
 }
 
 export interface PublishVideoRecipeDraftPayload {
-  categoryId: number | null;
-  tagIds: number[];
+  bmiTypeIds?: number[];
+  recipeName: string;
+  categoryIds: number[];
 }
 
 // ── Master data endpoints ──────────────────────────────────────────────────
 
-export async function getCategories(): Promise<CategoryItem[]> {
-  try {
-    const res = await apiGet<CategoryItem[]>("/api/categories");
-    return Array.isArray(res) ? res : [];
-  } catch {
-    return [];
+export function getIngredientCategories(): Promise<IngredientCategoryItem[]> {
+  return apiGet<IngredientCategoryItem[]>("/api/ingredient-categories");
+}
+
+export async function saveIngredientCategory(payload: Pick<IngredientCategoryItem, "code" | "name" | "dietaryGroup">, id?: number): Promise<IngredientCategoryItem> {
+  const response = await apiFetch(`/api/admin/ingredient-categories${id ? `/${id}` : ""}`, {
+    method: id ? "PUT" : "POST", body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message || `Ingredient category save failed (${response.status})`);
   }
+  return response.json();
+}
+
+export function getIngredients(keyword?: string): Promise<IngredientItem[]> {
+  const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : "";
+  return apiGet<IngredientItem[]>(`/api/ingredients${query}`);
+}
+
+export async function updateIngredient(id: number, payload: { name: string; ingredientCategoryId: number; allergenId: number | null }): Promise<IngredientItem> {
+  const response = await apiFetch(`/api/admin/ingredients/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message || `Ingredient update failed (${response.status})`);
+  }
+  return response.json();
 }
 
 export async function getAllergens(): Promise<AllergenItem[]> {
   try {
     const res = await apiGet<AllergenItem[]>("/api/allergens");
-    return Array.isArray(res) ? res : [];
-  } catch {
-    return [];
-  }
-}
-
-export async function getTags(): Promise<TagItem[]> {
-  try {
-    const res = await apiGet<TagItem[]>("/api/tags");
     return Array.isArray(res) ? res : [];
   } catch {
     return [];
@@ -171,20 +194,21 @@ export async function getRecipeById(id: number): Promise<RecipeResponse> {
 
 // ── AI Video Recipe Drafts ─────────────────────────────────────────────────
 
-export async function uploadVideoRecipeDraft(videoFile: File): Promise<VideoRecipeDraftResponse> {
+export async function uploadVideoRecipeDraft(videoFile: File, options: UploadOptions = {}): Promise<VideoRecipeDraftResponse> {
   const formData = new FormData();
   formData.append("video", videoFile);
 
-  const res = await apiFetch("/api/video-recipe-drafts", {
-    method: "POST",
-    body: formData,
-  });
+  const res = await apiUpload("/api/video-recipe-drafts", formData, options);
 
   if (!res.ok) {
     let errMsg = `Không thể tải lên video (${res.status})`;
     try {
       const errData = await res.json();
       errMsg = errData.message || errData.title || errMsg;
+      if (process.env.NODE_ENV === "development" && Array.isArray(errData.errors)) {
+        const details = errData.errors.filter((error: unknown): error is string => typeof error === "string" && error.trim().length > 0);
+        if (details.length > 0) errMsg += `\n${details.join("\n")}`;
+      }
     } catch {
       // Ignore
     }
@@ -197,6 +221,7 @@ export async function uploadVideoRecipeDraft(videoFile: File): Promise<VideoReci
 export async function getVideoRecipeDraft(id: number): Promise<VideoRecipeDraftResponse> {
   const res = await apiFetch(`/api/video-recipe-drafts/${id}`, {
     method: "GET",
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!res.ok) {

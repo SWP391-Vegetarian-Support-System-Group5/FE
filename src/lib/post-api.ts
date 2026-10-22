@@ -7,25 +7,25 @@ export interface CreatePostPayload {
   title: string;
   content: string;
   postType: PostType;
-  categoryId: number | null;
   videoUrl: string | null;
-  tagIds: number[];
 }
 
 export interface PostResponse {
   postId: number;
   userId: number;
   authorName: string;
-  categoryId: number | null;
-  categoryName: string | null;
   title: string;
   content: string;
   postType: PostType;
   videoUrl: string | null;
   status: string;
   thumbnailUrl: string | null;
-  tags: string[];
   averageRating: number;
+  ratingCount: number;
+  commentCount: number;
+  currentUserRating: number | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export class PostApiError extends Error {
@@ -67,7 +67,7 @@ async function request<T>(path: string, method = "GET", body?: unknown, signal?:
   return (raw.trim() ? JSON.parse(raw) : undefined) as T;
 }
 
-export interface PostFilters { keyword?: string; category?: string; postType?: string; tag?: string }
+export interface PostFilters { keyword?: string; postType?: string }
 export function getPosts(filters: PostFilters = {}, signal?: AbortSignal) {
   const query = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => { if (value) query.set(key, value); });
@@ -87,13 +87,10 @@ export const replyToComment = (id: number, content: string) => request<CommentRe
 export const updateComment = (id: number, content: string) => request<void>(`/api/comments/${id}`, "PUT", { content });
 export const deleteComment = (id: number) => request<void>(`/api/comments/${id}`, "DELETE");
 export const getRating = (id: number, signal?: AbortSignal) => request<{ averageRating: number }>(`/api/posts/${id}/rating`, "GET", undefined, signal);
-export const ratePost = (id: number, rating: number) => request<void>(`/api/posts/${id}/rating`, "POST", { rating });
+export const ratePost = (id: number, rating: number, hasExistingRating = false) => request<void>(`/api/posts/${id}/rating`, hasExistingRating ? "PUT" : "POST", { rating });
 export const getBookmarks = (signal?: AbortSignal) => request<PostResponse[]>("/api/users/me/bookmarks", "GET", undefined, signal);
 export const bookmarkPost = (id: number) => request<void>(`/api/posts/${id}/bookmark`, "POST");
 export const removeBookmark = (id: number) => request<void>(`/api/posts/${id}/bookmark`, "DELETE");
-export interface CommunityLookup { id: number; name: string; type: string | null }
-export const getPostCategories = () => request<CommunityLookup[]>("/api/categories");
-export const getPostTags = () => request<CommunityLookup[]>("/api/tags");
 
 export async function createPost(payload: CreatePostPayload): Promise<PostResponse> {
   // Recipes with ingredients/steps use /api/recipes, never a second /api/posts call.

@@ -39,6 +39,8 @@ export interface DietTypeItem {
   dietTypeId: number;
   name: string;
   description?: string;
+  allowedIngredientGroups?: string[];
+  prohibitedIngredientGroups?: string[];
 }
 
 /** Single allergen from GET /api/allergens */
@@ -100,6 +102,8 @@ export async function getDietTypes() {
     dietTypeId: item.dietTypeId ?? item.id ?? 0,
     name: item.name,
     description: item.description,
+    allowedIngredientGroups: (item as BackendCatalogItem & { allowedIngredientGroups?: string[] }).allowedIngredientGroups ?? [],
+    prohibitedIngredientGroups: (item as BackendCatalogItem & { prohibitedIngredientGroups?: string[] }).prohibitedIngredientGroups ?? [],
   })).filter((item) => item.dietTypeId > 0);
 }
 
