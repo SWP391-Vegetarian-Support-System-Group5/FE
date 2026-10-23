@@ -5,8 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { getBmiTypes, type BmiType } from "@/lib/bmi-api";
 
 export function useBmiLabel() {
-  const { language } = useLanguage();
-  return (type: BmiType) => language === "vi" ? type.name : ({ UNDERWEIGHT: "Underweight", NORMAL: "Normal", OBESE: "Obese" })[type.code];
+  return (type: BmiType) => ({ UNDERWEIGHT: "Thiếu cân", NORMAL: "Bình thường", OBESE: "Béo phì" })[type.code] || type.name;
 }
 
 export default function BmiTypePicker({ selected, onChange, disabled = false, catalog }: {

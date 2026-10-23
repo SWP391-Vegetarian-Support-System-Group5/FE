@@ -4,6 +4,12 @@ import type { BackendUser } from "./auth";
 let token: string | null = null;
 let user: BackendUser | null = null;
 let restored = false;
+const listeners = new Set<() => void>();
+export function subscribeSession(listener: () => void) {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+function notifySession() { listeners.forEach(listener => listener()); }
 const storageKey = "veggiemate_auth_session";
 const epoch = process.env.NEXT_PUBLIC_AUTH_SESSION_EPOCH || "current-build";
 
@@ -37,7 +43,7 @@ function persistSession() {
 
 export function readSessionToken() {
   restoreSession();
-  if (token && !hasValidExpiry(token)) clearSession();
+  if (token && !hasValidExpiry(token)) clearSession(false);
   return token;
 }
 export function readSessionUser() { return readSessionToken() ? user : null; }
@@ -46,9 +52,10 @@ export function setSession(tokenValue: string, userValue: BackendUser) {
   user = userValue;
   restored = true;
   persistSession();
+  notifySession();
 }
-export function setSessionUser(value: BackendUser) { user = value; persistSession(); }
-export function clearSession() {
+export function setSessionUser(value: BackendUser) { user = value; persistSession(); notifySession(); }
+export function clearSession(notify = true) {
   token = null;
   user = null;
   restored = true;
@@ -59,4 +66,5 @@ export function clearSession() {
       localStorage.removeItem("user");
     } catch { /* Storage may be blocked by browser settings. */ }
   }
+  if (notify) notifySession();
 }

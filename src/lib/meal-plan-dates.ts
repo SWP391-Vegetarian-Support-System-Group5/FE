@@ -1,5 +1,5 @@
 export function formatMealPlanDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit", month: "2-digit", year: "2-digit", timeZone: "UTC",
   }).format(date);
 }

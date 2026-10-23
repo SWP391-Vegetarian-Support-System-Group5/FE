@@ -45,7 +45,7 @@ export default function AdminLayout({
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#FBF9F6]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#1E3A2F] border-t-transparent" />
-          <p className="text-sm font-medium text-[#1E3A2F]"><UiText text={"Authenticating Administrator privileges..."} /></p>
+          <p className="text-sm font-medium text-[#1E3A2F]"><UiText text={"Đang kiểm tra quyền quản trị..."} /></p>
         </div>
       </div>
     );
@@ -144,14 +144,14 @@ export default function AdminLayout({
         <div>
           {/* Header Sidebar: ADMIN v1.4 */}
           <div className="mb-4 flex items-center justify-between px-3">
-            <span className="text-[11px] font-bold tracking-widest text-[#727974]"><UiText text={"ADMIN"} /></span>
+            <span className="text-[11px] font-bold tracking-widest text-[#727974]"><UiText text={"Quản trị viên"} /></span>
             <span className="text-[11px] font-medium text-[#A0A5A1]">v1.4</span>
           </div>
 
           {BYPASS_ADMIN_ROLE && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-1.5 text-[10px] font-semibold text-amber-800 flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              <span><UiText text={"Dev Bypass Active"} /></span>
+              <span><UiText text={"Chế độ phát triển đang bỏ qua kiểm tra quyền"} /></span>
             </div>
           )}
 
@@ -202,7 +202,7 @@ export default function AdminLayout({
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            <span><UiText text={"Log Out"} /></span>
+            <span><UiText text={"Đăng xuất"} /></span>
           </button>
         </div>
       </aside>

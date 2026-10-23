@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import ContentIcon from "@/components/content/ContentIcon";
-import { LanguageSwitch } from "@/components/UiText";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { createAllergen, deleteAllergen, listAllergens, updateAllergen, type AdminAllergen } from "@/lib/admin-catalog-api";
@@ -93,7 +92,7 @@ export default function AdminAllergensPage() {
   return <div className="space-y-6 text-[#07241A]">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFEEEB] pb-4">
       <span className="font-serif text-lg font-bold">VeggieMate <span className="font-sans text-xs font-normal text-[#727974]">/ {t("Admin Area", "Khu vực quản trị")}</span></span>
-      <div className="flex items-center gap-3"><LanguageSwitch /><span className="text-xs font-semibold">{user?.fullName ?? t("Admin", "Quản trị viên")}</span></div>
+      <div className="flex items-center gap-3"><span className="text-xs font-semibold">{user?.fullName ?? t("Admin", "Quản trị viên")}</span></div>
     </div>
 
     <div className="flex flex-wrap items-start justify-between gap-4">

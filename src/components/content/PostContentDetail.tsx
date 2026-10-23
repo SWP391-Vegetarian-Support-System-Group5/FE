@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { addPostComment, CommunityApiError, createCommunityEventSource, getPost, getPostComments, setPostRating, type CommentResponse, type CommunityEvent, type PostResponse } from "@/lib/community-api";
@@ -8,7 +9,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount } from "@/lib/localized-content";
 import { categoryName } from "@/lib/recipe-categories";
-import ContentDialog from "./ContentDialog";
+import InlinePostRating from "./InlinePostRating";
 import ContentIcon from "./ContentIcon";
 
 async function fetchPostDetail(postId: number) {
@@ -25,8 +26,6 @@ export default function PostContentDetail({ postId }: { postId: number }) {
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [comment, setComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [selection, setSelection] = useState(0);
-  const [dialog, setDialog] = useState<"rating" | null>(null);
   const [loadedPostId, setLoadedPostId] = useState<number | null>(null);
   const loading = loadedPostId !== postId;
   const [error, setError] = useState<string | null>(null);
@@ -116,20 +115,11 @@ export default function PostContentDetail({ postId }: { postId: number }) {
     }
   }
 
-  async function submitRating(event: FormEvent) {
-    event.preventDefault();
-    if (!user) { setError(t("Sign in to rate this post.", "Bạn cần đăng nhập để đánh giá bài viết này.")); return; }
-    if (!post || !selection) return;
-    try {
-      await setPostRating(post.postId, selection, Boolean(post.currentUserRating));
-      setPost({ ...post, currentUserRating: selection });
-      setDialog(null);
-      await load();
-    } catch (failure) {
-      setError(failure instanceof CommunityApiError && failure.status === 401
-        ? t("Please sign in before rating.", "Vui lòng đăng nhập trước khi đánh giá.")
-        : t("Could not save your rating. Please try again.", "Không thể lưu đánh giá. Vui lòng thử lại."));
-    }
+  async function submitRating(rating: number) {
+    if (!post) return;
+    await setPostRating(post.postId, rating, Boolean(post.currentUserRating));
+    setPost(current => current ? { ...current, currentUserRating: rating } : current);
+    await load();
   }
 
   if (loading) return <main className="bg-[#FBF9F6] px-6 py-24 text-center text-sm text-[#727974]">{t("Loading post...", "Đang tải bài viết...")}</main>;
@@ -158,17 +148,17 @@ export default function PostContentDetail({ postId }: { postId: number }) {
           {post.videoUrl ? (
             <video controls preload="metadata" poster={post.thumbnailUrl || undefined} src={post.videoUrl} className="aspect-video w-full bg-black object-contain" />
           ) : (
-            <img src={post.thumbnailUrl || "/images/recipe_tofu_tomato.png"} alt={localizeRecipeTitle(post.title, language)} className="aspect-video w-full object-cover" />
+            <Image unoptimized width={1200} height={675} src={post.thumbnailUrl || "/images/recipe_tofu_tomato.png"} alt={localizeRecipeTitle(post.title, language)} className="aspect-video w-full object-cover" />
           )}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7DF] py-5">
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{post.averageRating ? post.averageRating.toFixed(1) : t("New", "Mới")} / 5</strong><span className="ml-2 text-[#727974]">· {post.ratingCount} {t("ratings", "đánh giá")}</span></span>
-            <button onClick={() => { setSelection(post.currentUserRating || 0); setDialog("rating"); }} className="font-medium text-[#BC4B22] underline underline-offset-4">{post.currentUserRating ? t("Edit your rating", "Sửa đánh giá") : t("Rate this post", "Đánh giá bài viết")}</button>
           </div>
           <a href="#comments" className="text-sm hover:text-[#BC4B22]">{post.commentCount} {t("Comments", "bình luận")}</a>
         </div>
+        <InlinePostRating key={postId} currentRating={post.currentUserRating} signedIn={!!user} onRate={submitRating} />
         {error && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
         <div className="mt-8 grid items-start gap-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -198,12 +188,12 @@ export default function PostContentDetail({ postId }: { postId: number }) {
             </section>
           </div>
           <aside className="space-y-6">
-            <section className="rounded-3xl bg-[#254B38] p-7 text-white"><ContentIcon name="leaf" width="28" height="28" className="text-[#DCE8BC]" /><h2 className="mt-5 font-serif text-2xl">{t("Shared by the community", "Chia sẻ từ cộng đồng")}</h2><p className="mt-4 text-sm leading-7 text-white/80">{t("Comments and ratings update in real time while this page is open.", "Bình luận và đánh giá sẽ cập nhật realtime khi trang này đang mở.")}</p></section>
+            <section className="rounded-3xl bg-[#254B38] p-7 text-white"><ContentIcon name="leaf" width="28" height="28" className="text-[#DCE8BC]" /><h2 className="mt-5 font-serif text-2xl">{t("Shared by the community", "Chia sẻ từ cộng đồng")}</h2><p className="mt-4 text-sm leading-7 text-white/80">{t("Comments and ratings update in real time while this page is open.", "Bình luận và đánh giá sẽ cập nhật theo thời gian thực khi trang này đang mở.")}</p></section>
             <section className="rounded-3xl border border-[#E5E7DF] bg-white p-6"><h2 className="font-serif text-xl">{t("Make it part of your week", "Thêm món ngon vào tuần mới")}</h2><Link href="/meal-planner" className="mt-5 flex items-center justify-between rounded-full border border-[#254B38] px-4 py-3 text-xs font-semibold">{t("Open Meal Planner", "Mở lịch ăn uống")}<ContentIcon name="arrow" /></Link></section>
           </aside>
         </div>
       </article>
-      {dialog === "rating" && <ContentDialog title={t("How was this recipe?", "Bạn thấy món này thế nào?")} onClose={() => setDialog(null)}><form className="p-6" onSubmit={submitRating}><fieldset><legend className="text-sm text-[#727974]">{t("Choose your star rating", "Chọn số sao đánh giá")}</legend><div className="mt-5 flex justify-center gap-3">{[1, 2, 3, 4, 5].map(star => <label key={star} className="cursor-pointer"><input type="radio" name="recipe-rating" value={star} checked={selection === star} onChange={() => setSelection(star)} className="peer sr-only" /><span className={`block rounded-lg text-4xl ${star <= selection ? "text-[#CB8520]" : "text-[#D8DCD2]"}`}>★</span></label>)}</div></fieldset><button disabled={!selection} className="mt-6 w-full rounded-full bg-[#254B38] py-3 text-sm font-medium text-white disabled:opacity-40">{t("Submit rating", "Gửi đánh giá")}</button></form></ContentDialog>}
+
     </main>
   );
 }

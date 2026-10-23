@@ -607,11 +607,11 @@ function RecipeContentView() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EFEEEB] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#99462A]">
               <span>✒️</span>
-              <span><UiText text={"EDITORIAL WORKBENCH"} /></span>
+              <span><UiText text={"GÓC BIÊN SOẠN"} /></span>
             </span>
           </div>
-          <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight text-[#07241A] sm:text-4xl"><UiText text={"Create Content"} /></h1>
-          <p className="mt-1 text-sm text-[#424844]"><UiText text={"Share your plant-based recipe with the community."} /></p>
+          <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight text-[#07241A] sm:text-4xl"><UiText text={"Tạo bài viết"} /></h1>
+          <p className="mt-1 text-sm text-[#424844]"><UiText text={"Chia sẻ công thức món chay của bạn với cộng đồng."} /></p>
         </div>
 
 
@@ -657,7 +657,7 @@ function RecipeContentView() {
         <div className="my-6 rounded-2xl bg-[#F5F3F0] p-4 text-xs text-[#07241A] border border-[#EFEEEB] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span>🔒</span>
-            <span><UiText text={"You are browsing as a guest. Sign in to save drafts and publish recipes."} /></span>
+            <span><UiText text={"Bạn đang xem ở chế độ khách. Vui lòng đăng nhập để lưu bản nháp và đăng công thức."} /></span>
           </div>
           <Link
             href="/login"
@@ -669,8 +669,8 @@ function RecipeContentView() {
       {/* ── STEP 1: CHOOSE HOW TO CREATE ───────────────────────────────── */}
       <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
         <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
-          <span className="text-xs font-bold tracking-wider text-[#727974] uppercase"><UiText text={"STEP 1: CHOOSE HOW TO CREATE"} /></span>
-          <span className="text-xs text-[#727974]"><UiText text={"Step 1 of 4"} /></span>
+          <span className="text-xs font-bold tracking-wider text-[#727974] uppercase"><UiText text={"BƯỚC 1: CHỌN CÁCH TẠO BÀI"} /></span>
+          <span className="text-xs text-[#727974]"><UiText text={"Bước 1 trên 4"} /></span>
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -695,11 +695,11 @@ function RecipeContentView() {
                   >
                     ✨
                   </div>
-                  <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Generate with AI"} /></h3>
+                  <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Tạo với AI"} /></h3>
                 </div>
-                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]"><UiText text={"Recommended"} /></span>
+                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]"><UiText text={"Đề xuất"} /></span>
               </div>
-              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]"><UiText text={"Upload a cooking video. AI creates an editable draft of ingredients and steps for you to review."} /></p>
+              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]"><UiText text={"Tải video nấu ăn lên. AI tạo bản nháp nguyên liệu và các bước để bạn kiểm tra, chỉnh sửa."} /></p>
             </div>
             <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-[#1E3A2F]">
               <span><UiText text={"Tự động nhận diện nguyên liệu & công thức"} /></span>
@@ -728,11 +728,11 @@ function RecipeContentView() {
                   >
                     ✍️
                   </div>
-                  <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Write Manually"} /></h3>
+                  <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Viết thủ công"} /></h3>
                 </div>
-                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]"><UiText text={"Standard"} /></span>
+                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]"><UiText text={"Thông thường"} /></span>
               </div>
-              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]"><UiText text={"Enter ingredients, measurements, and cooking technique manually. Video attachment remains completely optional."} /></p>
+              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]"><UiText text={"Tự nhập nguyên liệu, định lượng và cách nấu. Bạn có thể đính kèm video nếu muốn."} /></p>
             </div>
             <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-[#1E3A2F]">
               <span><UiText text={"Tự do điều chỉnh toàn bộ chi tiết"} /></span>
@@ -753,7 +753,7 @@ function RecipeContentView() {
               {t("Recipe details", "Chi tiết công thức")}
             </h2>
           </div>
-          <span className="text-[10px] font-bold tracking-wider text-[#99462A] uppercase"><UiText text={"REQUIRED DETAILS"} /></span>
+          <span className="text-[10px] font-bold tracking-wider text-[#99462A] uppercase"><UiText text={"THÔNG TIN BẮT BUỘC"} /></span>
         </div>
 
         <div className="mt-6 space-y-5">
@@ -781,7 +781,7 @@ function RecipeContentView() {
 
             {/* Preparation time */}
             <div>
-              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Preparation time (minutes)"} /></label>
+              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Thời gian chuẩn bị (phút)"} /></label>
               <div className="relative mt-1.5">
                 <input
                   type="number"
@@ -824,7 +824,7 @@ function RecipeContentView() {
           {/* Story & flavor profile */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Dish description"} /></label>
+              <label className="block text-xs font-semibold text-[#07241A]"><UiText text={"Mô tả món ăn"} /></label>
               <span className="text-[11px] text-[#727974]">
                 {content.length} / 500
               </span>
@@ -849,15 +849,15 @@ function RecipeContentView() {
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
                 🎥
               </span>
-              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Cooking video"} /></h2>
+              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Video nấu ăn"} /></h2>
             </div>
-            <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[10px] font-bold tracking-wider text-[#1E3A2F]"><UiText text={"AI POWERED EXTRACTION"} /></span>
+            <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[10px] font-bold tracking-wider text-[#1E3A2F]"><UiText text={"PHÂN TÍCH BẰNG AI"} /></span>
           </div>
 
           <div className="mt-6 space-y-4">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-[#07241A]"><UiText text={"Upload cooking video"} /></span>
-              <span className="text-[#727974]"><UiText text={"MP4, MOV, WEBM, AVI (up to 100 MB)"} /></span>
+              <span className="font-semibold text-[#07241A]"><UiText text={"Tải video nấu ăn lên"} /></span>
+              <span className="text-[#727974]"><UiText text={"MP4, MOV, WEBM, AVI (tối đa 100 MB)"} /></span>
             </div>
 
             {/* Hidden file input */}
@@ -879,8 +879,8 @@ function RecipeContentView() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EFEEEB] text-2xl text-[#07241A]">
                   📁
                 </div>
-                <p className="mt-3 text-xs font-semibold text-[#07241A]"><UiText text={"Choose a cooking video from your device"} /></p>
-                <p className="mt-1 text-[11px] text-[#727974]"><UiText text={"Supports MP4, MOV, WEBM or AVI (under 100 MB)"} /></p>
+                <p className="mt-3 text-xs font-semibold text-[#07241A]"><UiText text={"Chọn video nấu ăn từ thiết bị"} /></p>
+                <p className="mt-1 text-[11px] text-[#727974]"><UiText text={"Hỗ trợ MP4, MOV, WEBM hoặc AVI (dưới 100 MB)"} /></p>
               </div>
             ) : (
               <div className="rounded-2xl border border-[#EFEEEB] bg-[#FBF9F6] p-4 space-y-4">
@@ -900,7 +900,7 @@ function RecipeContentView() {
                   <div className="sm:col-span-2 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2" aria-live="polite">
                       <span className="text-xs font-bold text-[#07241A] truncate max-w-xs">
-                        {videoFile?.name || "Uploaded video"}
+                        {videoFile?.name || "Video đã tải lên"}
                       </span>
                       {isUploading || draftStatus === "UPLOADING" ? (
                         <span role="status" className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">{t("Uploading video...", "Đang tải video...")}</span>
@@ -1013,9 +1013,9 @@ function RecipeContentView() {
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
                 🥗
               </span>
-              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Ingredients"} /></h2>
+              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Nguyên liệu"} /></h2>
             </div>
-            <p className="mt-0.5 text-xs text-[#727974]"><UiText text={"Edit quantities, ingredient names, and verify pantry provenance."} /></p>
+            <p className="mt-0.5 text-xs text-[#727974]"><UiText text={"Chỉnh định lượng, tên nguyên liệu và kiểm tra nguồn gốc."} /></p>
           </div>
           <button
             type="button"
@@ -1023,7 +1023,7 @@ function RecipeContentView() {
             className="flex items-center gap-1.5 rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-[#D9E6DC]/40 transition self-start sm:self-auto cursor-pointer"
           >
             <span>+</span>
-            <span><UiText text={"Add ingredient"} /></span>
+            <span><UiText text={"Thêm nguyên liệu"} /></span>
           </button>
         </div>
 
@@ -1130,8 +1130,8 @@ function RecipeContentView() {
                 {/* Non-plant clarification warning */}
                 {isNonPlant && (
                   <div className="rounded-xl bg-[#FDE8E4] px-3 py-1.5 text-[11px] text-[#99462A] flex items-center justify-between">
-                    <span><UiText text={"⚠️ Nhóm nguyên liệu"} />{" "}<strong>{t(...INGREDIENT_CATEGORY_LABELS[ing.dietaryGroup])}</strong>{" "}<UiText text={"affects vegan diet compatibility."} /></span>
-                    <span className="font-semibold text-[10px] uppercase"><UiText text={"Needs Clarification"} /></span>
+                    <span><UiText text={"⚠️ Nhóm nguyên liệu"} />{" "}<strong>{t(...INGREDIENT_CATEGORY_LABELS[ing.dietaryGroup])}</strong>{" "}<UiText text={"ảnh hưởng đến độ tương thích với chế độ thuần chay."} /></span>
+                    <span className="font-semibold text-[10px] uppercase"><UiText text={"Cần làm rõ"} /></span>
                   </div>
                 )}
               </div>
@@ -1149,9 +1149,9 @@ function RecipeContentView() {
               <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
                 🍳
               </span>
-              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Cooking steps"} /></h2>
+              <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Các bước nấu"} /></h2>
             </div>
-            <p className="mt-0.5 text-xs text-[#727974]"><UiText text={"Step-by-step guidance formatted with culinary precision."} /></p>
+            <p className="mt-0.5 text-xs text-[#727974]"><UiText text={"Hướng dẫn từng bước rõ ràng, dễ thực hiện."} /></p>
           </div>
           <button
             type="button"
@@ -1159,7 +1159,7 @@ function RecipeContentView() {
             className="flex items-center gap-1.5 rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-[#D9E6DC]/40 transition self-start sm:self-auto cursor-pointer"
           >
             <span>+</span>
-            <span><UiText text={"Add step"} /></span>
+            <span><UiText text={"Thêm bước"} /></span>
           </button>
         </div>
 
@@ -1209,7 +1209,7 @@ function RecipeContentView() {
             className="mt-0.5 h-4 w-4 rounded border-[#99462A] text-[#07241A] focus:ring-[#1E3A2F]"
           />
           <label htmlFor="review-checkbox" className="text-xs text-[#424844] cursor-pointer">
-            <span className="font-semibold text-[#07241A]"><UiText text={"I have reviewed the ingredients and cooking steps."} /></span>{" "}<UiText text={"Published recipes become available after you confirm ingredient provenance, resolve warnings, and verify step instructions."} /></label>
+            <span className="font-semibold text-[#07241A]"><UiText text={"Tôi đã kiểm tra nguyên liệu và các bước nấu."} /></span>{" "}<UiText text={"Kiểm tra nguồn gốc nguyên liệu, xử lý cảnh báo và xác nhận hướng dẫn trước khi đăng công thức."} /></label>
         </div>
 
         {/* Action Buttons */}
@@ -1222,7 +1222,7 @@ function RecipeContentView() {
               }
             }}
             className="text-xs font-semibold text-[#727974] hover:text-[#07241A] transition text-left sm:text-center"
-          ><UiText text={"✕ Discard changes"} /></button>
+          ><UiText text={"✕ Hủy thay đổi"} /></button>
 
           <div className="flex items-center gap-3">
             <button
@@ -1230,7 +1230,7 @@ function RecipeContentView() {
               onClick={handleSaveDraft}
               disabled={isSubmitting}
               className="rounded-xl border border-[#EFEEEB] bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition disabled:opacity-50 cursor-pointer"
-            ><UiText text={"Save draft"} /></button>
+            ><UiText text={"Lưu bản nháp"} /></button>
             <button
               type="button"
               onClick={handlePublish}

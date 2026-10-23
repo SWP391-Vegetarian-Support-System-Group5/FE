@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 
 export const metadata: Metadata = {
-  title: "Vegan Places | VeggieMate",
+  title: "Địa điểm chay | VeggieMate",
   description: "Tìm nhà hàng và địa điểm chay gần bạn trên bản đồ Việt Nam.",
 };
 

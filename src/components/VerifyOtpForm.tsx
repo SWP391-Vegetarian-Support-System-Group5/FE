@@ -8,41 +8,34 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyOtpWithApi, resendOtpWithApi, ApiError } from "@/lib/auth";
 
+import { useHydrated } from "@/hooks/useHydrated";
+
 export default function VerifyOtpForm() {
+  const hydrated = useHydrated();
+  const searchParams = useSearchParams();
+  if (!hydrated) return <p role="status">Đang tải thông tin xác thực…</p>;
+  const email = searchParams.get("email") || sessionStorage.getItem("veggiemate_pending_email") || "";
+  return <VerifyOtpFields key={email} email={email} />;
+}
+
+function VerifyOtpFields({ email }: { email: string }) {
   const ui = useUiText();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const [email, setEmail] = useState<string>("");
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+  const [cooldownSeconds, setCooldownSeconds] = useState(() => {
+    const deadline = Number(sessionStorage.getItem("veggiemate_otp_resend_cooldown"));
+    return Number.isFinite(deadline) ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000)) : 0;
+  });
   const [isEmailAlreadyVerified, setIsEmailAlreadyVerified] = useState(false);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // 1. Initialize email from query or sessionStorage
-  useEffect(() => {
-    let resolvedEmail = searchParams.get("email") || "";
-    if (!resolvedEmail && typeof window !== "undefined") {
-      resolvedEmail = sessionStorage.getItem("veggiemate_pending_email") || "";
-    }
-    setEmail(resolvedEmail);
-
-    // Check cooldown from sessionStorage
-    if (typeof window !== "undefined") {
-      const cooldownAt = sessionStorage.getItem("veggiemate_otp_resend_cooldown");
-      if (cooldownAt) {
-        const remaining = Math.max(0, Math.ceil((Number(cooldownAt) - Date.now()) / 1000));
-        setCooldownSeconds(remaining);
-      }
-    }
-  }, [searchParams]);
-
-  // 2. Cooldown timer interval
+  // Cooldown timer interval
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
     const timer = setInterval(() => {
@@ -278,8 +271,8 @@ export default function VerifyOtpForm() {
             VeggieMate
           </span>
         </Link>
-        <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]"><UiText text={"Verify your email"} /></h1>
-        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"We have sent a 6-digit verification code to"} /></p>
+        <h1 className="font-serif text-3xl font-medium tracking-tight text-[#07241A]"><UiText text={"Xác minh email của bạn"} /></h1>
+        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"Chúng tôi đã gửi mã xác minh 6 chữ số đến"} /></p>
         <p className="font-semibold text-xs sm:text-sm text-[#07241A] break-all mt-0.5">
           {email}
         </p>
@@ -314,7 +307,7 @@ export default function VerifyOtpForm() {
                 <Link
                   href={`/login?email=${encodeURIComponent(email)}`}
                   className="font-bold underline hover:text-[#07241A]"
-                ><UiText text={"Go to login"} /></Link>
+                ><UiText text={"Đến trang Đăng nhập"} /></Link>
               </p>
             )}
           </div>
@@ -335,7 +328,7 @@ export default function VerifyOtpForm() {
       {/* 6-Digit OTP Form */}
       <form onSubmit={handleVerify} className="mt-6 space-y-6">
         <div>
-          <label className="block text-center text-xs font-semibold text-[#727974] uppercase tracking-wider mb-3"><UiText text={"Enter 6-digit Code"} /></label>
+          <label className="block text-center text-xs font-semibold text-[#727974] uppercase tracking-wider mb-3"><UiText text={"Nhập mã 6 chữ số"} /></label>
           <div className="flex items-center justify-between gap-1.5 sm:gap-2.5">
             {otp.map((digit, idx) => (
               <input
@@ -351,7 +344,7 @@ export default function VerifyOtpForm() {
                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(idx, e)}
                 onPaste={idx === 0 ? handlePaste : undefined}
-                aria-label={`Digit ${idx + 1}`}
+                aria-label={`Chữ số thứ ${idx + 1}`}
                 className="h-12 w-11 sm:h-14 sm:w-13 rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] text-center text-lg sm:text-xl font-bold text-[#07241A] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1E3A2F]/20 shadow-xs"
               />
             ))}
@@ -391,7 +384,7 @@ export default function VerifyOtpForm() {
                 <span><UiText text={"Đang xác thực mã..."} /></span>
               </>
             ) : (
-              <span><UiText text={"Verify Email"} /></span>
+              <span><UiText text={"Xác minh email"} /></span>
             )}
           </button>
 
@@ -404,9 +397,9 @@ export default function VerifyOtpForm() {
             {isResending ? (
               <span><UiText text={"Đang gửi lại..."} /></span>
             ) : cooldownSeconds > 0 ? (
-              <span><UiText text={"Resend OTP in"} />{" "}{String(cooldownSeconds).padStart(2, "0")}s</span>
+              <span><UiText text={"Gửi lại OTP sau"} />{" "}{String(cooldownSeconds).padStart(2, "0")}s</span>
             ) : (
-              <span><UiText text={"Resend OTP"} /></span>
+              <span><UiText text={"Gửi lại OTP"} /></span>
             )}
           </button>
         </div>
@@ -417,7 +410,7 @@ export default function VerifyOtpForm() {
         <Link
           href={`/login?email=${encodeURIComponent(email)}`}
           className="font-semibold text-[#1E3A2F] hover:underline"
-        ><UiText text={"← Back to login"} /></Link>
+        ><UiText text={"← Về trang đăng nhập"} /></Link>
       </div>
     </div>
   );
