@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import type { RecipeResponse } from "@/lib/recipe-api";
@@ -37,7 +38,7 @@ export default function RecipeBrowser({ keyword = "" }: { keyword?: string }) {
     {catalogFailed && <p role="alert" className="mb-4 text-sm text-red-700">{t("Could not load recipe categories.", "Không thể tải danh mục công thức.")}</p>}
     {loading ? <p>{t("Loading recipes...", "Đang tải công thức...")}</p> : result.failed ? <p role="alert">{t("Could not load recipes. Please try again.", "Không thể tải công thức. Vui lòng thử lại.")}</p> : result.recipes.length === 0 ? <p>{t("No matching recipes.", "Không có công thức phù hợp.")}</p> :
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{result.recipes.map(r => <Link key={r.postId} href={`/view-detail/${r.postId}`} className="overflow-hidden rounded-lg border bg-white">
-        <img src={r.thumbnailUrl || "/images/recipe_tofu_tomato.png"} alt={localizeRecipeTitle(r.recipeName, language)} className="aspect-video w-full object-cover" />
+        <Image unoptimized width={1200} height={675} src={r.thumbnailUrl || "/images/recipe_tofu_tomato.png"} alt={localizeRecipeTitle(r.recipeName, language)} className="aspect-video w-full object-cover" />
         <div className="p-4"><h3 className="font-serif text-xl">{localizeRecipeTitle(r.recipeName, language)}</h3><p className="mt-3 text-xs text-[#727974]">{r.categories?.map(c => categoryName(c, language)).join(" · ")}</p></div>
       </Link>)}</div>}
   </section>;

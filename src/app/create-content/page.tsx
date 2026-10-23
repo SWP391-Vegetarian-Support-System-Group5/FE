@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import CreateContentView from "@/components/recipe/CreateContentView";
 
 export const metadata: Metadata = {
-  title: "Create Content | VeggieMate",
+  title: "Tạo bài viết | VeggieMate",
   description:
     "Chia sẻ công thức nấu ăn thuần chay, phân tích video với AI hoặc viết công thức thủ công trên VeggieMate.",
 };

@@ -11,7 +11,7 @@ const defaultExport = component => ({ __esModule: true, default: component });
 const ui = {
   ...defaultExport(({ text }) => text), useUiText: () => text => text,
 };
-const language = { useLanguage: () => ({ language: "en", locale: "en-US", setLanguage() {}, t: en => en }) };
+const language = { useLanguage: () => ({ language: "vi", locale: "vi-VN", t: (_en, vi) => vi }) };
 const common = {
   react: React, "react/jsx-runtime": jsx,
   "next/link": defaultExport(({ children, href, ...props }) => React.createElement("a", { ...props, href }, children)),
@@ -41,9 +41,9 @@ test("main category page renders all three tabs, rather than redirecting away", 
     "@/lib/bmi-api": {},
   });
   const html = renderToStaticMarkup(React.createElement(Component));
-  assert.match(html, /Category Ingredients/);
-  assert.match(html, /Dual Filter &amp; Dishes/);
-  assert.match(html, /New Category|Add Category|Create Category/);
+  assert.match(html, /Nhóm nguyên liệu/);
+  assert.match(html, /Lọc kết hợp và món ăn/);
+  assert.match(html, /Danh mục mới|Thêm danh mục|Tạo danh mục/);
   assert.doesNotMatch(html, /Phở nấm chay|520|Japanese Washoku/);
 });
 
@@ -71,7 +71,7 @@ test("restored main meal cards and recipe modal render API-backed view data, not
   assert.match(html, /Actual recipe/);
   assert.match(html, /100g tofu/);
   assert.match(html, /Cook tofu/);
-  assert.match(html, /Larder &amp; Fresh Bin/);
+  assert.doesNotMatch(html, /Larder &amp; Fresh Bin|Available ingredients/);
   assert.match(html, /placeholder="dd\/mm\/yy"/);
   assert.match(html, /value="19\/10\/26"/);
   assert.doesNotMatch(html, /type="date"/);
@@ -80,8 +80,8 @@ test("restored main meal cards and recipe modal render API-backed view data, not
     assert.match(html, new RegExp(`Day ${day} - ${18 + day}/10/26`));
     for (let meal = 1; meal <= 3; meal++) assert.match(html, new RegExp(`Actual recipe ${day}-${meal}`));
   }
-  assert.equal((html.match(/>View Recipe</g) || []).length, 21);
-  assert.equal((html.match(/>Replace</g) || []).length, 21);
+  assert.equal((html.match(/>Xem công thức</g) || []).length, 21);
+  assert.equal((html.match(/>Thay món</g) || []).length, 21);
   assert.doesNotMatch(html, /Remaining days/);
   assert.doesNotMatch(html, /kcal|Minh Tran|Warm Tofu &amp; Vegetable Congee|84%/);
 });
@@ -96,7 +96,7 @@ test("restored main place-card design uses live places and does not fall back to
   const html = renderToStaticMarkup(React.createElement(Component));
   assert.match(html, /Actual OSM place/);
   assert.match(html, /Actual address/);
-  assert.match(html, /Illustration/);
-  assert.match(html, /Not rated/);
+  assert.match(html, /Ảnh minh họa/);
+  assert.match(html, /Chưa có điểm/);
   assert.doesNotMatch(html, /Green Garden Vegetarian|Loving Leaf Vegan|4\.8|4\.9/);
 });

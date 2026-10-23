@@ -1,17 +1,16 @@
 "use client";
 
-import UiText from "@/components/UiText";
 
 
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function Footer() {
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   return (
     <footer className="w-full border-t border-[#EFEEEB] bg-[#F5F3F0] pt-14 pb-8 text-[#07241A]">
       <div className="mx-auto max-w-7xl px-6 lg:px-12">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand info */}
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-2.5">
@@ -46,12 +45,12 @@ export default function Footer() {
             </h4>
             <ul className="mt-4 space-y-2.5 text-xs text-[#424844]">
               <li>
-                <Link href="/explore?tab=recipes" className="transition hover:text-[#07241A]">
+                <Link href="/community" className="transition hover:text-[#07241A]">
                   {t("Recipes & Seasons", "Công thức theo mùa")}
                 </Link>
               </li>
               <li>
-                <Link href="/explore?tab=recipes" className="transition hover:text-[#07241A]">
+                <Link href="/community" className="transition hover:text-[#07241A]">
                   {t("Culinary Videos", "Video nấu ăn")}
                 </Link>
               </li>
@@ -92,22 +91,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Language & Community */}
-          <div>
-            <h4 className="text-sm font-semibold tracking-wide text-[#07241A]">
-              {t("Language & Community", "Ngôn ngữ & Cộng đồng")}
-            </h4>
-            <p className="mt-4 text-xs text-[#424844]">
-              {t("Choose your language:", "Chọn ngôn ngữ của bạn:")}
-            </p>
-            <div className="mt-2.5 inline-flex items-center gap-2 rounded-xl border border-[#EFEEEB] bg-white px-3 py-1.5 text-xs font-medium text-[#424844]">
-              <span>🌐</span>
-              <select aria-label={t("Language", "Ngôn ngữ")} value={language} onChange={(event) => setLanguage(event.target.value as "en" | "vi")} className="bg-transparent outline-none">
-                <option value="en"><UiText text={"English (EN)"} /></option>
-                <option value="vi">Tiếng Việt (VI)</option>
-              </select>
-            </div>
-          </div>
+
         </div>
 
         {/* Bottom copyright */}

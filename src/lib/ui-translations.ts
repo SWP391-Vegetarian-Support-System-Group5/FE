@@ -225,8 +225,8 @@ Tap bookmark flag on any card to remove from personal box|Nhấn biểu tượng
 Nothing saved yet|Chưa có mục nào được lưu
 Explore vegan recipes or your favorite restaurants and bookmark them for your collection.|Khám phá các công thức nấu ăn thuần chay hoặc nhà hàng yêu thích và nhấn lưu lại để đưa vào bộ sưu tập cá nhân.
 Explore recipes now|Khám phá công thức ngay
-Remove bookmark|Bỏ lưu bookmark
-Save bookmark|Lưu bookmark
+Remove bookmark|Bỏ lưu bài
+Save bookmark|Lưu bài
 Bookmarked|Đã lưu
 Removed|Đã bỏ lưu
 Saved Recipes|Công thức đã lưu
@@ -487,6 +487,18 @@ Live sync|Đồng bộ trực tiếp
 FILTER|BỘ LỌC
 Flagged|Bị cảnh báo
 Flagged (1)|Bị cảnh báo (1)
+Peanut|Đậu phộng
+Peanuts|Đậu phộng
+Soy|Đậu nành
+Milk|Sữa
+Egg|Trứng
+Eggs|Trứng
+Wheat|Lúa mì
+Tree nuts|Các loại hạt cây
+Sesame|Mè
+Shellfish|Hải sản có vỏ
+Fish|Cá
+Gluten|Đạm gluten
 Hidden|Đã ẩn
 No comments match this filter.|Không có bình luận nào theo bộ lọc này.
 Unhide|Hiện lại
@@ -824,8 +836,120 @@ Restaurants|Nhà hàng
 Allergens & Health|Dị ứng & Sức khỏe
 `.trim();
 
+const vietnameseCopy = `
+Your bookmarked community posts in one place.|Các bài viết cộng đồng bạn đã lưu.
+Loading...|Đang tải...
+Not available|Chưa có thông tin
+Category Management|Quản lý danh mục
+Manage system categories for Recipes and Ingredients.|Quản lý danh mục công thức và nguyên liệu của hệ thống.
+Add Category|Thêm danh mục
+Category Recipes|Danh mục công thức
+Category Ingredients|Nhóm nguyên liệu
+Dual Filter & Dishes|Lọc kết hợp và món ăn
+Search categories...|Tìm danh mục...
+Dual Category Filter & Recipe Explorer|Tra cứu công thức theo danh mục kết hợp
+Cross-reference culinary regional styles with nutrition and pantry ingredient classifications|Kết hợp phong cách ẩm thực với nhóm dinh dưỡng và nguyên liệu
+Dishes Matching Selection|Món ăn phù hợp lựa chọn
+Reset Filters|Đặt lại bộ lọc
+1. Category Recipes (Region/Style)|1. Danh mục công thức (vùng miền/phong cách)
+2. Category Ingredients (Pantry / Group)|2. Nhóm nguyên liệu
+Search Dishes or Ingredients|Tìm món ăn hoặc nguyên liệu
+Dual Filtered Dishes Explorer|Món ăn theo bộ lọc kết hợp
+Cross-referenced community recipe database|Danh sách công thức từ cộng đồng
+Dishes Found|Món ăn tìm thấy
+Dish / Recipe|Món ăn / Công thức
+Cuisine Category|Danh mục ẩm thực
+Pantry Group|Nhóm nguyên liệu
+Prep & Cook|Chuẩn bị và nấu
+Rating|Đánh giá
+Status|Trạng thái
+Actions|Thao tác
+No dishes match the selected dual filters.|Không có món ăn phù hợp với bộ lọc kết hợp.
+Reset dual filters|Đặt lại bộ lọc kết hợp
+Not rated|Chưa có đánh giá
+View recipe|Xem công thức
+Category Name|Tên danh mục
+Description & Highlights|Mô tả và điểm nổi bật
+Associated Items|Mục liên quan
+No categories found matching your search.|Không tìm thấy danh mục phù hợp.
+Create a new category|Tạo danh mục mới
+Edit Category|Sửa danh mục
+No ingredients in this category yet.|Chưa có nguyên liệu trong nhóm này.
+Manage ingredients|Quản lý nguyên liệu
+New Category|Danh mục mới
+Type|Loại
+Dietary group|Nhóm thực phẩm
+Category Classification|Phân loại danh mục
+Recipe Category|Danh mục công thức
+Ingredient Group|Nhóm nguyên liệu
+Category code|Mã danh mục
+URL Slug|Đường dẫn rút gọn
+Item Count|Số lượng
+Badge Emblem Style|Kiểu biểu tượng
+Active and visible across VeggieMate community|Đang hoạt động và hiển thị trong cộng đồng VeggieMate
+Create Category|Tạo danh mục
+Search reports...|Tìm báo cáo...
+Zoom in|Phóng to
+Zoom out|Thu nhỏ
+Click to toggle status|Nhấn để đổi trạng thái
+Community|Cộng đồng
+Post|Bài viết
+Slug|Đường dẫn rút gọn
+Admin|Quản trị viên
+User|Người dùng
+RECIPE|Công thức
+VIDEO|Video
+BLOG|Bài chia sẻ
+QUESTION|Câu hỏi
+PUBLISHED|Đã xuất bản
+PENDING|Chờ xử lý
+REMOVED|Đã gỡ
+DRAFT|Bản nháp
+APPROVED|Đã duyệt
+REJECTED|Đã từ chối
+ACTIVE|Đang hoạt động
+INACTIVE|Tạm ngưng
+ADMIN|Quản trị viên
+USER|Người dùng
+CUSTOMER|Thành viên
+MODERATOR|Điều hành viên
+BREAKFAST|Bữa sáng
+LUNCH|Bữa trưa
+DINNER|Bữa tối
+PLANT|Thực vật
+DAIRY|Sữa
+EGG|Trứng
+HONEY|Mật ong
+UNVERIFIED|Chưa xác minh
+Active|Đang hoạt động
+Inactive|Tạm ngưng
+Pending|Chờ xử lý
+Recipe & Video|Công thức và video
+Recipe|Công thức
+Comment|Bình luận
+Peanut|Đậu phộng
+Peanuts|Đậu phộng
+Soy|Đậu nành
+Milk|Sữa
+Egg|Trứng
+Eggs|Trứng
+Wheat|Lúa mì
+Tree nuts|Các loại hạt cây
+Sesame|Mè
+Shellfish|Hải sản có vỏ
+Fish|Cá
+Gluten|Đạm gluten
+Hidden|Đã ẩn
+Published|Đã xuất bản
+Draft|Bản nháp
+Failed to fetch|Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.
+Load failed|Không thể tải dữ liệu. Vui lòng thử lại.
+Resolved|Đã xử lý
+Dismissed|Đã bỏ qua
+`;
+
 const catalog = new Map<string, readonly [string, string]>();
-for (const line of `${copy}\n${extraCopy}\n${mealCopy}`.split("\n")) {
+for (const line of `${copy}\n${extraCopy}\n${mealCopy}\n${vietnameseCopy}`.split("\n")) {
   const [en, vi] = line.split("|");
   if (!en || !vi) continue;
   catalog.set(en, [en, vi]);

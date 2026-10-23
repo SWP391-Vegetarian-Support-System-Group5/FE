@@ -4,6 +4,8 @@ import UiText, { useUiText } from "@/components/UiText";
 
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import SearchableLocationSelect from "@/components/SearchableLocationSelect";
@@ -22,8 +24,6 @@ import {
   getAreas,
   getAddressSuggestions,
   geocodeAddress,
-  reverseGeocode,
-  type BackendUserProfile,
   type DietTypeItem,
   type AllergenItem,
   type ProvinceItem,
@@ -75,6 +75,13 @@ function validateDraft(d: ProfileDraft): ProfileErrors {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function ProfileForm() {
+  const { user, loading } = useAuth();
+  if (loading) return <p role="status">Đang tải hồ sơ…</p>;
+  if (!user || !getStoredToken()) return <p role="alert">Vui lòng <Link href="/login" className="underline">đăng nhập</Link> để xem hồ sơ.</p>;
+  return <ProfileFields key={user.uid} />;
+}
+
+function ProfileFields() {
   const ui = useUiText();
   const { language, t } = useLanguage();
   // ── Core state ────────────────────────────────────────────────────────────
@@ -114,13 +121,9 @@ export default function ProfileForm() {
   const [showDietDropdown, setShowDietDropdown] = useState(false);
   const [showSexDropdown, setShowSexDropdown] = useState(false);
   const [showAllergenDropdown, setShowAllergenDropdown] = useState(false);
-  const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
-  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
   const dietDropdownRef = useRef<HTMLDivElement>(null);
   const sexDropdownRef = useRef<HTMLDivElement>(null);
   const allergenDropdownRef = useRef<HTMLDivElement>(null);
-  const provinceDropdownRef = useRef<HTMLDivElement>(null);
-  const areaDropdownRef = useRef<HTMLDivElement>(null);
   const addressSuggestionsRef = useRef<HTMLDivElement>(null);
 
   // Avatar preview (local blob only — backend has no avatar field)
@@ -129,13 +132,6 @@ export default function ProfileForm() {
 
   // ── Load data on mount ────────────────────────────────────────────────────
   useEffect(() => {
-    const token = getStoredToken();
-    if (!token) {
-      setLoading(false);
-      setToastMessage("Please log in to view your profile.");
-      return;
-    }
-
     let cancelled = false;
 
     async function loadAll() {
@@ -219,10 +215,6 @@ export default function ProfileForm() {
         setShowSexDropdown(false);
       if (allergenDropdownRef.current && !allergenDropdownRef.current.contains(t))
         setShowAllergenDropdown(false);
-      if (provinceDropdownRef.current && !provinceDropdownRef.current.contains(t))
-        setShowProvinceDropdown(false);
-      if (areaDropdownRef.current && !areaDropdownRef.current.contains(t))
-        setShowAreaDropdown(false);
       if (addressSuggestionsRef.current && !addressSuggestionsRef.current.contains(t))
         setShowAddressSuggestions(false);
     }
@@ -268,7 +260,6 @@ export default function ProfileForm() {
       setSelectedProvinceCode(code);
       setSelectedAreaCode("");
       setAreas([]);
-      setShowProvinceDropdown(false);
       setAddressQuery("");
       if (province?.latitude != null && province.longitude != null) {
         setSelectedCoords({ lat: province.latitude, lng: province.longitude });
@@ -285,7 +276,6 @@ export default function ProfileForm() {
 
   const handleAreaSelect = useCallback(async (area: AreaItem) => {
     setSelectedAreaCode(area.code);
-    setShowAreaDropdown(false);
 
     if (area.latitude != null && area.longitude != null) {
       setSelectedCoords({ lat: area.latitude, lng: area.longitude });
@@ -475,11 +465,11 @@ export default function ProfileForm() {
       {/* ═══ 1. PAGE INTRODUCTION ═══ */}
       <section className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold tracking-[0.05em] uppercase text-[#727974]"><UiText text={"Account & Preferences"} /></span>
+          <span className="text-xs font-semibold tracking-[0.05em] uppercase text-[#727974]"><UiText text={"Tài khoản & tùy chọn"} /></span>
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#99462A]" />
         </div>
-        <h1 className="font-serif text-[40px] leading-[48px] font-medium tracking-[-0.025em] text-[#07241A]"><UiText text={"My Profile"} /></h1>
-        <p className="max-w-[672px] text-[15px] leading-6 text-[#424844]"><UiText text={"Manage your personal information, health details and living location to shape your seasonal table."} /></p>
+        <h1 className="font-serif text-[40px] leading-[48px] font-medium tracking-[-0.025em] text-[#07241A]"><UiText text={"Hồ sơ của tôi"} /></h1>
+        <p className="max-w-[672px] text-[15px] leading-6 text-[#424844]"><UiText text={"Quản lý thông tin cá nhân, sức khỏe và nơi sinh sống để nhận gợi ý bữa ăn phù hợp."} /></p>
       </section>
 
       {/* ═══ 2. PROFILE SUMMARY CARD ═══ */}
@@ -512,7 +502,7 @@ export default function ProfileForm() {
           {/* Info */}
           <div className="flex flex-col gap-0.5">
             <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]">
-              {draft.fullName || "Your Name"}
+              {draft.fullName || "Tên của bạn"}
             </h2>
             <span className="text-[13px] leading-5 text-[#727974]">
               {draft.email}
@@ -539,15 +529,15 @@ export default function ProfileForm() {
           >
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
             <circle cx="12" cy="13" r="4" />
-          </svg><UiText text={"Change Photo"} /></button>
+          </svg><UiText text={"Đổi ảnh"} /></button>
       </section>
 
       {/* ═══ 3. PERSONAL INFORMATION CARD ═══ */}
       <section className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
-            <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]"><UiText text={"Personal Information"} /></h2>
-            <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"Used for recipe discussions, workshop confirmations, and community identity."} /></p>
+            <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]"><UiText text={"Thông tin cá nhân"} /></h2>
+            <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"Dùng trong thảo luận công thức, xác nhận hoạt động và nhận diện thành viên."} /></p>
           </div>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F5F3F0]">
             <svg
@@ -569,7 +559,7 @@ export default function ProfileForm() {
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {/* Full Name */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Full Name"} /></label>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Họ và tên"} /></label>
             <input
               type="text"
               value={draft.fullName}
@@ -586,7 +576,7 @@ export default function ProfileForm() {
 
           {/* Email Address (read-only) */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Email Address"} /></label>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Địa chỉ email"} /></label>
             <input
               type="email"
               value={draft.email}
@@ -598,7 +588,7 @@ export default function ProfileForm() {
 
           {/* Gender dropdown */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Gender"} /></label>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Giới tính"} /></label>
             <div ref={sexDropdownRef} className="relative">
               <button
                 type="button"
@@ -859,7 +849,7 @@ export default function ProfileForm() {
           {/* Visual indicator */}
           {bmi !== null && (
             <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5">
-              <span className="text-xs font-semibold tracking-[0.02em] text-[#727974]"><UiText text={"Optimal Balance"} /></span>
+              <span className="text-xs font-semibold tracking-[0.02em] text-[#727974]"><UiText text={"Cân bằng tối ưu"} /></span>
               <div className="flex h-2 w-20 overflow-hidden rounded-full bg-[#EFEEEB]">
                 <div
                   className="h-full rounded-full bg-[#DBDAD7]"
@@ -881,8 +871,8 @@ export default function ProfileForm() {
         {/* Allergies & Intolerances */}
         <div className="mt-6 flex flex-col gap-2.5">
           <div className="flex flex-col">
-            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Allergies & Intolerances"} /></label>
-            <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"VeggieMate will flag or automatically omit dishes featuring these elements."} /></p>
+            <label className="text-xs font-semibold tracking-[0.02em] text-[#424844]"><UiText text={"Dị ứng & không dung nạp"} /></label>
+            <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"VeggieMate sẽ cảnh báo hoặc bỏ qua món có các thành phần này."} /></p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -899,7 +889,7 @@ export default function ProfileForm() {
                     type="button"
                     onClick={() => removeAllergen(id)}
                     className="flex items-center justify-center text-[#390B00]/60 transition hover:text-[#390B00]"
-                    aria-label={`Remove ${allergen?.name ?? ""}`}
+                    aria-label={`Gỡ dị ứng ${allergen?.name ?? ""}`}
                   >
                     <svg
                       width="8"
@@ -934,11 +924,11 @@ export default function ProfileForm() {
                   strokeLinecap="round"
                 >
                   <path d="M4 1v6M1 4h6" />
-                </svg><UiText text={"Add Allergy"} /></button>
+                </svg><UiText text={"Thêm dị ứng"} /></button>
               {showAllergenDropdown && (
                 <div className="absolute left-0 top-full z-[1000] mt-1 w-52 max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
                   {allAllergens.length === 0 && (
-                    <div className="px-4 py-3 text-xs text-[#727974]"><UiText text={"No allergens available"} /></div>
+                    <div className="px-4 py-3 text-xs text-[#727974]"><UiText text={"Chưa có thông tin chất gây dị ứng"} /></div>
                   )}
                   {allAllergens.map((allergen) => {
                     const isSelected = selectedAllergenIds.includes(
@@ -1132,7 +1122,7 @@ export default function ProfileForm() {
           type="button"
           onClick={handleCancel}
           className="rounded-xl px-5 py-2.5 text-sm font-semibold tracking-[0.01em] text-[#727974] transition hover:bg-[#F5F3F0] hover:text-[#07241A]"
-        ><UiText text={"Cancel"} /></button>
+        ><UiText text={"Hủy bỏ"} /></button>
         <button
           type="button"
           onClick={handleSave}
@@ -1161,7 +1151,7 @@ export default function ProfileForm() {
                   strokeLinecap="round"
                   className="opacity-75"
                 />
-              </svg><UiText text={"Saving…"} /></>
+              </svg><UiText text={"Đang lưu…"} /></>
           ) : (
             <>
               <svg
@@ -1177,7 +1167,7 @@ export default function ProfileForm() {
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
-              </svg><UiText text={"Save Changes"} /></>
+              </svg><UiText text={"Lưu thay đổi"} /></>
           )}
         </button>
       </div>

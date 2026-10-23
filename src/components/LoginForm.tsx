@@ -189,7 +189,7 @@ export default function LoginForm() {
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
           <span className="text-sm font-bold text-emerald-700">✓</span>
           <div className="flex-1 leading-relaxed">
-            <p className="font-semibold"><UiText text={"Email verified successfully. Please log in."} /></p>
+            <p className="font-semibold"><UiText text={"Xác minh email thành công. Vui lòng đăng nhập."} /></p>
             <p className="text-[11px] text-[#526359] mt-0.5"><UiText text={"Tài khoản của bạn đã được kích hoạt thành công. Hãy nhập mật khẩu để đăng nhập."} /></p>
           </div>
           <button
@@ -341,7 +341,7 @@ export default function LoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
+              placeholder="ten@example.com"
               className="w-full rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-2.5 text-xs text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
             />
             <div className="absolute right-3.5 top-3 text-[#727974]">
@@ -435,7 +435,7 @@ export default function LoginForm() {
               </>
             ) : (
               <>
-                <span><UiText text={"Log In"} /></span>
+                <span><UiText text={"Đăng nhập"} /></span>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
@@ -458,9 +458,9 @@ export default function LoginForm() {
       </div>
 
       {/* Terms & Privacy */}
-      <p className="mt-6 text-center font-serif text-[11px] leading-tight text-[#727974]"><UiText text={"By continuing, you agree to VeggieMate's"} />{" "}
-        <a href="#terms" className="underline hover:text-[#07241A]"><UiText text={"Terms of Service"} /></a>{" "}<UiText text={"and"} />{" "}
-        <a href="#privacy" className="underline hover:text-[#07241A]"><UiText text={"Privacy Policy"} /></a>.
+      <p className="mt-6 text-center font-serif text-[11px] leading-tight text-[#727974]"><UiText text={"Khi tiếp tục, bạn đồng ý với"} />{" "}
+        <a href="#terms" className="underline hover:text-[#07241A]"><UiText text={"Điều khoản sử dụng"} /></a>{" "}<UiText text={"và"} />{" "}
+        <a href="#privacy" className="underline hover:text-[#07241A]"><UiText text={"Chính sách bảo mật"} /></a>.
       </p>
     </div>
   );

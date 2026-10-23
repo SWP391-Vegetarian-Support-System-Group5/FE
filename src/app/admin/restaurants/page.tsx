@@ -1,8 +1,8 @@
 "use client";
+import { formatDietTypeName } from "@/lib/diet-type-display";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import ContentIcon from "@/components/content/ContentIcon";
-import { LanguageSwitch } from "@/components/UiText";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -147,7 +147,7 @@ export default function AdminRestaurantsPage() {
   return <div className="space-y-6 text-[#07241A]">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFEEEB] pb-4">
       <span className="font-serif text-lg font-bold">VeggieMate <span className="font-sans text-xs font-normal text-[#727974]">/ {t("Admin Area", "Khu vực quản trị")}</span></span>
-      <div className="flex items-center gap-3"><LanguageSwitch /><span className="text-xs font-semibold">{user?.fullName ?? t("Admin", "Quản trị viên")}</span></div>
+      <div className="flex items-center gap-3"><span className="text-xs font-semibold">{user?.fullName ?? t("Admin", "Quản trị viên")}</span></div>
     </div>
 
     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -169,7 +169,7 @@ export default function AdminRestaurantsPage() {
 
     <div className="flex flex-wrap gap-3">
       <label className="min-w-52 flex-1 text-xs font-semibold">{t("Search", "Tìm kiếm")}<input type="search" value={query} onChange={event => { setQuery(event.target.value); setPage(1); }} placeholder={t("Name, address, food or ID", "Tên, địa chỉ, món ăn hoặc mã")} className={inputClass} /></label>
-      <label className="min-w-44 text-xs font-semibold">{t("Diet Type", "Loại hình ăn chay")}<select value={dietFilter} onChange={event => { setDietFilter(event.target.value); setPage(1); }} className={inputClass}><option value="">{t("All diet types", "Tất cả loại hình")}</option>{dietTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select></label>
+      <label className="min-w-44 text-xs font-semibold">{t("Diet Type", "Loại hình ăn chay")}<select value={dietFilter} onChange={event => { setDietFilter(event.target.value); setPage(1); }} className={inputClass}><option value="">{t("All diet types", "Tất cả loại hình")}</option>{dietTypes.map(type => <option key={type.id} value={type.id}>{formatDietTypeName(type.name)}</option>)}</select></label>
     </div>
 
     <div className="overflow-hidden rounded-lg border border-[#EFEEEB] bg-white">
@@ -193,7 +193,7 @@ export default function AdminRestaurantsPage() {
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         <label className="block text-xs font-semibold">{t("Name", "Tên")} *<input required maxLength={200} value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} className={inputClass} /></label>
         <label className="block text-xs font-semibold">{t("Address", "Địa chỉ")} *<input required maxLength={300} value={form.address} onChange={event => setForm({ ...form, address: event.target.value })} placeholder={t("Street number, street, ward, city", "Số nhà, tên đường, phường/xã, tỉnh/thành phố")} className={inputClass} /></label>
-        <label className="block text-xs font-semibold">{t("Diet Type", "Loại hình ăn chay")}<select value={form.dietTypeId} onChange={event => setForm({ ...form, dietTypeId: event.target.value })} className={inputClass}><option value="">{t("None", "Không có")}</option>{dietTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select></label>
+        <label className="block text-xs font-semibold">{t("Diet Type", "Loại hình ăn chay")}<select value={form.dietTypeId} onChange={event => setForm({ ...form, dietTypeId: event.target.value })} className={inputClass}><option value="">{t("None", "Không có")}</option>{dietTypes.map(type => <option key={type.id} value={type.id}>{formatDietTypeName(type.name)}</option>)}</select></label>
         <label className="block text-xs font-semibold">{t("Foods (comma separated)", "Món ăn (cách nhau bằng dấu phẩy)")}<textarea rows={3} value={form.foods} onChange={event => setForm({ ...form, foods: event.target.value })} className={inputClass} /></label>
         <div className="flex justify-end gap-3 border-t border-[#EFEEEB] pt-4"><button type="button" onClick={() => setForm(null)} className="rounded-lg border border-[#EFEEEB] px-4 py-2 text-xs font-semibold">{t("Cancel", "Hủy")}</button><button type="submit" className="rounded-lg bg-[#0F2F24] px-5 py-2 text-xs font-semibold text-white">{busy ? t("Saving...", "Đang lưu...") : t("Save", "Lưu")}</button></div>
       </fieldset></form>

@@ -163,8 +163,8 @@ export default function RegisterForm() {
             VeggieMate
           </span>
         </Link>
-        <h1 className="font-serif text-3xl sm:text-4xl font-medium tracking-tight text-[#07241A]"><UiText text={"Welcome to VeggieMate"} /></h1>
-        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"Create an account to save recipes, join mindful discussions, and access personalized plant-based nutrition."} /></p>
+        <h1 className="font-serif text-3xl sm:text-4xl font-medium tracking-tight text-[#07241A]"><UiText text={"Chào mừng đến VeggieMate"} /></h1>
+        <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"Tạo tài khoản để lưu công thức, tham gia thảo luận và nhận gợi ý dinh dưỡng thực vật phù hợp."} /></p>
       </div>
 
       {/* Logged in notification if already authenticated */}
@@ -280,7 +280,7 @@ export default function RegisterForm() {
       {/* Divider */}
       <div className="relative my-6 flex items-center justify-center">
         <div className="w-full border-t border-[#EFEEEB]" />
-        <span className="absolute bg-white px-3 text-xs font-semibold text-[#727974] tracking-wider"><UiText text={"OR"} /></span>
+        <span className="absolute bg-white px-3 text-xs font-semibold text-[#727974] tracking-wider"><UiText text={"HOẶC"} /></span>
       </div>
 
       {/* Form Fields */}
@@ -290,7 +290,7 @@ export default function RegisterForm() {
           <label
             htmlFor="fullName"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          ><UiText text={"Full Name"} /></label>
+          ><UiText text={"Họ và tên"} /></label>
           <input
             id="fullName"
             type="text"
@@ -308,7 +308,7 @@ export default function RegisterForm() {
           <label
             htmlFor="email"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          ><UiText text={"Email address"} /></label>
+          ><UiText text={"Địa chỉ email"} /></label>
           <div className="relative">
             <input
               id="email"
@@ -333,7 +333,7 @@ export default function RegisterForm() {
           <label
             htmlFor="password"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          ><UiText text={"Password"} /></label>
+          ><UiText text={"Mật khẩu"} /></label>
           <div className="relative">
             <input
               id="password"
@@ -373,7 +373,7 @@ export default function RegisterForm() {
           <label
             htmlFor="confirmPassword"
             className="block text-xs font-semibold text-[#07241A] mb-1.5"
-          ><UiText text={"Confirm Password"} /></label>
+          ><UiText text={"Xác nhận mật khẩu"} /></label>
           <div className="relative">
             <input
               id="confirmPassword"
@@ -442,7 +442,7 @@ export default function RegisterForm() {
               </>
             ) : (
               <>
-                <span><UiText text={"Create Account"} /></span>
+                <span><UiText text={"Tạo tài khoản"} /></span>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
@@ -455,17 +455,17 @@ export default function RegisterForm() {
 
       {/* Switch to Login */}
       <div className="mt-5 text-center text-xs text-[#424844]">
-        <span><UiText text={"Already have an account?"} />{" "}</span>
+        <span><UiText text={"Bạn đã có tài khoản?"} />{" "}</span>
         <Link
           href="/login"
           className="font-semibold text-[#1E3A2F] underline underline-offset-2 hover:text-[#07241A]"
-        ><UiText text={"Log In"} /></Link>
+        ><UiText text={"Đăng nhập"} /></Link>
       </div>
 
       {/* Terms & Privacy */}
-      <p className="mt-6 text-center font-serif italic text-[11px] leading-tight text-[#727974]"><UiText text={"By continuing, you agree to VeggieMate's"} />{" "}
-        <a href="#terms" className="underline hover:text-[#07241A]"><UiText text={"Terms of Service"} /></a>{" "}<UiText text={"and"} />{" "}
-        <a href="#privacy" className="underline hover:text-[#07241A]"><UiText text={"Privacy Policy"} /></a>.
+      <p className="mt-6 text-center font-serif italic text-[11px] leading-tight text-[#727974]"><UiText text={"Khi tiếp tục, bạn đồng ý với"} />{" "}
+        <a href="#terms" className="underline hover:text-[#07241A]"><UiText text={"Điều khoản sử dụng"} /></a>{" "}<UiText text={"và"} />{" "}
+        <a href="#privacy" className="underline hover:text-[#07241A]"><UiText text={"Chính sách bảo mật"} /></a>.
       </p>
     </div>
   );

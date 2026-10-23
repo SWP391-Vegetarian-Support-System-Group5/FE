@@ -155,7 +155,7 @@ export default function LocationExplorer() {
     } else if (nextArea && nextAreaCode !== "all") {
       try {
         const result = await locationApi.geocode(`${nextArea.name}, ${province?.name ?? ""}, Việt Nam`);
-        if (!result) throw new Error("Area was not found.");
+        if (!result) throw new Error("Không tìm thấy khu vực.");
         nextCenter = { lat: result.latitude, lng: result.longitude };
         setCenter(nextCenter);
         setMessage(`Đã xác định vị trí ${nextArea.name} trên bản đồ.`);
@@ -179,7 +179,7 @@ export default function LocationExplorer() {
     }
     try {
       const result = await locationApi.geocode(`${address}, ${area?.name ?? ""}, ${province?.name ?? ""}, Việt Nam`);
-      if (!result) throw new Error("Address was not found.");
+      if (!result) throw new Error("Không tìm thấy địa chỉ.");
       const nextCenter = { lat: result.latitude, lng: result.longitude };
       const filters = await syncAdministrativeSelection(result.formattedAddress);
       setAddress(result.formattedAddress);

@@ -59,7 +59,7 @@ function MapZoomButtons() {
         type="button"
         onClick={() => map.zoomIn()}
         className="flex h-9 w-9 items-center justify-center border-b border-[#DBDAD7] text-xl font-semibold leading-none text-[#07241A] transition hover:bg-[#F5F3F0]"
-        aria-label="Zoom in"
+        aria-label="Phóng to"
       >
         +
       </button>
@@ -67,7 +67,7 @@ function MapZoomButtons() {
         type="button"
         onClick={() => map.zoomOut()}
         className="flex h-9 w-9 items-center justify-center text-xl font-semibold leading-none text-[#07241A] transition hover:bg-[#F5F3F0]"
-        aria-label="Zoom out"
+        aria-label="Thu nhỏ"
       >
         -
       </button>

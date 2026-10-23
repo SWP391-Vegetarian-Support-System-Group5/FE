@@ -8,7 +8,6 @@ import Footer from "@/components/Footer";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 import PopularRecipes from "@/components/PopularRecipes";
 import PopularRestaurants from "@/components/PopularRestaurants";
-import CommunityFeed from "@/components/content/CommunityFeed";
 import Reveal from "@/components/ui/Reveal";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
@@ -31,19 +30,19 @@ export default function HomePage() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 rounded-full bg-[#D9E6DC] px-3.5 py-1 text-[11px] font-semibold tracking-wider text-[#1E3A2F] uppercase">
                 <span>🌱</span>
-                <span><UiText text={"Vegetarian Lifestyle"} /></span>
+                <span><UiText text={"Lối sống chay"} /></span>
               </div>
 
               {/* Main Heading */}
-              <h1 className="mt-5 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl lg:text-[56px] lg:leading-[64px]"><UiText text={"Discover Better"} />{" "}<br /><UiText text={"Vegetarian Living"} /></h1>
+              <h1 className="mt-5 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl lg:text-[56px] lg:leading-[64px]"><UiText text={"Khám phá cuộc sống"} />{" "}<br /><UiText text={"chay tốt đẹp hơn"} /></h1>
 
               {/* Subtitle */}
-              <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg"><UiText text={"Find inspiring recipes, cooking videos and restaurant reviews for your everyday vegetarian journey."} /></p>
+              <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg"><UiText text={"Tìm công thức, video nấu ăn và đánh giá nhà hàng cho hành trình ăn chay mỗi ngày."} /></p>
 
               {/* Search Bar Input Form */}
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <form
-                  action="/explore"
+                  action="/community"
                   className="flex w-full items-center rounded-2xl bg-[#F5F3F0] p-1.5 shadow-sm border border-[#EFEEEB]"
                 >
                   <div className="flex items-center pl-3 text-[#727974]">
@@ -60,17 +59,17 @@ export default function HomePage() {
                   <button
                     type="submit"
                     className="rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold tracking-wide text-white transition hover:bg-[#1E3A2F] shrink-0"
-                  ><UiText text={"Search"} /></button>
+                  ><UiText text={"Tìm kiếm"} /></button>
                 </form>
               </div>
 
               {/* Primary CTA Link */}
               <div className="mt-6">
                 <Link
-                  href="/explore?tab=recipes"
+                  href="/community"
                   className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-3 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
                 >
-                  <span><UiText text={"Explore Recipes"} /></span>
+                  <span><UiText text={"Khám phá công thức"} /></span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 12h14" />
                     <path d="m12 5 7 7-7 7" />
@@ -119,7 +118,7 @@ export default function HomePage() {
                 </p>
               </div>
               <Link
-                href="/explore?tab=recipes"
+                href="/community"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#99462A] hover:underline"
               >
                 <span>{t("View All Recipes", "Xem tất cả công thức")}</span>
@@ -133,7 +132,6 @@ export default function HomePage() {
             <PopularRecipes />
           </div>
         </section></Reveal>
-        <Reveal><section className="mx-auto max-w-7xl px-6 py-16 lg:px-12"><CommunityFeed compact /></section></Reveal>
 
         {/* 3. POPULAR RESTAURANTS SECTION */}
         {user && <PopularRestaurants />}
@@ -148,14 +146,14 @@ export default function HomePage() {
                 <path d="m16 8 5-5" />
               </svg>
             </div>
-            <h2 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl max-w-2xl mx-auto"><UiText text={"Start with a dish you already love."} /></h2>
-            <p className="mt-3 text-base text-[#424844] max-w-xl mx-auto"><UiText text={"Discover its vegetarian version and explore recipes you can cook."} /></p>
+            <h2 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl max-w-2xl mx-auto"><UiText text={"Bắt đầu với món ăn bạn yêu thích."} /></h2>
+            <p className="mt-3 text-base text-[#424844] max-w-xl mx-auto"><UiText text={"Tìm phiên bản chay và khám phá công thức bạn có thể tự nấu."} /></p>
             <div className="mt-8">
               <Link
-                href="/explore?tab=recipes"
+                href="/community"
                 className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-8 py-3.5 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
               >
-                <span><UiText text={"Find a Vegetarian Version"} /></span>
+                <span><UiText text={"Tìm phiên bản chay"} /></span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />

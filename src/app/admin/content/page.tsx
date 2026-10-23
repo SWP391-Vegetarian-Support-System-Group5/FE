@@ -1,6 +1,5 @@
 "use client";
 
-import { LanguageSwitch } from "@/components/UiText";
 import UiText, { useUiText } from "@/components/UiText";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -169,7 +168,7 @@ export default function AdminContentPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
             </svg>
-            <span><UiText text={"Admin Area"} /></span>
+            <span><UiText text={"Khu vực quản trị"} /></span>
           </div>
         </div>
 
@@ -197,15 +196,15 @@ export default function AdminContentPage() {
             </svg>
           </div>
 
-          <LanguageSwitch />
+
 
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-[#1E3A2F] text-white flex items-center justify-center text-xs font-bold shadow-sm">
               AD
             </div>
             <div className="text-left leading-tight hidden sm:block">
-              <p className="text-xs font-bold text-[#07241A]">{user?.displayName || user?.fullName || "Admin"}</p>
-              <p className="text-[10px] text-[#727974]"><UiText text={"Supervisor"} /></p>
+              <p className="text-xs font-bold text-[#07241A]">{user?.displayName || user?.fullName || "Quản trị viên"}</p>
+              <p className="text-[10px] text-[#727974]"><UiText text={"Người giám sát"} /></p>
             </div>
           </div>
         </div>
@@ -221,7 +220,7 @@ export default function AdminContentPage() {
               <path d="M6 6h10" />
               <path d="M6 10h10" />
             </svg>
-            <span className="text-[11px] font-bold tracking-wider uppercase"><UiText text={"Editorial Desk"} /></span>
+            <span className="text-[11px] font-bold tracking-wider uppercase"><UiText text={"Góc biên tập"} /></span>
           </div>
 
           <h1 className="font-serif text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A]">
@@ -238,7 +237,7 @@ export default function AdminContentPage() {
           <div className="flex items-center gap-3 rounded-2xl border border-[#EFEEEB] bg-white px-4 py-3 shadow-sm min-w-[130px]">
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-[#727974] flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#F97316]" /><UiText text={"Total Library"} /></span>
+                <span className="h-2 w-2 rounded-full bg-[#F97316]" /><UiText text={"Tổng nội dung"} /></span>
               <span className="font-serif text-2xl font-bold text-[#07241A]">{posts.length}</span>
             </div>
           </div>
@@ -247,7 +246,7 @@ export default function AdminContentPage() {
           <div className="flex items-center gap-3 rounded-2xl border border-[#EFEEEB] bg-white px-4 py-3 shadow-sm min-w-[130px]">
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-[#727974] flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#10B981]" /><UiText text={"Pending Moderation"} /></span>
+                <span className="h-2 w-2 rounded-full bg-[#10B981]" /><UiText text={"Chờ kiểm duyệt"} /></span>
               <span className="font-serif text-2xl font-bold text-[#07241A]">{pendingCount}</span>
             </div>
           </div>
@@ -264,7 +263,7 @@ export default function AdminContentPage() {
               <path d="M6 6h10" />
               <path d="M6 10h10" />
             </svg>
-            <span><UiText text={"All Published Content"} /></span>
+            <span><UiText text={"Tất cả nội dung đã đăng"} /></span>
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
               {publishedCount}
             </span>
@@ -282,7 +281,7 @@ export default function AdminContentPage() {
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" y2="3" />
             </svg>
-            <span><UiText text={"Export CSV"} /></span>
+            <span><UiText text={"Xuất CSV"} /></span>
           </button>
 
 
@@ -352,9 +351,9 @@ export default function AdminContentPage() {
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               className="appearance-none rounded-xl border border-[#EFEEEB] bg-white py-1.5 pl-3 pr-8 text-xs font-semibold text-[#07241A] shadow-sm focus:border-[#1E3A2F] focus:outline-none cursor-pointer"
             >
-              <option value="All"><UiText text={"Status: All"} /></option>
-              <option value="Published"><UiText text={"Status: Published"} /></option>
-              <option value="Draft"><UiText text={"Status: Draft"} /></option>
+              <option value="All"><UiText text={"Trạng thái: Tất cả"} /></option>
+              <option value="Published"><UiText text={"Trạng thái: Đã đăng"} /></option>
+              <option value="Draft"><UiText text={"Trạng thái: Bản nháp"} /></option>
             </select>
             <svg
               className="pointer-events-none absolute right-2.5 top-2.5 text-[#727974]"
@@ -407,9 +406,9 @@ export default function AdminContentPage() {
                   <line x1="3" y1="12" x2="3.01" y2="12" />
                   <line x1="3" y1="18" x2="3.01" y2="18" />
                 </svg>
-                <h2 className="font-serif text-base font-bold text-[#07241A]"><UiText text={"Published Stories & Guides"} /></h2>
+                <h2 className="font-serif text-base font-bold text-[#07241A]"><UiText text={"Bài viết & hướng dẫn đã đăng"} /></h2>
               </div>
-              <span className="text-xs text-[#727974]"><UiText text={"Showing"} />{" "}{filteredPosts.length}{" "}{t(`of ${posts.length} entries`, `trong ${posts.length} mục`)}</span>
+              <span className="text-xs text-[#727974]"><UiText text={"Hiển thị"} />{" "}{filteredPosts.length}{" "}{t(`of ${posts.length} entries`, `trong ${posts.length} mục`)}</span>
             </div>
 
             {/* Table */}
@@ -417,10 +416,10 @@ export default function AdminContentPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-[#EFEEEB] text-[10px] font-bold uppercase tracking-wider text-[#727974]">
-                    <th className="py-3 font-bold"><UiText text={"TITLE & THUMBNAIL"} /></th>
-                    <th className="py-3 font-bold"><UiText text={"TYPE"} /></th>
-                    <th className="py-3 font-bold"><UiText text={"AUTHOR"} /></th>
-                    <th className="py-3 font-bold"><UiText text={"STATUS"} /></th>
+                    <th className="py-3 font-bold"><UiText text={"TIÊU ĐỀ & ẢNH"} /></th>
+                    <th className="py-3 font-bold"><UiText text={"LOẠI"} /></th>
+                    <th className="py-3 font-bold"><UiText text={"TÁC GIẢ"} /></th>
+                    <th className="py-3 font-bold"><UiText text={"TRẠNG THÁI"} /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EFEEEB]/60 text-xs">
@@ -474,7 +473,7 @@ export default function AdminContentPage() {
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                   <polygon points="5 3 19 12 5 21 5 3" />
                                 </svg>
-                                <span><UiText text={"Video & Recipe"} /></span>
+                                <span><UiText text={"Video & công thức"} /></span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FDF2F0] px-2.5 py-1 text-[11px] font-semibold text-[#C2410C]">
@@ -482,7 +481,7 @@ export default function AdminContentPage() {
                                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                                   <polyline points="9 22 9 12 15 12 15 22" />
                                 </svg>
-                                <span>Post</span>
+                                <span>Bài viết</span>
                               </span>
                             )}
                           </td>
@@ -553,7 +552,7 @@ export default function AdminContentPage() {
                       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                       <line x1="4" x2="4" y1="22" y2="15" />
                     </svg>
-                    <span className="text-[11px] font-bold tracking-wider uppercase"><UiText text={"Moderation Stream"} /></span>
+                    <span className="text-[11px] font-bold tracking-wider uppercase"><UiText text={"Luồng kiểm duyệt"} /></span>
                   </div>
 
                   <button
@@ -569,18 +568,18 @@ export default function AdminContentPage() {
                 </div>
 
                 {/* Subject Heading */}
-                <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Comments on:"} />{" "}{selectedPost.title}
+                <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Bình luận trong:"} />{" "}{selectedPost.title}
                 </h3>
 
                 {/* Sub-counter and live sync */}
                 <div className="mt-1 flex items-center gap-3 text-xs">
                   <span className="rounded-md bg-[#FDF2F0] px-2 py-0.5 font-semibold text-[#C2410C]">
-                    {selectedComments.length}{" "}<UiText text={"Total Comments"} /></span>
+                    {selectedComments.length}{" "}<UiText text={"Tổng bình luận"} /></span>
                 </div>
 
                 {/* Filter Pills */}
                 <div className="mt-3.5 flex items-center gap-2 border-b border-[#EFEEEB] pb-3 text-xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#727974]"><UiText text={"FILTER"} /></span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#727974]"><UiText text={"BỘ LỌC"} /></span>
                   <button
                     onClick={() => setCommentFilter("All")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
@@ -588,7 +587,7 @@ export default function AdminContentPage() {
                         ? "bg-[#EFEEEB] text-[#07241A]"
                         : "text-[#727974] hover:text-[#07241A]"
                     }`}
-                  ><UiText text={"All"} /></button>
+                  ><UiText text={"Tất cả"} /></button>
                   <button
                     onClick={() => setCommentFilter("Flagged")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
@@ -604,7 +603,7 @@ export default function AdminContentPage() {
                         ? "bg-[#EFEEEB] text-[#07241A]"
                         : "text-[#727974] hover:text-[#07241A]"
                     }`}
-                  ><UiText text={"Hidden"} /></button>
+                  ><UiText text={"Đã ẩn"} /></button>
                 </div>
 
                 {/* Comment Cards List */}
@@ -669,7 +668,7 @@ export default function AdminContentPage() {
                               <polyline points="3 6 5 6 21 6" />
                               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                             </svg>
-                            <span><UiText text={"Remove"} /></span>
+                            <span><UiText text={"Xóa"} /></span>
                           </button>
                         </div>
                       </div>

@@ -5,7 +5,7 @@ import BookmarksView from "@/components/bookmarks/BookmarksView";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 
 export const metadata: Metadata = {
-  title: "My Collection | VeggieMate",
+  title: "Bài đã lưu | VeggieMate",
   description:
     "Bộ sưu tập công thức nấu ăn thuần chay và địa điểm ẩm thực chay đã lưu của bạn trên VeggieMate.",
 };

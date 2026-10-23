@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import AIChatboxView from "@/components/chat/AIChatboxView";
 
 export const metadata: Metadata = {
-  title: "AI Chatbox | VeggieMate",
+  title: "Trợ lý AI | VeggieMate",
   description:
     "Trò chuyện cùng VeggieAI để nhận tư vấn dinh dưỡng chay, công thức món ăn và giải đáp thắc mắc chuyên sâu.",
 };

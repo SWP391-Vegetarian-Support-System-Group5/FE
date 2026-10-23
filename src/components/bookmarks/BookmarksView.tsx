@@ -38,17 +38,23 @@ function toBookmarkItem(post: PostResponse): BookmarkItem {
 }
 export default function BookmarksView() {
   const ui = useUiText();
-  const [items, setItems] = useState<BookmarkItem[]>([]);
+  const [savedItems, setItems] = useState<BookmarkItem[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "recipe" | "post">("all");
   const [sortBy, setSortBy] = useState<"recent" | "rating" | "prep">("recent");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const { user, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadedKey, setLoadedKey] = useState("");
+  const [requestError, setError] = useState("");
   const [pendingIds, setPendingIds] = useState<string[]>([]);
   const locks = useRef(new Set<string>());
   const [revision, setRevision] = useState(0);
+
+  const requestKey = JSON.stringify([user?.uid, revision]);
+  const denied = !authLoading && (!user || !getStoredToken());
+  const loading = authLoading || (!denied && loadedKey !== requestKey);
+  const error = denied ? "Bạn cần đăng nhập để xem bài đã lưu." : loadedKey === requestKey ? requestError : "";
+  const items = loadedKey === requestKey && !denied ? savedItems : [];
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -59,17 +65,15 @@ export default function BookmarksView() {
   useEffect(() => {
     if (authLoading) return;
     const controller = new AbortController();
-    setItems([]); setError(""); setLoading(true);
     if (!user || !getStoredToken()) {
-      setError("Bạn cần đăng nhập để xem bài đã lưu."); setLoading(false);
       return () => controller.abort();
     }
     getBookmarks(controller.signal).then(posts => {
-      if (!controller.signal.aborted) setItems(posts.map(toBookmarkItem));
-    }).catch(e => { if (!controller.signal.aborted) setError(communityError(e)); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+      if (!controller.signal.aborted) { setItems(posts.map(toBookmarkItem)); setError(""); }
+    }).catch(e => { if (!controller.signal.aborted) { setItems([]); setError(communityError(e)); } })
+      .finally(() => { if (!controller.signal.aborted) setLoadedKey(requestKey); });
     return () => controller.abort();
-  }, [user, authLoading, revision]);
+  }, [user, authLoading, revision, requestKey]);
 
   const handleToggleBookmark = async (id: string, title: string) => {
     if (locks.current.has(id)) return;
@@ -121,14 +125,14 @@ export default function BookmarksView() {
           {/* Breadcrumb / Tag */}
           <div className="flex items-center gap-2 text-xs font-semibold text-[#727974]">
             <span className="h-2 w-2 rounded-full bg-[#99462A]" />
-            <span><UiText text={"Personal Sanctuary"} /></span>
+            <span><UiText text={"Góc riêng của bạn"} /></span>
             <span>/</span>
-            <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[11px] font-bold text-[#07241A]"><UiText text={"Saved Content ·"} />{" "}{totalBookmarked}{" "}<UiText text={"items"} /></span>
+            <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[11px] font-bold text-[#07241A]"><UiText text={"Nội dung đã lưu ·"} />{" "}{totalBookmarked}{" "}<UiText text={"mục"} /></span>
           </div>
 
           {/* Heading */}
-          <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]"><UiText text={"My Collection"} /></h1>
-          <p className="mt-1.5 text-sm text-[#424844]"><UiText text={"Your bookmarked community posts in one place."} /></p>
+          <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]"><UiText text={"Bộ sưu tập của tôi"} /></h1>
+          <p className="mt-1.5 text-sm text-[#424844]"><UiText text={"Các bài viết cộng đồng bạn đã lưu."} /></p>
         </div>
 
         {/* Sort selector */}
@@ -150,16 +154,16 @@ export default function BookmarksView() {
               <polyline points="15 15 18 18 21 15" />
               <line x1="18" y1="9" x2="18" y2="18" />
             </svg>
-            <span><UiText text={"Sort:"} /></span>
+            <span><UiText text={"Sắp xếp:"} /></span>
           </label>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as "recent" | "rating" | "prep")}
             className="rounded-xl border border-[#EFEEEB] bg-[#F5F3F0] px-3 py-1.5 text-xs font-semibold text-[#07241A] outline-none transition hover:bg-white focus:border-[#1E3A2F]"
           >
-            <option value="recent"><UiText text={"Recently Bookmarked"} /></option>
-            <option value="rating"><UiText text={"Highest Rated"} /></option>
-            <option value="prep"><UiText text={"Title Alphabetical"} /></option>
+            <option value="recent"><UiText text={"Mới lưu gần đây"} /></option>
+            <option value="rating"><UiText text={"Đánh giá cao nhất"} /></option>
+            <option value="prep"><UiText text={"Tên theo bảng chữ cái"} /></option>
           </select>
         </div>
       </div>
@@ -175,7 +179,7 @@ export default function BookmarksView() {
                 ? "bg-[#07241A] text-white shadow-xs"
                 : "bg-white text-[#424844] border border-[#EFEEEB] hover:bg-[#F5F3F0]"
             }`}
-          ><UiText text={"All ("} />{items.filter((i) => i.isBookmarked).length})
+          ><UiText text={"Tất cả ("} />{items.filter((i) => i.isBookmarked).length})
           </button>
           <button
             type="button"
@@ -185,7 +189,7 @@ export default function BookmarksView() {
                 ? "bg-[#07241A] text-white shadow-xs"
                 : "bg-white text-[#424844] border border-[#EFEEEB] hover:bg-[#F5F3F0]"
             }`}
-          ><UiText text={"Video & Recipes ("} />{recipeCount})
+          ><UiText text={"Video & công thức ("} />{recipeCount})
           </button>
           <button
             type="button"
@@ -213,7 +217,7 @@ export default function BookmarksView() {
           >
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
           </svg>
-          <span><UiText text={"Tap bookmark flag on any card to remove from personal box"} /></span>
+          <span><UiText text={"Nhấn biểu tượng lưu trên thẻ để bỏ khỏi bộ sưu tập"} /></span>
         </div>
       </div>
 
@@ -226,7 +230,7 @@ export default function BookmarksView() {
           <h3 className="mt-4 font-serif text-xl font-bold text-[#07241A]"><UiText text={"Chưa có mục nào được lưu"} /></h3>
           <p className="mt-1 text-xs text-[#727974] max-w-sm mx-auto"><UiText text={"Khám phá các công thức nấu ăn thuần chay hoặc nhà hàng yêu thích và nhấn lưu lại để đưa vào bộ sưu tập cá nhân."} /></p>
           <Link
-            href="/explore"
+            href="/community"
             className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F]"
           ><UiText text={"Khám phá công thức ngay"} /></Link>
         </div>
@@ -253,7 +257,7 @@ export default function BookmarksView() {
                 {/* Top Overlay Badge */}
                 <div className="absolute left-3.5 top-3.5">
                   <span className="rounded-full bg-[#07241A]/80 backdrop-blur-md px-3 py-1 text-[11px] font-semibold text-white shadow-xs">
-                    {item.badge}
+                    <UiText text={item.badge || ""} />
                   </span>
                 </div>
 
@@ -361,13 +365,13 @@ export default function BookmarksView() {
                 <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
               </svg>
             </div>
-            <span className="rounded-full bg-[#D9E6DC] px-3 py-1 text-xs font-bold text-[#07241A]"><UiText text={"VeggieAI Meal Assistant"} /></span>
+            <span className="rounded-full bg-[#D9E6DC] px-3 py-1 text-xs font-bold text-[#07241A]"><UiText text={"Trợ lý bữa ăn VeggieAI"} /></span>
           </div>
 
           {/* Heading */}
-          <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A] leading-snug"><UiText text={"Your saved recipes can help VeggieMate build your weekly meal plan."} /></h2>
+          <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#07241A] leading-snug"><UiText text={"Các công thức đã lưu giúp VeggieMate lên thực đơn hàng tuần cho bạn."} /></h2>
 
-          <p className="text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"VeggieAI automatically selects from your favorite bookmarked dishes and seasonal pantry ingredients to generate a balanced 7-day vegetarian menu."} /></p>
+          <p className="text-xs sm:text-sm leading-relaxed text-[#424844]"><UiText text={"VeggieAI chọn từ món đã lưu và nguyên liệu theo mùa để tạo thực đơn chay 7 ngày cân bằng."} /></p>
 
           {/* Action button */}
           <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-4">
@@ -375,13 +379,13 @@ export default function BookmarksView() {
               href="/meal-planner"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#07241A] px-6 py-3 text-xs sm:text-sm font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
             >
-              <span><UiText text={"Plan My Week"} /></span>
+              <span><UiText text={"Lên thực đơn tuần"} /></span>
               <span>→</span>
             </Link>
 
             <span className="text-xs text-[#727974] flex items-center gap-1.5">
               <span>⏱</span>
-              <span><UiText text={"Takes ~30 seconds · Synchronized with your pantry stock"} /></span>
+              <span><UiText text={"Khoảng 30 giây · Đồng bộ với nguyên liệu có sẵn"} /></span>
             </span>
           </div>
         </div>

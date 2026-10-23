@@ -1,5 +1,6 @@
 "use client";
 
+import FeedImage from "@/components/ui/FeedImage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createCommunityEventSource, listPosts, type CommunityEvent, type PostResponse } from "@/lib/community-api";
@@ -13,18 +14,21 @@ export default function PopularRecipes() {
   const [posts, setPosts] = useState<PostResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
-    try {
-      setPosts(await listPosts({ postType: "RECIPE", limit: 4 }));
-    } catch {
-      setPosts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    load();
+    let active = true;
+    let latestRequest = 0;
+    const load = async () => {
+      const request = ++latestRequest;
+      try {
+        const posts = await listPosts({ postType: "RECIPE", limit: 4 });
+        if (active && request === latestRequest) setPosts(posts);
+      } catch {
+        if (active && request === latestRequest) setPosts([]);
+      } finally {
+        if (active && request === latestRequest) setLoading(false);
+      }
+    };
+    void load();
     const source = createCommunityEventSource();
     const refresh = () => load();
     source.addEventListener("open", refresh);
@@ -40,7 +44,7 @@ export default function PopularRecipes() {
     });
     source.addEventListener("commentCreated", refresh);
     source.addEventListener("commentRemoved", refresh);
-    return () => source.close();
+    return () => { active = false; source.close(); };
   }, []);
 
   return (
@@ -56,12 +60,7 @@ export default function PopularRecipes() {
       {posts.map((post) => (
         <Link key={post.postId} href={`/view-detail/${post.postId}`} className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
           <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
-            <img
-              src={post.thumbnailUrl || fallbackImage}
-              alt={post.title}
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-              loading="lazy"
-            />
+            <FeedImage key={post.thumbnailUrl || fallbackImage} src={post.thumbnailUrl || fallbackImage} alt={post.title} compact />
             {post.videoUrl && (
               <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
                 {t("Video", "Video")}
