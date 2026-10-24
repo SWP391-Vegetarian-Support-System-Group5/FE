@@ -145,13 +145,14 @@ export default function MyContentView() {
   useEffect(() => {
     void Promise.resolve().then(loadServerItems);
     if (!user) return;
+    const requestRef = latestServerRequest;
     const source = createCommunityEventSource();
     const refresh = () => { void loadServerItems(); };
     source.addEventListener("open", refresh);
     source.addEventListener("postCreated", refresh);
     source.addEventListener("postUpdated", refresh);
     source.addEventListener("postRemoved", refresh);
-    return () => { latestServerRequest.current++; source.close(); };
+    return () => { requestRef.current++; source.close(); };
   }, [user, loadServerItems]);
 
   useEffect(() => {
