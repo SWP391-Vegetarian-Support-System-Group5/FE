@@ -39,9 +39,11 @@ export default function PopularRestaurants() {
       let provinceCode = saved?.provinceCode || "hochiminh";
       let areaCode = saved?.areaCode || "all";
       let center: Coordinates | null = null;
+      let dietTypeId: number | null = null;
 
       try {
         const profile = await getProfile();
+        dietTypeId = profile.dietTypeId;
         if (profile.latitude != null && profile.longitude != null) {
           center = { lat: profile.latitude, lng: profile.longitude };
         }
@@ -61,20 +63,20 @@ export default function PopularRestaurants() {
         if (!cancelled) {
           setPlaces([]);
           setMessage(t(
-            "Save your Living Location in My Profile to show real nearby restaurants.",
-            "Hãy lưu Living Location trong My Profile để hiển thị nhà hàng thật gần bạn.",
+            "Save your Living Location in My Profile to show nearby VeggieMate restaurants.",
+            "Hãy lưu Vị trí sinh sống trong Hồ sơ để hiển thị nhà hàng VeggieMate gần bạn.",
           ));
           setLoading(false);
         }
         return;
       }
 
-      const nextPlaces = nearestThree(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng));
+      const nextPlaces = nearestThree(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId));
       if (cancelled) return;
       setPlaces(nextPlaces);
       setMessage(nextPlaces.length
-        ? t("Real OpenStreetMap places within 5 km of your saved location.", "Địa điểm thật từ OpenStreetMap trong bán kính 5km quanh vị trí đã lưu.")
-        : t("No real vegetarian restaurants were found within 5 km of your saved location.", "Chưa tìm thấy nhà hàng chay thật trong bán kính 5km quanh vị trí đã lưu."));
+        ? t("VeggieMate restaurants within 5 km of your saved location.", "Nhà hàng VeggieMate trong bán kính 5km quanh vị trí đã lưu.")
+        : t("No matching restaurants were found within 5 km of your saved location.", "Chưa tìm thấy nhà hàng phù hợp trong bán kính 5km quanh vị trí đã lưu."));
       setLoading(false);
     }
 
@@ -127,7 +129,7 @@ export default function PopularRestaurants() {
                   {place.category || "Ăn chay"}
                 </span>
                 <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#1E3A2F] shadow-sm">
-                  OSM · {place.distanceKm != null ? `${place.distanceKm.toFixed(1)} km` : t("Nearby", "Gần bạn")}
+                  VeggieMate · {place.distanceKm != null ? `${place.distanceKm.toFixed(1)} km` : t("Nearby", "Gần bạn")}
                 </span>
               </div>
               <div className="p-5">
@@ -139,11 +141,7 @@ export default function PopularRestaurants() {
                   </svg>
                   <span className="line-clamp-2">{place.address}</span>
                 </div>
-                <div className="mt-3 flex items-center gap-1 text-xs">
-                  <span className="text-[#F59E0B]">★</span>
-                  <span className="font-semibold text-[#1B1C1A]">{place.rating > 0 ? place.rating.toFixed(1) : t("No rating", "Chưa có sao")}</span>
-                  <span className="text-[#727974]">({place.reviewCount > 0 ? `${place.reviewCount} reviews` : t("OSM listing", "dữ liệu OSM")})</span>
-                </div>
+                {place.foods?.length ? <p className="mt-3 line-clamp-2 text-xs text-[#727974]">{place.foods.join(" · ")}</p> : null}
               </div>
             </a>
           ))}

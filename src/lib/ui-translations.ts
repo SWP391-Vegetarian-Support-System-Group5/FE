@@ -2,6 +2,45 @@ import type { Language } from "@/context/LanguageContext";
 
 // UI copy only. Author-entered content and arbitrary backend messages are not translated.
 const copy = `
+RECIPE|Công thức
+VIDEO|Video
+BLOG|Bài viết
+COMMENT|Bình luận
+USER|Người dùng
+ADMIN|Quản trị viên
+PUBLISHED|Đã đăng
+REMOVED|Đã gỡ
+DRAFT|Bản nháp
+READY|Sẵn sàng
+FAILED|Thất bại
+PENDING|Đang chờ
+UPLOADING|Đang tải video
+PROCESSING|Đang phân tích
+Active|Đang hoạt động
+Inactive|Ngừng hoạt động
+Change status|Đổi trạng thái
+View recipe|Xem công thức
+Your bookmarked community posts in one place.|Các bài viết cộng đồng bạn đã lưu ở cùng một nơi.
+PLANT|Thực vật
+DAIRY|Sữa và chế phẩm từ sữa
+EGG|Trứng
+HONEY|Mật ong
+UNVERIFIED|Chưa xác minh
+Available ingredients|Nguyên liệu sẵn có
+Category code|Mã danh mục
+Create Category|Tạo danh mục
+Dietary group|Nhóm thực phẩm
+Edit Category|Sửa danh mục
+Loading...|Đang tải...
+Manage ingredients|Quản lý nguyên liệu
+New Category|Danh mục mới
+No ingredients in this category yet.|Danh mục này chưa có nguyên liệu.
+Not available|Chưa có
+Not rated|Chưa được đánh giá
+Search categories...|Tìm danh mục...
+Search reports...|Tìm báo cáo...
+Type|Loại
+URL Slug|Đường dẫn rút gọn
 Weekly meal plan|Thực đơn tuần
 Meals selected for your ingredients, vegetarian type and BMI group.|Món ăn được chọn theo nguyên liệu, kiểu ăn chay và nhóm BMI của bạn.
 Saved recipes|Công thức đã lưu
@@ -808,7 +847,6 @@ Cube and steam pumpkin.|Cắt bí đỏ thành miếng vuông và hấp.
 Simmer with curry paste and coconut milk.|Nấu nhỏ lửa với sốt cà ri và nước cốt dừa.
 Add long beans.|Thêm đậu đũa.
 Recipe published successfully.|Công thức đã được đăng thành công.
-English (EN)|Tiếng Anh (EN)
 Blog|Bài chia sẻ
 Recipe|Công thức
 Select a ward or enter an address in the new province.|Hãy chọn phường/xã hoặc nhập địa chỉ tại tỉnh/thành mới.

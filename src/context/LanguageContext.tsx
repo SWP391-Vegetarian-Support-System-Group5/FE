@@ -9,15 +9,19 @@ interface LanguageContextValue {
   locale: "vi-VN";
   t: (english: string, vietnamese: string) => string;
 }
+const LanguageContext = createContext<LanguageContextValue | null>(null);
 const vietnamese: LanguageContextValue = {
   language: "vi",
   locale: "vi-VN",
-  t: (_english, text) => text,
+  t: (_english, vietnamese) => vietnamese,
 };
-const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  return <LanguageContext.Provider value={vietnamese}>{children}</LanguageContext.Provider>;
+  return (
+    <LanguageContext.Provider value={vietnamese}>
+      {children}
+    </LanguageContext.Provider>
+  );
 }
 
 export function useLanguage() {

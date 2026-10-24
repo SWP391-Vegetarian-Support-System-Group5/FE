@@ -10,6 +10,7 @@ import { getMediaUrl } from "@/lib/api";
 import { communityError, getBookmarks, removeBookmark, type PostResponse } from "@/lib/post-api";
 import Link from "next/link";
 import Image from "next/image";
+import { localizeRecipeTitle, localizeText } from "@/lib/localized-content";
 
 export interface BookmarkItem {
   id: string;
@@ -32,7 +33,7 @@ function toBookmarkItem(post: PostResponse): BookmarkItem {
   return {
     id: String(post.postId), type: post.postType === "RECIPE" || post.postType === "VIDEO" ? "recipe" : "post",
     badge: post.postType, rating: { score: post.averageRating }, categoryPrep: "",
-    title: post.title, description: post.content, author: { name: post.authorName },
+    title: localizeRecipeTitle(post.title, "vi"), description: localizeText(post.content, "vi"), author: { name: post.authorName },
     image: getMediaUrl(post.thumbnailUrl), isBookmarked: true,
   };
 }

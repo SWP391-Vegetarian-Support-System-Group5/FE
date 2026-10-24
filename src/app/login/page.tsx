@@ -21,7 +21,6 @@ export default function LoginPage() {
           <span>←</span>
           <span><UiText text={"Về trang chủ"} /></span>
         </Link>
-
 </div>
 
       {/* Main Login Card */}

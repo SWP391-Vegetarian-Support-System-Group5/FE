@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getMediaUrl } from "@/lib/api";
-import { generateMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, type MealPlanResponse } from "@/lib/meal-plan-api";
+import { generateMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse } from "@/lib/meal-plan-api";
 import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
 import { getBookmarks } from "@/lib/post-api";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
@@ -28,6 +28,8 @@ export function useMealPlanner() {
   const [allergenOwner, setAllergenOwner] = useState<string | null>(null);
   const allergensReady = !authLoading && allergenOwner === (user?.uid ?? "guest") && allergenStatus === "ready";
   const [showAddAllergen, setShowAddAllergen] = useState(false);
+  const [pantryIngredients, setPantryIngredients] = useState<string[]>([]);
+  const [newPantryItem, setNewPantryItem] = useState("");
   const [recipeData, setRecipeData] = useState<Record<number, RecipeResponse>>({});
   const [selectedMealForView, setSelectedMealForView] = useState<MealItem | null>(null);
   const [savedIds, setSavedIds] = useState<number[]>([]);
@@ -35,6 +37,7 @@ export function useMealPlanner() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRegenerating, setWorking] = useState(false);
+  const [replacementLimitReached, setReplacementLimitReached] = useState(false);
   const [startDate, setStartDate] = useState(() => initialMealPlanDate());
   const lock = useRef(false);
 
@@ -114,16 +117,27 @@ export function useMealPlanner() {
     await run(async () => {
       const parsedDate = parseMealPlanDate(startDate);
       if (!parsedDate) throw new Error(t("Enter a valid start date as dd/mm/yy (2000-2099).", "Nhập ngày bắt đầu hợp lệ theo dd/mm/yy (năm 2000–2099)."));
-      const payload = { startDate: parsedDate, availableIngredients: null };
+      const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", ") || null };
       const next = plan ? await regenerateMealPlan(plan.mealPlanId, payload) : await generateMealPlan(payload);
-      setPlan(next); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
+      setPlan(next); setReplacementLimitReached(false); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
     });
   }
   async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"]) {
-    if (!plan) return;
+    if (!plan || replacementLimitReached) return;
     const meal = plan.meals.find(item => item.mealPlanMealId === Number(mealId));
     if (!meal || meal.dayNumber !== _day + 1 || meal.mealType !== _slot) return;
-    await run(async () => { const next = await replaceMeal(plan.mealPlanId, Number(mealId)); setPlan(next); await hydrateRecipes(next); });
+    await run(async () => {
+      try {
+        const next = await replaceMeal(plan.mealPlanId, Number(mealId));
+        setPlan(next); await hydrateRecipes(next);
+      } catch (failure) {
+        if (failure instanceof MealPlanRequestError && failure.status === 429) {
+          setReplacementLimitReached(true);
+          return;
+        }
+        throw failure;
+      }
+    });
   }
   async function viewMeal(meal: MealItem) {
     if (!meal.recipeId) return;
@@ -135,37 +149,52 @@ export function useMealPlanner() {
       });
     });
   }
-  async function saveAllergens(next: typeof selectedAllergens, afterSave?: () => void) {
-    if (lock.current || !allergensReady) return;
-    lock.current = true; setWorking(true); setAllergenError(null);
-    try {
-      await updateUserAllergens(next.map(item => item.allergenId));
-      setSelectedAllergens(next);
-      afterSave?.();
-    } catch { setAllergenError("save"); }
-    finally { lock.current = false; setWorking(false); }
-  }
   async function handleRemoveAllergen(name: string) {
-    await saveAllergens(selectedAllergens.filter(item => item.name !== name));
+    if (!allergensReady) return;
+    await run(async () => {
+      const next = selectedAllergens.filter(item => item.name !== name);
+      try { await updateUserAllergens(next.map(item => item.allergenId)); }
+      catch (failure) { setAllergenError("save"); throw failure; }
+      setSelectedAllergens(next);
+      setPlan(null); setSelectedMealForView(null);
+      const plans = await getMealPlans();
+      setPlan(plans[0] || null);
+      await hydrateRecipes(plans[0] || null);
+    });
   }
   async function handleAddAllergen(event: FormEvent) {
     event.preventDefault();
+    if (!allergensReady) return;
     const match = allergenCatalog.find(item => String(item.allergenId) === newAllergen);
-    if (!match) { setAllergenError("selection"); (event.currentTarget as HTMLFormElement).querySelector<HTMLSelectElement>("select")?.focus(); return; }
-    const next = selectedAllergens.some(item => item.allergenId === match.allergenId) ? selectedAllergens : [...selectedAllergens, match];
-    await saveAllergens(next, () => { setNewAllergen(""); setShowAddAllergen(false); });
+    if (!match) { setAllergenError("selection"); return; }
+    setAllergenError(null);
+    await run(async () => {
+      const next = selectedAllergens.some(item => item.allergenId === match.allergenId) ? selectedAllergens : [...selectedAllergens, match];
+      try { await updateUserAllergens(next.map(item => item.allergenId)); }
+      catch (failure) { setAllergenError("save"); throw failure; }
+      setSelectedAllergens(next); setNewAllergen(""); setShowAddAllergen(false);
+      setPlan(null); setSelectedMealForView(null);
+      const plans = await getMealPlans();
+      setPlan(plans[0] || null);
+      await hydrateRecipes(plans[0] || null);
+    });
+  }
+  function handleAddPantry(event: FormEvent) {
+    event.preventDefault();
+    if (newPantryItem.trim()) setPantryIngredients(items => [...new Set([...items, newPantryItem.trim()])]);
+    setNewPantryItem("");
   }
   const currentDiet = diets.find(diet => diet.dietTypeId === profile?.dietTypeId);
   return {
     days, allergens: selectedAllergens.map(item => item.name), newAllergen,
-    setNewAllergen: (value: string) => { setNewAllergen(value); setAllergenError(null); },
-    showAddAllergen, setShowAddAllergen,
+    setNewAllergen: (value: string) => { setNewAllergen(value); setAllergenError(null); }, showAddAllergen, setShowAddAllergen,
     availableAllergens: allergenCatalog.filter(item => !selectedAllergens.some(selected => selected.allergenId === item.allergenId)),
     allergenStatus: authLoading || allergenOwner !== (user?.uid ?? "guest") ? "loading" : allergenStatus, allergenError,
     retryAllergens: () => { setAllergenStatus("loading"); setAllergenRevision(value => value + 1); },
-    selectedMealForView, setSelectedMealForView,
-    toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen,
-    handleReplaceMeal, handleRegenerate, viewMeal,
+    pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
+    toastMessage, isRegenerating, replacementLimitReached, handleRemoveAllergen, handleAddAllergen,
+    handleRemovePantry: (name: string) => setPantryIngredients(items => items.filter(item => item !== name)),
+    handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal,
     profileName: profile?.fullName || t("You", "Bạn"), bmi: plan?.bmi ?? null,
     bmiCategory: localizeText(plan?.bmiCategory, language), dietName: formatDietTypeName(currentDiet?.name, language), savedCount: savedIds.length,
     loading, error: localizeText(error, language), startDate, setStartDate,

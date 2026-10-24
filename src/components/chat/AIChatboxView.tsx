@@ -665,7 +665,7 @@ function AIChatConversation() {
                               {msg.relatedRecipes.map((recipe) => (
                                 <Link
                                   key={recipe.recipeId}
-                                  href={`/community?q=${encodeURIComponent(recipe.title)}`}
+                                  href={`/view-detail/${recipe.recipeId}`}
                                   className="flex items-center gap-2.5 rounded-xl bg-white p-2.5 border border-[#EFEEEB] hover:border-[#1E3A2F] hover:shadow-xs transition group"
                                 >
                                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#CAEADA] text-xs text-[#07241A]">

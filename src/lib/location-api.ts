@@ -10,8 +10,9 @@ type BackendRestaurant = {
   address: string;
   latitude?: number | null;
   longitude?: number | null;
-  dietTypeId?: number | null;
+  dietTypeIds: number[];
   foods: string[];
+  ingredientNames: string[];
 };
 
 type AddressSuggestion = {
@@ -31,19 +32,13 @@ type ReverseGeocodeResult = {
   formattedAddress: string;
 };
 
-type NearbyPlace = {
-  id: string;
-  name: string;
-  category: string;
-  address: string;
-  provinceCode: string;
-  areaCode: string;
-  latitude: number;
-  longitude: number;
-  rating: number;
-  reviewCount: number;
-  distanceKm: number;
-};
+function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const radians = (degrees: number) => degrees * Math.PI / 180;
+  const dLat = radians(lat2 - lat1);
+  const dLon = radians(lon2 - lon1);
+  const value = Math.sin(dLat / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+}
 
 // Keep the page usable while the backend is starting or the persistence layer is not ready.
 // Once the real API responds, the exact same UI automatically switches to server data.
@@ -78,7 +73,7 @@ export const locationApi = {
       `/locations/reverse-geocode?${new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) })}`,
       null,
     ),
-  restaurants: (provinceCode: string, areaCode: string, latitude?: number, longitude?: number) => {
+  restaurants: async (provinceCode: string, areaCode: string, latitude?: number, longitude?: number, dietTypeId?: number | null): Promise<Restaurant[]> => {
     if (latitude === undefined || longitude === undefined) return Promise.resolve([]);
 
     const params = new URLSearchParams({
@@ -86,34 +81,19 @@ export const locationApi = {
       longitude: String(longitude),
       radius: String(nearbyRadiusKm),
     });
-
-    const nearbyParams = new URLSearchParams({
-      latitude: String(latitude),
-      longitude: String(longitude),
-      radiusKm: String(nearbyRadiusKm),
-      provinceCode,
-      areaCode,
-    });
-
-    return getJson<NearbyPlace[]>(`/locations/nearby-places?${nearbyParams}`, [], 45000, true).then(async (places) => {
-      if (places.length > 0) return places;
-
-      const items = await getJson<BackendRestaurant[] | null>(`/restaurants/nearby?${params}`, null, 8000);
-      if (items === null) return [];
-      return items
-        .filter((item) => item.latitude != null && item.longitude != null)
-        .map<Restaurant>((item) => ({
-          id: String(item.restaurantId),
-          name: item.name,
-          category: item.dietTypeId ? "Vegetarian" : "Plant-based",
-          address: item.address,
-          provinceCode,
-          areaCode,
-          latitude: item.latitude!,
-          longitude: item.longitude!,
-          rating: 0,
-          reviewCount: 0,
-        }));
-    });
+    if (dietTypeId != null) params.set("dietTypeId", String(dietTypeId));
+    const [items, dietTypes] = await Promise.all([
+      getJson<BackendRestaurant[]>(`/restaurants/nearby?${params}`, [], 15000, true),
+      getJson<Array<{ id: number; name: string }>>("/diet-types", [], 8000, true),
+    ]);
+    const names = new Map(dietTypes.map(type => [type.id, type.name]));
+    return items.filter(item => item.latitude != null && item.longitude != null).map(item => ({
+      id: String(item.restaurantId), name: item.name,
+      category: item.dietTypeIds.length === 0 ? "Unclassified" : item.dietTypeIds.map(id => names.get(id) ?? `#${id}`).join(", "),
+      address: item.address, provinceCode, areaCode,
+      latitude: item.latitude!, longitude: item.longitude!, rating: 0, reviewCount: 0,
+      distanceKm: distanceKm(latitude, longitude, item.latitude!, item.longitude!), foods: item.foods,
+      ingredientNames: item.ingredientNames,
+    }));
   },
 };

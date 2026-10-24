@@ -6,12 +6,18 @@ import { useRouter } from "next/navigation";
 import UiText, { useUiText } from "@/components/UiText";
 import { useAuth } from "@/context/AuthContext";
 import { getIngredientCategories, getIngredients, saveIngredientCategory, type IngredientItem, type RecipeResponse } from "@/lib/recipe-api";
+import { localizeIngredient, localizeIngredientCategory, localizeRecipeTitle } from "@/lib/localized-content";
 import { apiFetch, apiGet } from "@/lib/api";
 import { CATEGORY_TYPES, categoryName, categoryTypeLabels, getRecipeCategories } from "@/lib/recipe-categories";
 
 import type { CategoryData, DishItem } from "@/lib/admin-category-design";
 import CategoryRecipeAssignments from "@/components/recipe/CategoryRecipeAssignments";
 import { getAdminRecipeBmiTypes, getBmiTypes, type AdminRecipeBmi, type BmiType } from "@/lib/bmi-api";
+
+function categorySlug(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
 
 export default function AdminCategoriesPage() {
   const router = useRouter();
@@ -52,6 +58,7 @@ export default function AdminCategoriesPage() {
 
   // Form State
   const [formName, setFormName] = useState("");
+  const [formNameVi, setFormNameVi] = useState("");
   const [formSlug, setFormSlug] = useState("");
   const [formType, setFormType] = useState<"Recipe Category" | "Ingredient Group">("Recipe Category");
   const [formDescription, setFormDescription] = useState("");
@@ -84,13 +91,13 @@ export default function AdminCategoriesPage() {
       updatedAt: new Date(c.createdAt).toLocaleDateString(),
     })));
     setIngredientCategories(groups.map(g => ({
-      id: g.id, name: g.name, nameVi: g.name, slug: g.code, type: "Ingredient Group", categoryType: g.dietaryGroup,
+      id: g.id, name: g.name, nameVi: localizeIngredientCategory(g.code, g.name), slug: g.code, type: "Ingredient Group", categoryType: g.dietaryGroup,
       description: g.dietaryGroup, itemCount: ingredients.filter(i => i.ingredientCategoryId === g.id).length,
       status: "Active", badgeType: "text-vg", updatedAt: "",
     })));
     const groupById = new Map(groups.map(group => [group.id, group.code]));
     setDishes(recipes.map(r => ({
-      id: r.postId, title: r.recipeName, titleVi: r.recipeName,
+      id: r.postId, title: r.recipeName, titleVi: localizeRecipeTitle(r.recipeName, "vi"),
       recipeCategorySlug: r.categories[0]?.slug || "",
       recipeCategorySlugs: r.categories.map(c => c.slug),
       ingredientGroupSlug: groupById.get(r.ingredients[0]?.ingredientCategoryId ?? -1) || r.ingredients[0]?.dietaryGroup || "",
@@ -147,6 +154,7 @@ export default function AdminCategoriesPage() {
     setFormDietaryGroup("PLANT");
     setEditingCategory(null);
     setFormName("");
+    setFormNameVi("");
     setFormSlug("");
     setFormType(activeTab === "ingredients" ? "Ingredient Group" : "Recipe Category");
     setFormDescription("");
@@ -161,6 +169,7 @@ export default function AdminCategoriesPage() {
     setFormDietaryGroup(cat.categoryType || "PLANT");
     setEditingCategory(cat);
     setFormName(cat.name);
+    setFormNameVi(cat.nameVi);
     setFormSlug(cat.slug);
     setFormType(cat.type);
     setFormDescription(cat.description);
@@ -566,7 +575,7 @@ export default function AdminCategoriesPage() {
               >
                 {recipeCategories.map((cat) => (
                   <option key={cat.id} value={cat.slug}>
-                    {cat.name} ({cat.itemCount} recipes)
+                    {cat.nameVi} ({cat.itemCount} món)
                   </option>
                 ))}
               </select>
@@ -594,7 +603,7 @@ export default function AdminCategoriesPage() {
               >
                 {ingredientCategories.map((cat) => (
                   <option key={cat.id} value={cat.slug}>
-                    {cat.name}
+                    {cat.nameVi}
                   </option>
                 ))}
               </select>
@@ -703,8 +712,7 @@ export default function AdminCategoriesPage() {
                     return (
                       <tr key={dish.id} className="transition-colors hover:bg-[#FAF9F5]/70">
                         <td className="py-3.5 pl-6 pr-4">
-                          <div className="font-bold text-[#07241A]">{dish.title}</div>
-                          <div className="text-[11px] text-[#727974]">{dish.titleVi}</div>
+                          <div className="font-bold text-[#07241A]">{dish.titleVi}</div>
                         </td>
                         <td className="px-4 py-3.5">
                           <span className="inline-block rounded-md border border-[#CDE5D8] bg-[#E7F3EC] px-2.5 py-0.5 text-[11px] font-semibold text-[#1E4D36]">
@@ -725,7 +733,7 @@ export default function AdminCategoriesPage() {
                         <td className="px-4 py-3.5">
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E7F3EC] px-2.5 py-0.5 text-xs font-semibold text-[#1E4D36]">
                             <span className="h-1.5 w-1.5 rounded-full bg-[#1E4D36]" />
-                            <UiText text={dish.status} />
+                            {ui(dish.status)}
                           </span>
                         </td>
                         <td className="py-3.5 pl-4 pr-6 text-right">
@@ -825,7 +833,7 @@ export default function AdminCategoriesPage() {
                         <div className="flex items-center gap-3.5">
                           {renderBadgeIcon(cat.badgeType, cat.name)}
                           <div>
-                            <button type="button" onClick={() => setExpandedCategoryId(current => current === cat.id ? null : cat.id)} aria-expanded={expandedCategoryId === cat.id} className="text-left font-bold text-[#07241A] text-sm leading-snug hover:underline">{cat.name}</button>
+                            <button type="button" onClick={() => setExpandedCategoryId(current => current === cat.id ? null : cat.id)} aria-expanded={expandedCategoryId === cat.id} className="text-left font-bold text-[#07241A] text-sm leading-snug hover:underline">{cat.nameVi}</button>
                             <div className="font-mono text-[11px] text-[#727974] leading-tight">{cat.slug}</div>
                           </div>
                         </div>
@@ -851,15 +859,15 @@ export default function AdminCategoriesPage() {
                               ? "bg-[#E7F3EC] text-[#1E4D36] hover:bg-[#DCEDE2]"
                               : "bg-[#F1F0EB] text-[#727974] hover:bg-[#E6E4DC]"
                           }`}
-                          title="Nhấn để đổi trạng thái"
+                          title={ui("Change status")}
                         >
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${
                               cat.status === "Active" ? "bg-[#1E4D36]" : "bg-[#8D948F]"
                             }`}
                           />
-                          <span><UiText text={cat.status} /></span>
-                        </button> : <span className="inline-flex rounded-full bg-[#E7F3EC] px-2.5 py-1 text-xs font-semibold text-[#1E4D36]"><UiText text={cat.status} /></span>}
+                          <span>{ui(cat.status)}</span>
+                        </button> : <span className="inline-flex rounded-full bg-[#E7F3EC] px-2.5 py-1 text-xs font-semibold text-[#1E4D36]">{ui(cat.status)}</span>}
                       </td>
 
                       {/* ACTIONS COLUMN */}
@@ -894,7 +902,7 @@ export default function AdminCategoriesPage() {
                       </td>
                     </tr>
                     {expandedCategoryId === cat.id && activeTab === "recipes" && <tr><td colSpan={5} className="p-0"><CategoryRecipeAssignments categoryId={cat.id} categoryName={cat.nameVi || cat.name} recipes={adminRecipes} types={bmiTypes} onChanged={loadCatalog} onBmiSaved={(recipeId, ids) => setAdminRecipes(current => current.map(recipe => recipe.postId === recipeId ? { ...recipe, bmiTypes: bmiTypes.filter(type => ids.includes(type.id)) } : recipe))} /></td></tr>}
-                    {expandedCategoryId === cat.id && activeTab === "ingredients" && <tr><td colSpan={5} className="bg-[#FAF9F5] px-6 py-5"><h3 className="font-serif text-lg font-semibold text-[#07241A]">{cat.name} ({cat.itemCount})</h3><div className="mt-3 max-h-80 overflow-y-auto">{allIngredients.filter(ingredient => ingredient.ingredientCategoryId === cat.id).length === 0 ? <p className="py-3 text-sm text-[#727974]">{ui("No ingredients in this category yet.")}</p> : <div className="grid gap-x-8 sm:grid-cols-2">{allIngredients.filter(ingredient => ingredient.ingredientCategoryId === cat.id).map(ingredient => <div key={ingredient.id} className="flex items-center justify-between border-b border-[#E6E3DA] py-2 text-sm"><span>{ingredient.name}</span><span className="text-xs text-[#727974]">#{ingredient.id}</span></div>)}</div>}</div><Link href="/admin/ingredients" className="mt-4 inline-block text-sm font-semibold text-[#1E3A2F] underline">{ui("Manage ingredients")}</Link></td></tr>}
+                    {expandedCategoryId === cat.id && activeTab === "ingredients" && <tr><td colSpan={5} className="bg-[#FAF9F5] px-6 py-5"><h3 className="font-serif text-lg font-semibold text-[#07241A]">{cat.nameVi} ({cat.itemCount})</h3><div className="mt-3 max-h-80 overflow-y-auto">{allIngredients.filter(ingredient => ingredient.ingredientCategoryId === cat.id).length === 0 ? <p className="py-3 text-sm text-[#727974]">{ui("No ingredients in this category yet.")}</p> : <div className="grid gap-x-8 sm:grid-cols-2">{allIngredients.filter(ingredient => ingredient.ingredientCategoryId === cat.id).map(ingredient => <div key={ingredient.id} className="flex items-center justify-between border-b border-[#E6E3DA] py-2 text-sm"><span>{localizeIngredient(ingredient.name, "vi")}</span><span className="text-xs text-[#727974]">#{ingredient.id}</span></div>)}</div>}</div><Link href="/admin/ingredients" className="mt-4 inline-block text-sm font-semibold text-[#1E3A2F] underline">{ui("Manage ingredients")}</Link></td></tr>}
                     </Fragment>
                   ))
                 )}
@@ -971,26 +979,37 @@ export default function AdminCategoriesPage() {
               <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                    <UiText text="Tên danh mục" /> *
+                    Tên danh mục *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ví dụ: Ẩm thực chay Việt Nam"
+                    placeholder="Ví dụ: Ẩm thực Việt Nam"
                     value={formName}
                     onChange={(e) => {
                       setFormName(e.target.value);
                       if (!editingCategory) {
+                        setFormNameVi(e.target.value);
                         setFormSlug(formType === "Ingredient Group"
                           ? e.target.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "")
-                          : e.target.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[đĐ]/g, "d").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
+                          : categorySlug(e.target.value));
                       }
                     }}
                     className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
                   />
                 </div>
 
-
+                {formType === "Recipe Category" && <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
+                    Tên hiển thị
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Ẩm thực chay Việt Nam"
+                    readOnly value={formNameVi}
+                    className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
+                  />
+                </div>}
               </div>
 
               {/* Slug & Associated Count */}

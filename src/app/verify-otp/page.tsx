@@ -21,7 +21,6 @@ export default function VerifyOtpPage() {
           <span>←</span>
           <span><UiText text={"Về trang đăng nhập"} /></span>
         </Link>
-
 </div>
 
       {/* Main Verify Card */}
