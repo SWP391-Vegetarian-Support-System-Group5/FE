@@ -1,4 +1,4 @@
-import type { RecipeResponse, RecipeIngredientPayload, RecipeStepPayload } from "@/lib/recipe-api";
+import type { RecipeResponse, RecipeIngredientPayload, RecipeStepPayload, VideoRecipeDraftResponse } from "@/lib/recipe-api";
 
 export interface ManualRecipeDraft {
   title: string;
@@ -26,6 +26,7 @@ export interface MyContentItem {
   minutes?: number;
   recipe?: RecipeResponse;
   draft?: ManualRecipeDraft;
+  videoDraft?: VideoRecipeDraftResponse;
   translations?: { title: string; description: string };
 }
 

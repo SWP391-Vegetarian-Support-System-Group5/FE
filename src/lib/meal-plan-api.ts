@@ -1,5 +1,12 @@
 import { apiFetch, apiGet } from "@/lib/api";
 
+export class MealPlanRequestError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = "MealPlanRequestError";
+  }
+}
+
 export interface MealPlanMealResponse {
   mealPlanMealId: number;
   dayNumber: number;
@@ -42,7 +49,7 @@ export async function replaceMeal(planId: number, mealId: number) {
   const res = await apiFetch(`/api/meal-plans/${planId}/meals/${mealId}/replace`, {
     method: "PUT",
   });
-  if (!res.ok) throw new Error(await readApiError(res, "Không thể đổi món."));
+  if (!res.ok) throw new MealPlanRequestError(await readApiError(res, "Không thể đổi món."), res.status);
   return (await res.json()) as MealPlanResponse;
 }
 

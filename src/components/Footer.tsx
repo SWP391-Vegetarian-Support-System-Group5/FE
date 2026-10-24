@@ -38,10 +38,10 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Explore column */}
+          {/* Community column */}
           <div>
             <h4 className="text-sm font-semibold tracking-wide text-[#07241A]">
-              {t("Explore", "Khám phá")}
+              {t("Community", "Cộng đồng")}
             </h4>
             <ul className="mt-4 space-y-2.5 text-xs text-[#424844]">
               <li>
@@ -90,7 +90,6 @@ export default function Footer() {
               </li>
             </ul>
           </div>
-
 
         </div>
 

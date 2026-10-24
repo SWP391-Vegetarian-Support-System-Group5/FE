@@ -1,6 +1,11 @@
 import type { Language } from "@/context/LanguageContext";
 
 const recipeTitleVi: Record<string, string> = {
+  "Tofu vegetable bowl": "Cơm đậu hũ rau củ",
+  "Tofu Bowl": "Cơm đậu hũ",
+  "Mushroom Pasta": "Mì Ý nấm",
+  "Vegetable Omelette": "Trứng chiên rau củ",
+  "Lentil Bowl": "Cơm đậu lăng",
   "Mushroom Ginger Rice Bowl": "Cơm nấm gừng",
   "Lemongrass Mushroom Vermicelli": "Bún nấm sả",
   "Tomato Mushroom Claypot": "Nấm kho cà chua niêu đất",
@@ -54,6 +59,8 @@ const recipeTitleVi: Record<string, string> = {
 };
 
 const defaultRecipeTextVi: Record<string, string> = {
+  "You have reached the meal replacement limit (5 times/week).": "Bạn đã hết 5 lượt đổi món cho thực đơn này. Vui lòng thử lại sau.",
+  "You have reached the meal plan regeneration limit (3 times/day). Please try again tomorrow.": "Bạn đã hết 3 lượt tạo lại thực đơn hôm nay. Vui lòng thử lại vào ngày mai.",
   "Update your height and weight in your profile before creating a meal plan.": "Hãy cập nhật chiều cao và cân nặng trong hồ sơ trước khi tạo thực đơn.",
   "Choose your vegetarian type in your profile before creating a meal plan.": "Hãy chọn kiểu ăn chay trong hồ sơ trước khi tạo thực đơn.",
   "Your BMI group could not be determined. Update your profile and try again.": "Chưa xác định được nhóm BMI. Hãy cập nhật hồ sơ rồi thử lại.",
@@ -62,6 +69,7 @@ const defaultRecipeTextVi: Record<string, string> = {
   "Normal": "Bình thường",
   "Overweight": "Thừa cân",
   "Obese": "Béo phì",
+  "Quick mushroom pasta for vegetarians.": "Mì Ý nấm chế biến nhanh cho người ăn chay.",
   "Brown rice with mixed mushrooms, ginger and herbs.": "Cơm gạo lứt với nấm, gừng và rau thơm.",
   "Rice vermicelli topped with lemongrass mushrooms and greens.": "Bún với nấm xào sả và rau xanh.",
   "A savory claypot stew with tomato, mushroom and eggplant.": "Nấm, cà chua và cà tím kho niêu đậm đà.",
@@ -122,9 +130,9 @@ const ingredientVi: Record<string, string> = {
   "rice vermicelli": "bún", lemongrass: "sả", lettuce: "xà lách", tomato: "cà chua", eggplant: "cà tím",
   "spring onion": "hành lá", pumpkin: "bí đỏ", "coconut milk": "nước cốt dừa", basil: "húng quế", carrot: "cà rốt",
   "lotus root": "củ sen", "sesame seed": "hạt mè", "snow pea": "đậu Hà Lan trái", chickpea: "đậu gà", spinach: "cải bó xôi",
-  "red lentil": "đậu lăng đỏ", "sweet potato": "khoai lang", turmeric: "nghệ", cilantro: "ngò rí", corn: "bắp",
+  "red lentil": "đậu lăng đỏ", lentils: "đậu lăng", "sweet potato": "khoai lang", turmeric: "nghệ", cilantro: "ngò rí", corn: "bắp",
   "green pea": "đậu Hà Lan", "bitter melon": "khổ qua", "glass noodle": "miến", "banana blossom": "bắp chuối", perilla: "tía tô",
-  cauliflower: "bông cải trắng", lime: "chanh", cucumber: "dưa leo", kabocha: "bí đỏ Nhật", "rice paper": "bánh tráng",
+  cauliflower: "bông cải trắng", broccoli: "bông cải xanh", lime: "chanh", cucumber: "dưa leo", kabocha: "bí đỏ Nhật", "rice paper": "bánh tráng",
   avocado: "bơ", mint: "bạc hà", "mung bean": "đậu xanh", pandan: "lá dứa", "cane sugar": "đường mía",
   "morning glory": "rau muống", garlic: "tỏi", chili: "ớt", "rice noodle": "bánh phở", "star anise": "hoa hồi",
   cinnamon: "quế", "napa cabbage": "cải thảo", daikon: "củ cải trắng", okra: "đậu bắp", onion: "hành tây",
@@ -154,6 +162,13 @@ const ingredientEn = Object.fromEntries(Object.entries(ingredientVi).map(([en, v
 
 export function localizeIngredient(value: string, language: Language) {
   return language === "vi" ? ingredientVi[value.trim().toLowerCase()] ?? value : ingredientEn[value.trim().toLowerCase()] ?? value;
+}
+export function localizeIngredientCategory(code: string, name: string): string {
+  const labels: Record<string, string> = {
+    PLANT: "Thực vật", DAIRY: "Sữa và chế phẩm từ sữa", EGG: "Trứng",
+    HONEY: "Mật ong", UNVERIFIED: "Chưa xác minh",
+  };
+  return labels[code] ?? name;
 }
 export function localizeAmount(value: string | null | undefined, language: Language) {
   if (!value || language !== "vi") return value ?? "";

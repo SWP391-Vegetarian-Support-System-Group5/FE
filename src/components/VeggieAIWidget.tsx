@@ -351,7 +351,7 @@ function VeggieAIChat() {
                         {msg.relatedRecipes.map((recipe) => (
                           <Link
                             key={recipe.recipeId}
-                            href={`/community?q=${encodeURIComponent(recipe.title)}`}
+                            href={`/view-detail/${recipe.recipeId}`}
                             className="inline-block rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-[#1E3A2F] border border-[#D9E6DC] hover:bg-[#D9E6DC]/40"
                           >
                             {recipe.title}

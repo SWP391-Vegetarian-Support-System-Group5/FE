@@ -1,10 +1,8 @@
 "use client";
 
 import UiText, { useUiText } from "@/components/UiText";
-import PostComposer from "@/components/content/PostComposer";
 import UploadProgress from "@/components/ui/UploadProgress";
 import { useLanguage } from "@/context/LanguageContext";
-import type { PostType } from "@/lib/post-api";
 
 import RecipeCategoryPicker from "./RecipeCategoryPicker";
 import BmiTypePicker from "./BmiTypePicker";
@@ -45,23 +43,14 @@ const INGREDIENT_CATEGORY_LABELS: Record<string, [string, string]> = {
 };
 
 const subscribeHydration = () => () => {};
+const DRAFT_POLL_INTERVAL_MS = 4_000;
+const isMissingVideoSource = (message: string | null) =>
+  (message?.includes("The original video file is no longer available") ||
+    message?.includes("The original video is no longer on the server") ||
+    message?.includes("Video gốc không còn trên máy chủ")) ?? false;
 
 export default function CreateContentView() {
-  const { t } = useLanguage();
-  const [kind, setKind] = useState<PostType | "RECIPE">("RECIPE");
-  const choices: { value: PostType | "RECIPE"; label: string }[] = [
-    { value: "RECIPE", label: t("Recipe", "Công thức") },
-    { value: "BLOG", label: t("Blog post", "Bài chia sẻ") },
-    { value: "QUESTION", label: t("Question", "Câu hỏi") },
-    { value: "VIDEO", label: t("Video post", "Bài video") },
-  ];
-  return <>
-    <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 lg:px-8">
-      <fieldset className="mb-6"><legend className="mb-3 text-sm font-semibold text-[#07241A]">{t("What would you like to create?", "Bạn muốn tạo nội dung gì?")}</legend><div className="flex flex-wrap gap-2">{choices.map(choice => <label key={choice.value} className={`cursor-pointer rounded-full border px-5 py-2.5 text-sm font-semibold ${kind === choice.value ? "border-[#254B38] bg-[#254B38] text-white" : "border-[#E5E7DF] bg-white text-[#424844]"}`}><input type="radio" name="content-kind" value={choice.value} checked={kind === choice.value} onChange={() => setKind(choice.value)} className="peer sr-only" /><span className="peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4">{choice.label}</span></label>)}</div></fieldset>
-    </div>
-    <div hidden={kind !== "RECIPE"}><RecipeContentView /></div>
-    <div hidden={kind === "RECIPE"}><PostComposer postType={kind === "RECIPE" ? "BLOG" : kind} /></div>
-  </>;
+  return <RecipeContentView />;
 }
 
 function RecipeContentView() {
@@ -111,6 +100,7 @@ function RecipeContentView() {
   const [draftId, setDraftId] = useState<number | null>(null);
   const [draftStatus, setDraftStatus] = useState<VideoDraftStatus | null>(null);
   const [draftErrorMessage, setDraftErrorMessage] = useState<string | null>(null);
+  const [restoringVideoDraft, setRestoringVideoDraft] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
 
   // UI status
@@ -200,9 +190,8 @@ function RecipeContentView() {
           setVideoPreviewUrl(getMediaUrl(res.videoUrl));
         }
 
-        if (res.status === "READY") {
-          // Stop polling and fill form
-          if (pollIntervalRef.current) {
+        if (res.status === "READY" || (res.status === "UPLOADING" && !!res.title)) {
+          if (res.status === "READY" && pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
@@ -231,7 +220,9 @@ function RecipeContentView() {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          setDraftErrorMessage(localizeText(res.errorMessage || t("Video processing failed. Try again.", "Xử lý video thất bại. Hãy thử lại."), language));
+          setDraftErrorMessage(isMissingVideoSource(res.errorMessage)
+            ? t("The original video is no longer on the server. Upload it again to create a new draft.", "Video gốc không còn trên máy chủ. Hãy tải lại video để tạo bản nháp mới.")
+            : localizeText(res.errorMessage || t("Video processing failed. Try again.", "Xử lý video thất bại. Hãy thử lại."), language));
         } else if (res.status === "PUBLISHED") {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
@@ -246,6 +237,45 @@ function RecipeContentView() {
     },
     [videoPreviewUrl, language, t]
   );
+  const pollDraftRef = useRef(pollDraft);
+  useEffect(() => { pollDraftRef.current = pollDraft; }, [pollDraft]);
+
+  useEffect(() => {
+    if (authLoading || restoredDraftRef.current) return;
+    const match = /^video-(\d+)$/.exec(new URLSearchParams(window.location.search).get("draft") || "");
+    if (!match) return;
+    const id = Number(match[1]);
+    let cancelled = false;
+    Promise.resolve().then(() => { if (!cancelled) setRestoringVideoDraft(true); });
+    getVideoRecipeDraft(id).then((draft) => {
+      if (cancelled) return;
+      restoredDraftRef.current = true;
+      setRestoringVideoDraft(false);
+      setCreationMode("ai");
+      setDraftId(id);
+      setDraftStatus(draft.status);
+      setDraftErrorMessage(isMissingVideoSource(draft.errorMessage)
+        ? t("The original video is no longer on the server. Upload it again to create a new draft.", "Video gốc không còn trên máy chủ. Hãy tải lại video để tạo bản nháp mới.")
+        : draft.errorMessage);
+      setVideoPreviewUrl(draft.videoUrl ? getMediaUrl(draft.videoUrl) : null);
+      setTitle(draft.title || "");
+      setRecipeName(draft.recipeName || "");
+      setContent(draft.description || "");
+      setTranscript(draft.transcript);
+      if (draft.estimatedPrepMinutes != null) setPrepMinutes(String(draft.estimatedPrepMinutes));
+      if (draft.ingredients.length) setIngredients(draft.ingredients);
+      if (draft.steps.length) setSteps(draft.steps.map((step, index) => ({ stepNumber: index + 1, instruction: step.instruction })));
+      if (["PENDING", "UPLOADING", "PROCESSING"].includes(draft.status)) {
+        pollIntervalRef.current = setInterval(() => { void pollDraftRef.current(id); }, DRAFT_POLL_INTERVAL_MS);
+      }
+    }).catch((error: unknown) => {
+      if (!cancelled) {
+        setRestoringVideoDraft(false);
+        setStatusMessage({ type: "error", text: error instanceof Error ? error.message : "Không mở được bản nháp video." });
+      }
+    });
+    return () => { cancelled = true; if (pollIntervalRef.current) clearInterval(pollIntervalRef.current); };
+  }, [authLoading, t]);
 
   // Clear polling on unmount
   useEffect(() => {
@@ -315,11 +345,12 @@ function RecipeContentView() {
       setDraftId(res.videoRecipeDraftId);
       setDraftStatus(res.status);
 
-      // Start polling
+      // The worker may finish before the first interval tick.
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      void pollDraft(res.videoRecipeDraftId);
       pollIntervalRef.current = setInterval(() => {
-        pollDraft(res.videoRecipeDraftId);
-      }, 10000);
+        void pollDraftRef.current(res.videoRecipeDraftId);
+      }, DRAFT_POLL_INTERVAL_MS);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {
         setStatusMessage({ type: "info", text: "Upload cancelled." });
@@ -337,6 +368,11 @@ function RecipeContentView() {
   // Retry failed draft
   const handleRetryDraft = async () => {
     if (!draftId) return;
+    if (isMissingVideoSource(draftErrorMessage)) {
+      if (videoFile) await handleGenerateDraft();
+      else fileInputRef.current?.click();
+      return;
+    }
     try {
       setStatusMessage(null);
       setDraftStatus("PENDING");
@@ -345,13 +381,16 @@ function RecipeContentView() {
       setDraftErrorMessage(null);
 
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      void pollDraft(draftId);
       pollIntervalRef.current = setInterval(() => {
-        pollDraft(draftId);
-      }, 10000);
+        void pollDraftRef.current(draftId);
+      }, DRAFT_POLL_INTERVAL_MS);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Thử lại thất bại";
       setDraftStatus("FAILED");
-      setDraftErrorMessage(localizeText(msg, language));
+      setDraftErrorMessage(isMissingVideoSource(msg)
+        ? t("The original video is no longer on the server. Upload it again to create a new draft.", "Video gốc không còn trên máy chủ. Hãy tải lại video để tạo bản nháp mới.")
+        : localizeText(msg, language));
     }
   };
 
@@ -642,15 +681,17 @@ function RecipeContentView() {
               </span>
               <div><UiText text={statusMessage.text} />{publishedResult && statusMessage.type === "success" && <p className="mt-1 break-words">{publishedResult.title} · #{publishedResult.postId}</p>}</div>
             </div>
-            {publishedResult && (
+            {statusMessage.type === "success" && (
               <Link
                 href="/my-content"
                 className="underline font-bold hover:text-black ml-4"
-              ><UiText text={"Xem bài viết"} /></Link>
+              ><UiText text={publishedResult ? "Xem bài viết" : "Xem bản nháp"} /></Link>
             )}
           </div>
         </div>
       )}
+
+      {restoringVideoDraft && <p role="status" className="my-4 text-sm text-[#647068]">{t("Loading saved draft...", "Đang tải bản nháp đã lưu...")}</p>}
 
       {/* Auth Warning if not logged in */}
       {isMounted && !isLoggedIn && (
@@ -968,7 +1009,9 @@ function RecipeContentView() {
                           onClick={handleRetryDraft}
                           className="rounded-xl bg-[#07241A] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1E3A2F] transition"
                         >
-                          {t("Retry analysis", "Thử phân tích lại")}
+                          {isMissingVideoSource(draftErrorMessage)
+                            ? t("Upload video again", "Tải lại video")
+                            : t("Retry analysis", "Thử phân tích lại")}
                         </button>
                       )}
                     </div>

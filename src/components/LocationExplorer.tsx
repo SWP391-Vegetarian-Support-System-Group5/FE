@@ -10,6 +10,8 @@ import SearchableLocationSelect from "@/components/SearchableLocationSelect";
 import { useLanguage } from "@/context/LanguageContext";
 import { readLivingLocation, saveLivingLocation } from "@/lib/living-location";
 import { locationApi } from "@/lib/location-api";
+import { getProfile } from "@/lib/profile-api";
+import { displayPlaceCategory } from "@/hooks/useNearbyPlaces";
 import { provinceCenters } from "@/lib/location-data";
 import type { Area, Coordinates, Province, Restaurant } from "@/types/location";
 
@@ -28,14 +30,6 @@ function normalizeLocationName(value: string) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function displayRestaurantCategory(value: string | null | undefined, t: (en: string, vi: string) => string) {
-  const normalized = (value || "").toLowerCase();
-  if (normalized.includes("vegan") || normalized.includes("plant")) return t("Plant-based", "Thuần thực vật");
-  if (normalized.includes("vegetarian")) return t("Vegetarian", "Ăn chay");
-  if (!value) return t("Vegetarian", "Ăn chay");
-  return value;
-}
-
 export default function LocationExplorer() {
   const ui = useUiText();
   const { t } = useLanguage();
@@ -49,6 +43,7 @@ export default function LocationExplorer() {
   const [selected, setSelected] = useState<Restaurant>();
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [initialLocationReady, setInitialLocationReady] = useState(false);
   const skipNextFilterReload = useRef(false);
   const requestSequence = useRef(0);
 
@@ -59,14 +54,20 @@ export default function LocationExplorer() {
 
   useEffect(() => {
     const saved = readLivingLocation();
-    if (!saved) return;
-    // Defer hydration-only state so server and first client render remain identical.
-    queueMicrotask(() => {
-      setProvinceCode(saved.provinceCode);
-      setAreaCode(saved.areaCode);
-      setAddress(saved.address);
-      setCenter(saved.center);
+    let active = true;
+    void getProfile().catch(() => null).then(profile => {
+      if (!active) return;
+      if (saved) {
+        setProvinceCode(saved.provinceCode);
+        setAreaCode(saved.areaCode);
+        setAddress(saved.address);
+      }
+      setCenter(profile?.latitude != null && profile.longitude != null
+        ? { lat: profile.latitude, lng: profile.longitude }
+        : saved?.center ?? defaultCenter);
+      setInitialLocationReady(true);
     });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -80,7 +81,8 @@ export default function LocationExplorer() {
     const request = ++requestSequence.current;
     setLoading(true);
     try {
-      const data = await locationApi.restaurants(filters.provinceCode, filters.areaCode, coordinates.lat, coordinates.lng);
+      const profile = await getProfile().catch(() => null);
+      const data = await locationApi.restaurants(filters.provinceCode, filters.areaCode, coordinates.lat, coordinates.lng, profile?.dietTypeId);
       if (request !== requestSequence.current) return;
       setRestaurants(data);
       setSelected(data[0]);
@@ -116,6 +118,7 @@ export default function LocationExplorer() {
   };
 
   useEffect(() => {
+    if (!initialLocationReady) return;
     if (skipNextFilterReload.current) {
       skipNextFilterReload.current = false;
       return;
@@ -124,7 +127,7 @@ export default function LocationExplorer() {
     void loadRestaurants(center);
     // The center is searched explicitly so dragging/selecting a marker does not refetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [areaCode, provinceCode]);
+  }, [areaCode, provinceCode, initialLocationReady]);
 
   const changeProvince = async (nextProvinceCode: string) => {
     setLoading(true);
@@ -308,10 +311,10 @@ export default function LocationExplorer() {
               <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">{t("Places nearby", "Địa điểm gần đây")}</h3><p className="mt-1 text-xs text-[#788079]">{t("Within a maximum radius of 5 km", "Trong bán kính tối đa 5 km")}</p></div>
               <span className="rounded-full bg-[#e4eee7] px-2.5 py-1 text-xs font-bold text-[#24543d]">{restaurants.length}</span>
             </div>
-            {loading ? <p className="py-10 text-center text-sm text-[#788079]">{t("Searching for places...", "Đang tìm địa điểm...")}</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">{t("No real vegetarian restaurants were found within 5 km of this address. Try another address or expand the restaurant data in DB/OpenStreetMap.", "Không tìm thấy nhà hàng chay thật trong bán kính 5 km quanh địa chỉ này. Hãy thử địa chỉ khác hoặc mở rộng dữ liệu nhà hàng trong DB/OpenStreetMap.")}</p> : (
+            {loading ? <p className="py-10 text-center text-sm text-[#788079]">{t("Searching for places...", "Đang tìm địa điểm...")}</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">{t("No matching VeggieMate restaurants were found within 5 km of this address.", "Không tìm thấy nhà hàng VeggieMate phù hợp trong bán kính 5 km quanh địa chỉ này.")}</p> : (
               <div className="space-y-3">{restaurants.map((restaurant) => (
                 <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setCenter({ lat: restaurant.latitude, lng: restaurant.longitude }); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
-                  <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{displayRestaurantCategory(restaurant.category, t)}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.rating > 0 ? `★ ${restaurant.rating}` : t("New", "Mới")}</span></div>
+                  <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{displayPlaceCategory(restaurant.category, t)}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.distanceKm != null ? `${restaurant.distanceKm.toFixed(1)} km` : ""}</span></div>
                   <p className="mt-2 text-xs leading-5 text-[#677069]">{restaurant.address}</p>
                   <p className="mt-2 text-[11px] text-[#8a918c]">{restaurant.reviewCount > 0 ? `${restaurant.reviewCount} ${t("reviews", "đánh giá")}` : t("No reviews yet", "Chưa có đánh giá")}{restaurant.distanceKm != null ? ` · ${restaurant.distanceKm} km` : ""}</p>
                 </button>

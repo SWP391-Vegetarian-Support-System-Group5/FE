@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import ContentIcon from "@/components/content/ContentIcon";
 import { useLanguage } from "@/context/LanguageContext";
-import { localizeIngredient } from "@/lib/localized-content";
+import { localizeIngredient, localizeIngredientCategory } from "@/lib/localized-content";
 import { getAllergens, getIngredientCategories, getIngredients, updateIngredient, type AllergenItem, type IngredientCategoryItem, type IngredientItem } from "@/lib/recipe-api";
 
 const labels: Record<string, [string, string]> = {
@@ -68,7 +68,15 @@ export default function IngredientsPage() {
     </div>
     {loading ? <p className="text-sm">{t("Loading...", "Đang tải...")}</p> : <div className="overflow-x-auto">
       <table className="w-full text-left text-sm"><thead><tr className="border-b border-[#D9E6DC]"><th className="py-3">{t("Name", "Tên")}</th><th>{t("Category", "Nhóm nguyên liệu")}</th><th>{t("Allergen", "Chất gây dị ứng")}</th><th><span className="sr-only">{t("Actions", "Thao tác")}</span></th></tr></thead>
-        <tbody>{visibleItems.map(item => <tr key={item.id} className="border-b border-[#EFEEEB]"><td className="py-3 pr-4">{localizeIngredient(item.name, language)}</td><td className="pr-4">{categories.find(category => category.id === item.ingredientCategoryId)?.name ?? item.dietaryGroup}</td><td className="pr-4">{item.allergenId ? localizeIngredient(allergens.find(allergen => allergen.id === item.allergenId)?.name || "", language) : t("None", "Không có")}</td><td><button type="button" onClick={() => setEditing({ ...item })} title={t("Edit ingredient", "Sửa nguyên liệu")} aria-label={t("Edit ingredient", "Sửa nguyên liệu")} className="flex h-8 w-8 items-center justify-center rounded hover:bg-[#D9E6DC]"><ContentIcon name="edit" /></button></td></tr>)}</tbody>
+        <tbody>{visibleItems.map(item => {
+          const category = categories.find(candidate => candidate.id === item.ingredientCategoryId);
+          return <tr key={item.id} className="border-b border-[#EFEEEB]">
+            <td className="py-3 pr-4">{localizeIngredient(item.name, language)}</td>
+            <td className="pr-4">{localizeIngredientCategory(category?.code ?? item.dietaryGroup, category?.name ?? item.dietaryGroup)}</td>
+            <td className="pr-4">{item.allergenId ? localizeIngredient(allergens.find(allergen => allergen.id === item.allergenId)?.name || "", language) : t("None", "Không có")}</td>
+            <td><button type="button" onClick={() => setEditing({ ...item })} title={t("Edit ingredient", "Sửa nguyên liệu")} aria-label={t("Edit ingredient", "Sửa nguyên liệu")} className="flex h-8 w-8 items-center justify-center rounded hover:bg-[#D9E6DC]"><ContentIcon name="edit" /></button></td>
+          </tr>;
+        })}</tbody>
       </table>
       {visibleItems.length === 0 && <p className="py-6 text-sm text-[#727974]">{t("No ingredients found.", "Không tìm thấy nguyên liệu.")}</p>}
     </div>}

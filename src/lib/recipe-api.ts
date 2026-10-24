@@ -238,6 +238,12 @@ export async function getVideoRecipeDraft(id: number): Promise<VideoRecipeDraftR
   return (await res.json()) as VideoRecipeDraftResponse;
 }
 
+export async function getMyVideoRecipeDrafts(): Promise<VideoRecipeDraftResponse[]> {
+  const res = await apiFetch("/api/video-recipe-drafts", { signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) throw new Error(`Không thể tải bản nháp video (${res.status})`);
+  return (await res.json()) as VideoRecipeDraftResponse[];
+}
+
 export async function updateVideoRecipeDraft(
   id: number,
   payload: UpdateVideoRecipeDraftPayload

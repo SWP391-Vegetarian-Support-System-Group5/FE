@@ -20,7 +20,6 @@ export default function RegisterPage() {
           <span>←</span>
           <span><UiText text={"Về trang chủ"} /></span>
         </Link>
-
 </div>
 
       {/* Main Register Card */}

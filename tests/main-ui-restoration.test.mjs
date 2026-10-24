@@ -37,6 +37,7 @@ test("main category page renders all three tabs, rather than redirecting away", 
     "next/navigation": { useRouter: () => ({ push() {} }) },
     "@/lib/recipe-api": {}, "@/lib/api": {},
     "@/lib/recipe-categories": { CATEGORY_TYPES: ["CUISINE"], categoryTypeLabels: { CUISINE: ["Cuisine", "Ẩm thực"] } },
+    "@/lib/localized-content": { localizeIngredient: value => value, localizeIngredientCategory: (_code, name) => name, localizeRecipeTitle: value => value },
     "@/components/recipe/CategoryRecipeAssignments": defaultExport(() => null),
     "@/lib/bmi-api": {},
   });
@@ -50,6 +51,7 @@ test("main category page renders all three tabs, rather than redirecting away", 
 test("restored main meal cards and recipe modal render API-backed view data, not design fixtures", () => {
   const meal = { id: "900", recipeId: 77, slot: "BREAKFAST", title: "Actual recipe", description: "Actual description", image: "/images/hero_slide.png", durationCalories: "15 mins", ingredients: ["100g tofu"], steps: ["Cook tofu"] };
   const noop = () => {};
+  let replacementLimitReached = false;
   const Component = load("src/components/meal-planner/MealPlannerView.tsx", {
     "./useMealPlanner": { useMealPlanner: () => ({
       days: Array.from({ length: 7 }, (_, day) => ({
@@ -59,7 +61,7 @@ test("restored main meal cards and recipe modal render API-backed view data, not
         })),
       })),
       allergens: [], pantryIngredients: ["tofu"], newAllergen: "", newPantryItem: "", selectedMealForView: meal,
-      toastMessage: null, isRegenerating: false, loading: false, error: "", startDate: "19/10/26",
+      toastMessage: null, isRegenerating: false, replacementLimitReached, loading: false, error: "", startDate: "19/10/26",
       profileName: "Actual user", bmi: 22, bmiCategory: "Normal", dietName: "Vegan", savedCount: 2,
       setNewAllergen: noop, setShowAddAllergen: noop, setNewPantryItem: noop, setSelectedMealForView: noop,
       handleRemoveAllergen: noop, handleAddAllergen: noop, handleRemovePantry: noop, handleAddPantry: noop,
@@ -71,7 +73,8 @@ test("restored main meal cards and recipe modal render API-backed view data, not
   assert.match(html, /Actual recipe/);
   assert.match(html, /100g tofu/);
   assert.match(html, /Cook tofu/);
-  assert.doesNotMatch(html, /Larder &amp; Fresh Bin|Available ingredients/);
+  assert.match(html, /Nguyên liệu sẵn có/);
+  assert.match(html, /tofu/);
   assert.match(html, /placeholder="dd\/mm\/yy"/);
   assert.match(html, /value="19\/10\/26"/);
   assert.doesNotMatch(html, /type="date"/);
@@ -82,6 +85,11 @@ test("restored main meal cards and recipe modal render API-backed view data, not
   }
   assert.equal((html.match(/>Xem công thức</g) || []).length, 21);
   assert.equal((html.match(/>Thay món</g) || []).length, 21);
+  assert.match(html, /Giới hạn đổi món: tối đa 5 lần cho mỗi thực đơn trong 7 ngày/);
+  replacementLimitReached = true;
+  const limitedHtml = renderToStaticMarkup(React.createElement(Component));
+  assert.match(limitedHtml, /Bạn đã hết 5 lượt đổi món cho thực đơn này/);
+  assert.equal((limitedHtml.match(/title="Đã hết lượt đổi món cho thực đơn này"/g) || []).length, 21);
   assert.doesNotMatch(html, /Remaining days/);
   assert.doesNotMatch(html, /kcal|Minh Tran|Warm Tofu &amp; Vegetable Congee|84%/);
 });
@@ -89,14 +97,15 @@ test("restored main meal cards and recipe modal render API-backed view data, not
 test("restored main place-card design uses live places and does not fall back to fake restaurants", () => {
   const Component = load("src/components/CuratedVeganPlaces.tsx", {
     "@/hooks/useNearbyPlaces": {
-      useNearbyPlaces: () => ({ places: [{ id: "osm-1", name: "Actual OSM place", category: "vegetarian", address: "Actual address", areaCode: "all", latitude: 10, longitude: 106, rating: 0, reviewCount: 0, distanceKm: 1.2 }], loading: false, message: "Nearby places" }),
+      useNearbyPlaces: () => ({ places: [{ id: "restaurant-1", name: "Admin restaurant", category: "vegetarian", address: "Actual address", areaCode: "all", latitude: 10, longitude: 106, rating: 0, reviewCount: 0, distanceKm: 1.2 }], loading: false, message: "Nearby places" }),
       displayPlaceCategory: () => "Vegetarian",
     },
   });
   const html = renderToStaticMarkup(React.createElement(Component));
-  assert.match(html, /Actual OSM place/);
+  assert.match(html, /Admin restaurant/);
   assert.match(html, /Actual address/);
   assert.match(html, /Ảnh minh họa/);
-  assert.match(html, /Chưa có điểm/);
+  assert.match(html, /1\.2 km/);
+  assert.doesNotMatch(html, /Not rated|reviews/);
   assert.doesNotMatch(html, /Green Garden Vegetarian|Loving Leaf Vegan|4\.8|4\.9/);
 });

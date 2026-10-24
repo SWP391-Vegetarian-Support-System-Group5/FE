@@ -54,7 +54,6 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
       ) {
         setShowProfileMenu(false);
       }
-
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -460,7 +459,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
               {(BYPASS_ADMIN_ROLE || user?.role?.toLowerCase() === "admin") && (
                 <div className="mb-2 pb-2 border-b border-[#EFEEEB] space-y-1">
-                  <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Quản trị viên</div>
+                  <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Quản trị</div>
                   <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#1E3A2F] bg-[#D9E6DC]/40">
                     <UiText text={"Bảng quản trị"} />
                   </Link>

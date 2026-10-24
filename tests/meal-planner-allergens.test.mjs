@@ -9,6 +9,7 @@ async function setup({ bookmarksFail = false, selectedFail = false, saveFail = f
   const slots = [];
   const effects = [];
   const writes = [];
+  const mealRequests = [];
   let cursor = 0;
   let firstRender = true;
   const catalog = [{ allergenId: 7, name: "Peanut" }, { allergenId: 12, name: "Soy" }];
@@ -30,7 +31,7 @@ async function setup({ bookmarksFail = false, selectedFail = false, saveFail = f
     "@/context/AuthContext": { useAuth: () => ({ user: { uid: "user-1" }, loading: false }) },
     "@/context/LanguageContext": { useLanguage: () => ({ t: english => english, language: "en", locale: "en-US" }) },
     "@/lib/api": { getMediaUrl: value => value },
-    "@/lib/meal-plan-api": { getMealPlans: async () => [] },
+    "@/lib/meal-plan-api": { getMealPlans: async () => [], generateMealPlan: async request => { mealRequests.push(request); return { meals: [] }; } },
     "@/lib/profile-api": {
       getProfile: async () => ({ fullName: "Test User" }),
       getDietTypes: async () => [],
@@ -42,7 +43,7 @@ async function setup({ bookmarksFail = false, selectedFail = false, saveFail = f
     "@/lib/recipe-api": {},
     "@/lib/diet-type-display": { formatDietTypeName: () => "" },
     "@/lib/localized-content": { localizeText: value => value },
-    "@/lib/meal-plan-dates": { initialMealPlanDate: () => "23/10/26" },
+    "@/lib/meal-plan-dates": { initialMealPlanDate: () => "23/10/26", parseMealPlanDate: () => "2026-10-23" },
   };
   const exports = {};
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/components/meal-planner/useMealPlanner.ts", import.meta.url), "utf8"), {
@@ -53,8 +54,16 @@ async function setup({ bookmarksFail = false, selectedFail = false, saveFail = f
   firstRender = false;
   effects.forEach(effect => effect());
   await new Promise(setImmediate);
-  return { render, writes };
+  return { render, writes, mealRequests };
 }
+
+test("entered pantry ingredients are sent when creating a meal plan", async () => {
+  const { render, mealRequests } = await setup();
+  render().setNewPantryItem("tofu");
+  render().handleAddPantry({ preventDefault() {} });
+  await render().handleRegenerate();
+  assert.equal(mealRequests[0].availableIngredients, "tofu");
+});
 
 test("a failed bookmarks API does not discard the allergen catalog or saved allergies", async () => {
   const { render } = await setup({ bookmarksFail: true });

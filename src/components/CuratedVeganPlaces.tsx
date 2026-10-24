@@ -14,115 +14,14 @@ interface VeganPlace {
   longitude?: number;
   name: string;
   image: string;
-  rating: number;
-  reviewsCount: number;
   dietTag: string;
   district: string;
   description: string;
   specialtyTag: string;
-  priceLevel: string;
   address: string;
-  phone: string;
-  openHours: string;
   signatureDishes: string[];
   distance?: string;
-  walkingTime?: string;
 }
-
-export const VEGAN_PLACES_DATA: VeganPlace[] = [
-  {
-    id: "green-garden",
-    name: "Green Garden Vegetarian",
-    image: "/images/vegan_green_garden.jpg",
-    rating: 4.8,
-    reviewsCount: 142,
-    dietTag: "Vegetarian",
-    district: "District 3",
-    description:
-      "Authentic Saigon plant-based hotpot & fresh spring rolls made daily with heirloom herbs and house-pressed tofu.",
-    specialtyTag: "🌱 Organic & Broth Specials",
-    priceLevel: "$$ · Moderate",
-    address: "214 Vo Van Tan, Ward 5, District 3, Ho Chi Minh City",
-    phone: "(+84) 28 3832 9988",
-    openHours: "08:00 - 22:00",
-    signatureDishes: [
-      "Heirloom Mushroom Hotpot",
-      "House-Pressed Lemongrass Tofu",
-      "Crispy Herbal Spring Rolls",
-    ],
-    distance: "750m",
-    walkingTime: "9 mins walk",
-  },
-  {
-    id: "loving-leaf",
-    name: "Loving Leaf Vegan",
-    image: "/images/vegan_loving_leaf_cafe.jpg",
-    rating: 4.9,
-    reviewsCount: 98,
-    dietTag: "100% Vegan",
-    district: "District 1",
-    description:
-      "Modern vegan comfort cuisine & organic smoothies crafted without refined sugars or artificial additives.",
-    specialtyTag: "🍹 Craft Smoothies & Bowls",
-    priceLevel: "$$$ · Premium",
-    address: "38 Ben Nghe, District 1, Ho Chi Minh City",
-    phone: "(+84) 28 3822 5678",
-    openHours: "08:30 - 21:30",
-    signatureDishes: [
-      "Spirulina Green Glow Smoothie",
-      "Truffle Avocado Sourdough",
-      "Botanical Harvest Buddha Bowl",
-    ],
-    distance: "450m",
-    walkingTime: "6 mins walk",
-  },
-  {
-    id: "veggie-house",
-    name: "Veggie House",
-    image: "/images/vegan_veggie_house.jpg",
-    rating: 4.7,
-    reviewsCount: 214,
-    dietTag: "Vegetarian",
-    district: "District 7",
-    description:
-      "Cozy family-style dining with seasonal garden produce and savory claypot braised specialties.",
-    specialtyTag: "🍲 Family Claypots & Soups",
-    priceLevel: "$ · Everyday Warmth",
-    address: "88 Nguyen Thi Thap, Tan Phong, District 7, Ho Chi Minh City",
-    phone: "(+84) 28 5410 7766",
-    openHours: "09:00 - 21:30",
-    signatureDishes: [
-      "Caramelized Claypot Tofu & Pepper",
-      "Lotus Root Broth",
-      "Steamed Seasonal Greens with Sesame Dip",
-    ],
-    distance: "2.3 km",
-    walkingTime: "10 mins ride",
-  },
-  {
-    id: "an-duyen-chay",
-    name: "An Duyen Chay",
-    image: "/images/vegan_an_duyen.jpg",
-    rating: 4.9,
-    reviewsCount: 180,
-    dietTag: "Vegetarian",
-    district: "District 5",
-    description:
-      "Traditional Vietnamese Buddhist vegetarian cuisine celebrated for subtle balance, herbal broths, and peace of mind.",
-    specialtyTag: "🍵 Heritage Herbal Balance",
-    priceLevel: "$$ · Moderate",
-    address: "10 Nguyen Tri Phuong, Ward 7, District 5, Ho Chi Minh City",
-    phone: "(+84) 28 3855 2244",
-    openHours: "07:30 - 21:00",
-    signatureDishes: [
-      "Monastery Lotus Seed Soup",
-      "Braised Silken Bean Curd with Star Anise",
-      "Ceremonial Jasmine Tea",
-    ],
-    distance: "1.8 km",
-    walkingTime: "7 mins ride",
-  },
-];
 
 export default function CuratedVeganPlaces() {
   const ui = useUiText();
@@ -130,11 +29,11 @@ export default function CuratedVeganPlaces() {
   const { places: nearby, loading, message } = useNearbyPlaces();
   const places: VeganPlace[] = nearby.map(place => ({
     id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude,
-    image: "/images/hero_slide.png", rating: place.rating, reviewsCount: place.reviewCount,
+    image: "/images/hero_slide.png",
     dietTag: displayPlaceCategory(place.category, t), district: place.areaCode === "all" ? t("Nearby", "Gần đây") : place.areaCode,
-    description: place.address, specialtyTag: "OpenStreetMap", priceLevel: t("Not available", "Chưa có"),
-    address: place.address, phone: "", openHours: t("Not available", "Chưa có"), signatureDishes: [],
-    distance: place.distanceKm != null ? `${place.distanceKm.toFixed(1)} km` : t("Nearby", "Gần đây"), walkingTime: "",
+    description: place.address, specialtyTag: "VeggieMate",
+    address: place.address, signatureDishes: place.foods ?? [],
+    distance: place.distanceKm != null ? `${place.distanceKm.toFixed(1)} km` : t("Nearby", "Gần đây"),
   }));
   const [selectedPlace, setSelectedPlace] = useState<VeganPlace | null>(null);
 
@@ -190,11 +89,7 @@ export default function CuratedVeganPlaces() {
                   </span>
                 </div>
 
-                <div className="absolute bottom-3.5 right-3.5 flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#07241A] shadow-md backdrop-blur-xs">
-                  <span className="text-[#F59E0B] text-xs">★</span>
-                  <span>{place.rating > 0 ? place.rating.toFixed(1) : t("Not rated", "Chưa có điểm")}</span>
-                  <span className="text-[#727974] font-normal">({place.reviewsCount})</span>
-                </div>
+                <div className="absolute bottom-3.5 right-3.5 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[#07241A] shadow-md">{place.distance}</div>
               </div>
 
               <div className="flex flex-1 flex-col p-6">
@@ -211,9 +106,7 @@ export default function CuratedVeganPlaces() {
                     {place.specialtyTag}
                   </div>
 
-                  <div className="rounded-full bg-[#D9E6DC]/80 px-2.5 py-0.5 text-xs font-semibold text-[#1E3A2F] shrink-0">
-                    {place.priceLevel}
-                  </div>
+                  <div className="text-xs font-semibold text-[#1E3A2F]">{place.dietTag}</div>
                 </div>
               </div>
             </div>
@@ -253,15 +146,13 @@ export default function CuratedVeganPlaces() {
                 <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
                   {selectedPlace.dietTag}
                 </span>
-                <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-[#07241A]">
-                  ★ {selectedPlace.rating > 0 ? selectedPlace.rating : t("Not rated", "Chưa có điểm")} ({selectedPlace.reviewsCount}{" "}<UiText text={"đánh giá)"} /></span>
               </div>
             </div>
 
             <div className="p-6 sm:p-8">
               <div>
                 <span className="text-xs font-semibold text-[#8B5A3C] uppercase tracking-wide">
-                  {selectedPlace.district} · {selectedPlace.priceLevel}
+                  {selectedPlace.district} · {selectedPlace.distance}
                 </span>
                 <h2 className="mt-1 font-serif text-2xl font-bold text-[#07241A] sm:text-3xl">
                   {selectedPlace.name}
@@ -278,16 +169,8 @@ export default function CuratedVeganPlaces() {
                   <span>{selectedPlace.address}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]"><UiText text={"⏰ Giờ mở cửa:"} /></span>
-                  <span>{selectedPlace.openHours}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]"><UiText text={"📞 Điện thoại:"} /></span>
-                  <span>{selectedPlace.phone}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#424844]">
                   <span className="font-semibold text-[#07241A]"><UiText text={"🚶 Khoảng cách:"} /></span>
-                  <span>{selectedPlace.distance} ({selectedPlace.walkingTime})</span>
+                  <span>{selectedPlace.distance}</span>
                 </div>
               </div>
 

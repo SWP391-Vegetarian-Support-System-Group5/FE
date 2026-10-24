@@ -17,6 +17,7 @@ export interface PostResponse {
   currentUserRating: number | null;
   createdAt: string;
   updatedAt: string;
+  compatibleDietTypes: { id: number; name: string }[];
 }
 
 export interface CommentResponse {

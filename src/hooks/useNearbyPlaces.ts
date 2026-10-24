@@ -24,17 +24,24 @@ function nearestSix<T extends { distanceKm?: number | null }>(items: T[]) {
 }
 
 export function displayPlaceCategory(value: string | null | undefined, t: (en: string, vi: string) => string) {
-  const normalized = (value || "").toLowerCase();
-  if (normalized.includes("vegan") || normalized.includes("plant")) return t("Plant-based", "Thuần thực vật");
-  if (normalized.includes("vegetarian")) return t("Vegetarian", "Ăn chay");
-  return value || t("Vegetarian", "Ăn chay");
+  return (value || "Unclassified").split(", ").map(label => {
+    switch (label.toUpperCase().replace(/[- ]/g, "_")) {
+      case "VEGAN": return t("Vegan", "Thuần chay");
+      case "LACTO_VEGETARIAN": return t("Lacto-vegetarian", "Chay có sữa");
+      case "OVO_VEGETARIAN": return t("Ovo-vegetarian", "Chay có trứng");
+      case "LACTO_OVO_VEGETARIAN": return t("Lacto-ovo vegetarian", "Chay có sữa và trứng");
+      case "VEGETARIAN": return t("Vegetarian", "Ăn chay");
+      case "UNCLASSIFIED": return t("Unclassified", "Chưa phân loại");
+      default: return label;
+    }
+  }).join(", ");
 }
 
 export function useNearbyPlaces() {
   const { t } = useLanguage();
   const [places, setPlaces] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState(t("Finding real vegetarian restaurants around your location...", "Đang tìm nhà hàng chay thật quanh vị trí của bạn..."));
+  const [message, setMessage] = useState(t("Finding VeggieMate restaurants around your location...", "Đang tìm nhà hàng VeggieMate quanh vị trí của bạn..."));
   const [locationLabel, setLocationLabel] = useState(t("your location", "vị trí của bạn"));
 
   useEffect(() => {
@@ -46,10 +53,12 @@ export function useNearbyPlaces() {
       const provinceCode = saved?.provinceCode || "hochiminh";
       const areaCode = saved?.areaCode || "all";
       let center: Coordinates | null = null;
+      let dietTypeId: number | null = null;
       let label = t("your profile address", "địa chỉ hồ sơ của bạn");
 
       try {
         const profile = await getProfile();
+        dietTypeId = profile.dietTypeId;
         if (profile.latitude != null && profile.longitude != null) {
           center = { lat: profile.latitude, lng: profile.longitude };
         }
@@ -77,13 +86,13 @@ export function useNearbyPlaces() {
         return;
       }
 
-      const data = nearestSix(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng));
+      const data = nearestSix(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId));
       if (cancelled) return;
       setPlaces(data);
       setLocationLabel(label);
       setMessage(data.length > 0
-        ? t(`Showing the 6 nearest real vegetarian restaurants within 5 km around ${label}.`, `Đang hiển thị 6 nhà hàng chay thật gần nhất trong bán kính 5km quanh ${label}.`)
-        : t(`No real vegetarian restaurants were found within 5 km around ${label}.`, `Không tìm thấy nhà hàng chay thật trong bán kính 5km quanh ${label}.`));
+        ? t(`Showing restaurants added by VeggieMate near ${label}.`, `Đang hiển thị nhà hàng do VeggieMate quản lý gần ${label}.`)
+        : t(`No matching restaurants were found within 5 km around ${label}.`, `Không tìm thấy nhà hàng phù hợp trong bán kính 5km quanh ${label}.`));
       setLoading(false);
     }
 
