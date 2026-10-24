@@ -19,7 +19,7 @@ export default function VerifyOtpPage() {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E3A2F] hover:underline"
         >
           <span>←</span>
-          <span><UiText text={"Back to Login"} /></span>
+          <span><UiText text={"Về trang đăng nhập"} /></span>
         </Link>
 </div>
 
@@ -28,7 +28,7 @@ export default function VerifyOtpPage() {
         <Suspense
           fallback={
             <div className="w-full max-w-[460px] rounded-3xl border border-[#EFEEEB] bg-white p-10 text-center text-sm text-[#727974]">
-              Loading verification form...
+              Đang tải biểu mẫu xác thực...
             </div>
           }
         >
@@ -43,7 +43,7 @@ export default function VerifyOtpPage() {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#07241A" strokeWidth="2">
               <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
             </svg>
-            <span><UiText text={"Sync Bookmarks"} /></span>
+            <span><UiText text={"Đồng bộ bài đã lưu"} /></span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -57,7 +57,7 @@ export default function VerifyOtpPage() {
               <path d="m4.93 19.07 2.83-2.83" />
               <path d="m16.24 7.76 2.83-2.83" />
             </svg>
-            <span><UiText text={"AI Meal Plans"} /></span>
+            <span><UiText text={"Thực đơn AI"} /></span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export default function VerifyOtpPage() {
               <circle cx="12" cy="12" r="10" />
               <path d="M12 6v6l4 2" />
             </svg>
-            <span><UiText text={"Mindful Table"} /></span>
+            <span><UiText text={"Bữa ăn lành mạnh"} /></span>
           </div>
         </div>
       </div>

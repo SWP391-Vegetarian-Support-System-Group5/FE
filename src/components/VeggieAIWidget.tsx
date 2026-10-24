@@ -19,6 +19,11 @@ import {
 } from "@/lib/chat-api";
 
 export default function VeggieAIWidget() {
+  const { user, loading } = useAuth();
+  return <VeggieAIChat key={loading ? "restoring" : user?.uid || "guest"} />;
+}
+
+function VeggieAIChat() {
   const { t } = useLanguage();
   const { user, loading: authLoading } = useAuth();
   const pathname = usePathname();
@@ -29,29 +34,18 @@ export default function VeggieAIWidget() {
   const [inputValue, setInputValue] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [signupRequired, setSignupRequired] = useState(false);
-  const [remainingGuestMessages, setRemainingGuestMessages] = useState<number | null>(null);
+  const [serverSignupRequired, setSignupRequired] = useState(false);
+  const [serverRemainingGuestMessages, setRemainingGuestMessages] = useState<number | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
-  const sessionAttemptedRef = useRef(false);
 
-  useEffect(() => {
-    setSessionId(null);
-    setGuestToken(null);
-    setMessages([]);
-    setSignupRequired(false);
-    setRemainingGuestMessages(null);
-    sessionAttemptedRef.current = false;
-  }, [user?.uid]);
-
-  useEffect(() => {
-    if (!user && sessionId !== null && !isLoadingSession) {
-      const remaining = Math.max(0, 5 - messages.filter(message => message.sender === "USER").length);
-      setRemainingGuestMessages(remaining);
-      setSignupRequired(remaining === 0);
-    }
-  }, [user, sessionId, isLoadingSession, messages]);
+  const remainingGuestMessages = user ? null : serverRemainingGuestMessages ?? (
+    sessionId !== null && !isLoadingSession
+      ? Math.max(0, 5 - messages.filter(message => message.sender === "USER").length)
+      : null
+  );
+  const signupRequired = !user && (serverSignupRequired || remainingGuestMessages === 0);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -116,12 +110,10 @@ export default function VeggieAIWidget() {
     }
   }, [t]);
 
-  useEffect(() => {
-    if (!authLoading && isOpen && sessionId === null && !isLoadingSession && !sessionAttemptedRef.current) {
-      sessionAttemptedRef.current = true;
-      initSession();
-    }
-  }, [authLoading, isOpen, sessionId, isLoadingSession, initSession]);
+  function toggleOpen() {
+    setIsOpen(previous => !previous);
+    if (!isOpen && sessionId === null && !isLoadingSession && !authLoading) void initSession();
+  }
 
   const handleStartNewChat = async () => {
     setIsLoadingSession(true);
@@ -185,12 +177,7 @@ export default function VeggieAIWidget() {
         return;
       }
 
-      if (res.signupRequired) {
-        setSignupRequired(true);
-      }
-      if (res.remainingGuestMessages !== undefined) {
-        setRemainingGuestMessages(res.remainingGuestMessages);
-      }
+      setRemainingGuestMessages(res.remainingGuestMessages ?? null);
 
       const aiMsg: ChatMessageItem = {
         chatMessageId: res.chatMessageId,
@@ -203,6 +190,8 @@ export default function VeggieAIWidget() {
 
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err: unknown) {
+      setMessages(previous => previous.filter(message => message !== userMsg));
+      setInputValue(current => current || content);
       const errorObj = err as { message?: string; signupRequired?: boolean };
       if (errorObj?.signupRequired) {
         setSignupRequired(true);
@@ -490,7 +479,8 @@ export default function VeggieAIWidget() {
       {/* Launcher button */}
       <button
         type="button"
-        onClick={() => setIsOpen((v) => !v)}
+        onClick={toggleOpen}
+        disabled={authLoading}
         aria-expanded={isOpen}
         aria-label={t("Open or close VeggieAI chat", "Mở hoặc đóng trò chuyện VeggieAI")}
         className="flex items-center gap-2 rounded-full bg-[#07241A] px-4 py-3 text-sm font-semibold tracking-[0.01em] text-white shadow-[0_8px_24px_rgba(30,58,47,0.18)] transition hover:bg-[#1E3A2F]"

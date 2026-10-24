@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +14,7 @@ import { formatDietTypeName } from "@/lib/diet-type-display";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { addComment, bookmarkPost, communityError, deleteComment, deletePost, getBookmarks, getComments, getPost, getPosts, getRating, PostApiError, ratePost, removeBookmark, replyToComment, updateComment, type CommentResponse, type PostResponse } from "@/lib/post-api";
 import ContentDialog from "./ContentDialog";
+import InlinePostRating from "./InlinePostRating";
 import PostEditor from "./PostEditor";
 import { createCommunityEventSource, type CommunityEvent } from "@/lib/community-api";
 
@@ -39,8 +41,7 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [removed, setRemoved] = useState(false);
-  const [dialog, setDialog] = useState<"edit" | "delete" | "rating" | null>(null);
-  const [selection, setSelection] = useState(0);
+  const [dialog, setDialog] = useState<"edit" | "delete" | null>(null);
   const [ratingLocked, setRatingLocked] = useState(false);
   const [comment, setComment] = useState("");
   const [commentAction, setCommentAction] = useState<{ type: "reply" | "edit" | "delete"; comment: CommentResponse } | null>(null);
@@ -131,19 +132,34 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
   }
 
   return <main className="min-h-[60vh] bg-[#FBF9F6] text-[#07241A]"><article className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-12">
-    <nav className="text-xs text-[#727974]"><Link href="/">Trang chủ</Link> / <Link href="/community">Community</Link></nav>
+    <nav className="text-xs text-[#727974]"><Link href="/">Trang chủ</Link> / <Link href="/community">Cộng đồng</Link></nav>
     {error && <div role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} <Link href="/login" className="underline">Đăng nhập</Link><button className="ml-4 underline" onClick={() => window.location.reload()}>Tải lại</button></div>}
     {notice && <p role="status" className="mt-4 text-sm text-[#254B38]">{notice}</p>}
     {initialLoading ? <p role="status" className="py-12">Đang tải bài viết…</p> : removed ? <p className="py-12">Bài viết đã được xóa. <Link href="/community" className="underline">Về cộng đồng</Link></p> : post && <>
       <header className="py-8"><p className="text-xs tracking-widest text-[#BC4B22]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</p><h1 className="mt-3 break-words font-serif text-4xl sm:text-5xl">{localizeRecipeTitle(post.title, "vi")}</h1><p className="mt-5 text-sm text-[#727974]">{post.authorName}</p>{post.postType === "RECIPE" && <div className="mt-4 flex flex-wrap items-center gap-2 text-sm"><span className="text-[#59635C]">Kiểu ăn chay phù hợp:</span>{post.compatibleDietTypes?.length ? post.compatibleDietTypes.map(type => <span key={type.id} className="rounded-md bg-[#E8F0E5] px-2.5 py-1 text-[#254B38]">{formatDietTypeName(type.name, "vi")}</span>) : <span className="text-[#727974]">Chưa xác minh từ nguyên liệu</span>}</div>}</header>
       {post.videoUrl ? <video controls preload="metadata" poster={getMediaUrl(post.thumbnailUrl) || undefined} src={getMediaUrl(post.videoUrl)} className="aspect-video w-full rounded-3xl bg-[#193B2E]" /> : post.thumbnailUrl && <div className="relative aspect-video overflow-hidden rounded-3xl"><Image src={getMediaUrl(post.thumbnailUrl)} alt={post.title} fill unoptimized sizes="100vw" className="object-cover" /></div>}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7DF] py-5 text-sm">
-        <div className="flex items-center gap-4"><span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{ratingError ? "Chưa tải được điểm" : average === null ? "Đang tải điểm…" : `${average.toFixed(1)} / 5`}</strong></span><button disabled={busy || authLoading} onClick={() => { if (requireLogin()) { setSelection(post.currentUserRating ?? 0); setDialog("rating"); } }} className="text-[#BC4B22] underline disabled:opacity-50">{ratingLocked ? "Sửa đánh giá" : "Đánh giá bài viết"}</button></div>
+        <div className="flex items-center gap-4"><span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{ratingError ? "Chưa tải được điểm" : average === null ? "Đang tải điểm…" : `${average.toFixed(1)} / 5`}</strong></span></div>
         <div className="flex items-center gap-5"><a href="#comments">Bình luận</a><button disabled={busy || authLoading || (!!user && !!getStoredToken() && saved === null)} aria-pressed={saved === true} onClick={() => mutate(async () => {
           try { if (saved) await removeBookmark(postId); else await bookmarkPost(postId); }
           catch (e) { if (e instanceof PostApiError && e.status === 409) await refreshBookmarks(); throw e; }
         }, refreshBookmarks, saved ? "Đã bỏ lưu bài." : "Đã lưu bài.")} className="disabled:opacity-40">{saved ? "🔖 Đã lưu" : "♡ Lưu bài"}</button></div>
       </div>
+      <InlinePostRating currentRating={post.currentUserRating} signedIn={!!user && !!getStoredToken()} disabled={busy || authLoading} onRate={async rating => {
+        if (lock.current) throw new Error("Đang xử lý yêu cầu trước. Vui lòng đợi.");
+        lock.current = true; setBusy(true);
+        try {
+          try { await ratePost(postId, rating, ratingLocked); }
+          catch (failure) {
+            if (failure instanceof PostApiError && failure.status === 409) await refreshRating();
+            throw failure;
+          }
+          setRatingLocked(true);
+          setPost(current => current ? { ...current, currentUserRating: rating } : current);
+          try { await refreshRating(); }
+          catch (failure) { setRatingError(communityError(failure)); }
+        } finally { lock.current = false; if (alive.current) setBusy(false); }
+      }} />
       {!!user && (isAdmin || user.userId === post.userId) && <div className="mt-5 flex gap-4 text-sm"><button disabled={busy} onClick={() => setDialog("edit")} className="text-[#254B38] underline">Sửa bài</button><button disabled={busy} onClick={() => setDialog("delete")} className="text-red-700 underline">Xóa bài</button></div>}
       <div className="mt-8 grid items-start gap-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"><div className="space-y-7">
         <section className={panel}><h2 className="font-serif text-2xl">Nội dung bài viết</h2><p className="mt-4 whitespace-pre-wrap break-words text-sm leading-8 text-[#59635C]">{localizeText(post.content, "vi")}</p></section>
@@ -157,14 +173,6 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
     </>}
     {post && dialog === "edit" && <PostEditor post={post} onSaved={async () => { setNotice("Đã lưu thay đổi."); try { await refreshPost(); } catch (e) { setError(`Bài đã được lưu nhưng tải lại dữ liệu thất bại. ${communityError(e)}`); } }} onClose={() => setDialog(null)} />}
     {dialog === "delete" && <ContentDialog title="Xóa bài viết?" onClose={() => { if (!busy) setDialog(null); }}><div className="p-6"><p className="text-sm">Bài viết sẽ được gỡ khỏi cộng đồng.</p><button disabled={busy} className={`${button} mt-5`} onClick={() => mutate(async () => { await deletePost(postId); setRemoved(true); setDialog(null); }, async () => { await getPosts(); }, "Đã xóa bài viết.")}>{busy ? "Đang xóa…" : "Xác nhận xóa"}</button>{error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}</div></ContentDialog>}
-    {dialog === "rating" && <ContentDialog title="Bạn thấy bài viết thế nào?" onClose={() => { if (!busy) setDialog(null); }}><form className="p-6" onSubmit={e => { e.preventDefault(); if (!selection) return; mutate(async () => {
-      try { await ratePost(postId, selection, ratingLocked); }
-      catch (e) {
-        if (e instanceof PostApiError && e.status === 409) await refreshRating();
-        throw e;
-      }
-      setRatingLocked(true); setDialog(null);
-    }, refreshRating, "Đã gửi đánh giá."); }}><fieldset disabled={busy}><legend className="text-sm text-[#727974]">Chọn số sao của bạn</legend><div className="mt-5 flex justify-center gap-3">{[1, 2, 3, 4, 5].map(star => <label key={star} className="cursor-pointer"><input type="radio" name="post-rating" checked={selection === star} onChange={() => setSelection(star)} aria-label={`${star} sao`} className="peer sr-only" /><span className={`block rounded-lg text-4xl peer-focus-visible:outline-2 ${star <= selection ? "text-[#CB8520]" : "text-[#D8DCD2]"}`}>★</span></label>)}</div></fieldset><p className="mt-5 text-center text-xs text-[#727974]">Bạn có thể cập nhật đánh giá của mình.</p><button disabled={busy || !selection} className={`${button} mt-6 w-full`}>{busy ? "Đang gửi…" : "Gửi đánh giá"}</button>{error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}</form></ContentDialog>}
     {commentAction && <ContentDialog title={commentAction.type === "reply" ? "Trả lời bình luận" : commentAction.type === "edit" ? "Sửa bình luận" : "Xóa bình luận?"} onClose={() => { if (!busy) setCommentAction(null); }}><form className="p-6" onSubmit={e => { e.preventDefault(); const action = commentAction; if (action.type !== "delete" && !commentText.trim()) return; mutate(async () => {
       if (action.type === "reply") await replyToComment(action.comment.commentId, commentText.trim());
       else if (action.type === "edit") await updateComment(action.comment.commentId, commentText.trim());

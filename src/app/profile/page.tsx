@@ -5,7 +5,7 @@ import ProfileForm from "@/components/profile/ProfileForm";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 
 export const metadata: Metadata = {
-  title: "My Profile | VeggieMate",
+  title: "Hồ sơ của tôi | VeggieMate",
   description:
     "Manage your personal information, health details and living location to shape your seasonal table.",
 };

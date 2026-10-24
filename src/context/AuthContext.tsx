@@ -7,6 +7,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useSyncExternalStore,
 } from "react";
 import {
   User as FirebaseUser,
@@ -17,6 +18,7 @@ import {
   setPersistence,
   inMemoryPersistence,
 } from "firebase/auth";
+import { subscribeSession } from "@/lib/auth-session";
 import { auth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import {
   BackendUser,
@@ -80,18 +82,17 @@ function mapFirebaseAuthError(error: unknown): string {
     case "auth/operation-not-allowed":
       return "Phương thức đăng nhập Google chưa được bật trong Firebase Console (Authentication > Sign-in method).";
     default:
-      return authError.message || "Đăng nhập Google thất bại. Vui lòng thử lại.";
+      return "Đăng nhập Google thất bại. Vui lòng thử lại.";
   }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
+  const backendUser = useSyncExternalStore(subscribeSession, getStoredUser, () => null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setBackendUser(getStoredUser());
     let isSubscribed = true;
     let unsubscribe = () => {};
     async function initialize() {
@@ -125,7 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       try {
         const res = await loginWithApi(email, password);
-        setBackendUser(res.user);
         return res;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Đăng nhập thất bại.";
@@ -159,7 +159,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async (): Promise<void> => {
     setError(null);
-    setBackendUser(null);
     setFirebaseUser(null);
     try {
       // If we have a backend session, call backend logout API
@@ -168,7 +167,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignore errors during API logout
     } finally {
       clearStoredAuth();
-      setBackendUser(null);
     }
 
     try {

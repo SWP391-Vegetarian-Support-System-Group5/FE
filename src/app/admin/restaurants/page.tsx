@@ -1,4 +1,5 @@
 "use client";
+import { formatDietTypeName } from "@/lib/diet-type-display";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import ContentIcon from "@/components/content/ContentIcon";
@@ -178,7 +179,7 @@ export default function AdminRestaurantsPage() {
 
     <div className="flex flex-wrap gap-3">
       <label className="min-w-52 flex-1 text-xs font-semibold">{t("Search", "Tìm kiếm")}<input type="search" value={query} onChange={event => { setQuery(event.target.value); setPage(1); }} placeholder={t("Name, address, food or ID", "Tên, địa chỉ, món ăn hoặc mã")} className={inputClass} /></label>
-      <label className="min-w-44 text-xs font-semibold">{t("Diet Type", "Loại hình ăn chay")}<select value={dietFilter} onChange={event => { setDietFilter(event.target.value); setPage(1); }} className={inputClass}><option value="">{t("All diet types", "Tất cả loại hình")}</option>{dietTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}</select></label>
+      <label className="min-w-44 text-xs font-semibold">{t("Diet Type", "Loại hình ăn chay")}<select value={dietFilter} onChange={event => { setDietFilter(event.target.value); setPage(1); }} className={inputClass}><option value="">{t("All diet types", "Tất cả loại hình")}</option>{dietTypes.map(type => <option key={type.id} value={type.id}>{formatDietTypeName(type.name)}</option>)}</select></label>
     </div>
 
     <div className="overflow-hidden rounded-lg border border-[#EFEEEB] bg-white">

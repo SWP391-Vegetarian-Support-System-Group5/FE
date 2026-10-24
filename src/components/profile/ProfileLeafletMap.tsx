@@ -53,7 +53,7 @@ function MapZoomButtons() {
         type="button"
         onClick={() => map.zoomIn()}
         className="flex h-9 w-9 items-center justify-center border-b border-[#DBDAD7] text-xl font-semibold leading-none text-[#07241A] transition hover:bg-[#F5F3F0]"
-        aria-label="Zoom in"
+        aria-label="Phóng to"
       >
         +
       </button>
@@ -61,7 +61,7 @@ function MapZoomButtons() {
         type="button"
         onClick={() => map.zoomOut()}
         className="flex h-9 w-9 items-center justify-center text-xl font-semibold leading-none text-[#07241A] transition hover:bg-[#F5F3F0]"
-        aria-label="Zoom out"
+        aria-label="Thu nhỏ"
       >
         -
       </button>
@@ -111,7 +111,7 @@ export default function ProfileLeafletMap({ coordinates, areaLabel }: Props) {
 
       <div className="absolute bottom-3 left-3 z-[400] flex items-center gap-2 rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-semibold tracking-[0.02em] text-[#07241A] shadow-[0_1px_2px_rgba(0,0,0,0.05)] backdrop-blur-md">
         <span className="inline-block h-2 w-2 rounded-full bg-[#99462A]" />
-        <span><UiText text={"Active radius: 5.0 km around"} />{" "}{areaLabel}</span>
+        <span><UiText text={"Bán kính: 5 km quanh"} />{" "}{areaLabel}</span>
       </div>
     </div>
   );

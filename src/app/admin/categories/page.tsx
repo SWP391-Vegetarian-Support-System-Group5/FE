@@ -352,7 +352,7 @@ export default function AdminCategoriesPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
             </svg>
-            <span><UiText text="Admin Area" /></span>
+            <span><UiText text="Khu vực quản trị" /></span>
           </div>
         </div>
 
@@ -380,10 +380,10 @@ export default function AdminCategoriesPage() {
             </div>
             <div className="text-left">
               <p className="text-xs font-bold leading-tight text-[#07241A]">
-                {user?.fullName || "Admin"}
+                {user?.fullName || "Quản trị viên"}
               </p>
               <p className="text-[11px] leading-tight text-[#727974]">
-                <UiText text="Supervisor" />
+                <UiText text="Người giám sát" />
               </p>
             </div>
           </div>
@@ -407,10 +407,10 @@ export default function AdminCategoriesPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-3xl font-bold tracking-tight text-[#07241A] lg:text-4xl">
-            <UiText text="Category Management" />
+            <UiText text="Quản lý danh mục" />
           </h1>
           <p className="mt-1 text-xs text-[#727974] lg:text-sm">
-            <UiText text="Manage system categories for Recipes and Ingredients." />
+            <UiText text="Quản lý danh mục công thức và nguyên liệu của hệ thống." />
           </p>
         </div>
 
@@ -423,7 +423,7 @@ export default function AdminCategoriesPage() {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          <span><UiText text="Add Category" /></span>
+          <span><UiText text="Thêm danh mục" /></span>
         </button>
       </div>
 
@@ -446,7 +446,7 @@ export default function AdminCategoriesPage() {
               <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
               <line x1="6" y1="17" x2="18" y2="17" />
             </svg>
-            <span><UiText text="Category Recipes" /> ({recipeCategories.length})</span>
+            <span><UiText text="Danh mục công thức" /> ({recipeCategories.length})</span>
           </button>
 
           {/* Tab 2: Category Ingredients */}
@@ -464,7 +464,7 @@ export default function AdminCategoriesPage() {
               <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
               <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
             </svg>
-            <span><UiText text="Category Ingredients" /> ({ingredientCategories.length})</span>
+            <span><UiText text="Nhóm nguyên liệu" /> ({ingredientCategories.length})</span>
           </button>
 
           {/* Tab 3: Dual Filter & Dishes */}
@@ -489,7 +489,7 @@ export default function AdminCategoriesPage() {
               <line x1="9" y1="8" x2="15" y2="8" />
               <line x1="17" y1="16" x2="23" y2="16" />
             </svg>
-            <span><UiText text="Dual Filter & Dishes" /> ({filteredDishes.length})</span>
+            <span><UiText text="Lọc kết hợp và món ăn" /> ({filteredDishes.length})</span>
           </button>
         </div>
 
@@ -522,10 +522,10 @@ export default function AdminCategoriesPage() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-[#07241A]">
-                <UiText text="Dual Category Filter & Recipe Explorer" />
+                <UiText text="Tra cứu công thức theo danh mục kết hợp" />
               </h3>
               <p className="text-xs text-[#727974]">
-                <UiText text="Cross-reference culinary regional styles with nutrition and pantry ingredient classifications" />
+                <UiText text="Kết hợp phong cách ẩm thực với nhóm dinh dưỡng và nguyên liệu" />
               </p>
             </div>
           </div>
@@ -538,7 +538,7 @@ export default function AdminCategoriesPage() {
               className="flex items-center gap-1.5 rounded-full border border-[#CDE5D8] bg-[#E7F3EC] px-3.5 py-1.5 text-xs font-semibold text-[#1E4D36] transition hover:bg-[#DCEDE2]"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-[#1E4D36]" />
-              <span>{filteredDishes.length} <UiText text="Dishes Matching Selection" /></span>
+              <span>{filteredDishes.length} <UiText text="Món ăn phù hợp lựa chọn" /></span>
             </button>
 
             {/* Reset Filters Button */}
@@ -551,7 +551,7 @@ export default function AdminCategoriesPage() {
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-              <span><UiText text="Reset Filters" /></span>
+              <span><UiText text="Đặt lại bộ lọc" /></span>
             </button>
           </div>
         </div>
@@ -565,7 +565,7 @@ export default function AdminCategoriesPage() {
                 <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
                 <line x1="6" y1="17" x2="18" y2="17" />
               </svg>
-              <span><UiText text="1. Category Recipes (Region/Style)" /></span>
+              <span><UiText text="1. Danh mục công thức (vùng miền/phong cách)" /></span>
             </label>
             <div className="relative">
               <select
@@ -593,7 +593,7 @@ export default function AdminCategoriesPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
               </svg>
-              <span><UiText text="2. Category Ingredients (Pantry / Group)" /></span>
+              <span><UiText text="2. Nhóm nguyên liệu" /></span>
             </label>
             <div className="relative">
               <select
@@ -622,7 +622,7 @@ export default function AdminCategoriesPage() {
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.3-4.3" />
               </svg>
-              <span><UiText text="Search Dishes or Ingredients" /></span>
+              <span><UiText text="Tìm món ăn hoặc nguyên liệu" /></span>
             </label>
             <div className="relative">
               <input
@@ -665,15 +665,15 @@ export default function AdminCategoriesPage() {
                 <line x1="17" y1="16" x2="23" y2="16" />
               </svg>
               <h2 className="text-sm font-bold text-[#07241A]">
-                <UiText text="Dual Filtered Dishes Explorer" />
+                <UiText text="Món ăn theo bộ lọc kết hợp" />
               </h2>
               <span className="text-xs text-[#727974]">
-                — <UiText text="Cross-referenced community recipe database" />
+                — <UiText text="Danh sách công thức từ cộng đồng" />
               </span>
             </div>
 
             <span className="rounded-full bg-[#DCEDE2] px-3 py-1 text-xs font-bold text-[#1E4D36]">
-              {filteredDishes.length} <UiText text="Dishes Found" />
+              {filteredDishes.length} <UiText text="Món ăn tìm thấy" />
             </span>
           </div>
 
@@ -682,26 +682,26 @@ export default function AdminCategoriesPage() {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-[#F0EFEB] bg-[#FAF9F5] text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                 <tr>
-                  <th className="py-3.5 pl-6 pr-4"><UiText text="Dish / Recipe" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Cuisine Category" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Pantry Group" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Prep & Cook" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Rating" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Status" /></th>
-                  <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Actions" /></th>
+                  <th className="py-3.5 pl-6 pr-4"><UiText text="Món ăn / Công thức" /></th>
+                  <th className="px-4 py-3.5"><UiText text="Danh mục ẩm thực" /></th>
+                  <th className="px-4 py-3.5"><UiText text="Nhóm nguyên liệu" /></th>
+                  <th className="px-4 py-3.5"><UiText text="Chuẩn bị và nấu" /></th>
+                  <th className="px-4 py-3.5"><UiText text="Đánh giá" /></th>
+                  <th className="px-4 py-3.5"><UiText text="Trạng thái" /></th>
+                  <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Thao tác" /></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EFEB]">
                 {filteredDishes.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-xs text-[#727974]">
-                      <p className="font-semibold text-[#07241A]"><UiText text="No dishes match the selected dual filters." /></p>
+                      <p className="font-semibold text-[#07241A]"><UiText text="Không có món ăn phù hợp với bộ lọc kết hợp." /></p>
                       <button
                         type="button"
                         onClick={handleResetFilters}
                         className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
                       >
-                        <UiText text="Reset dual filters" />
+                        <UiText text="Đặt lại bộ lọc kết hợp" />
                       </button>
                     </td>
                   </tr>
@@ -791,7 +791,7 @@ export default function AdminCategoriesPage() {
             </div>
 
             <span className="rounded-full bg-[#DCEDE2] px-3 py-1 text-xs font-bold text-[#1E4D36]">
-              {activeTab === "recipes" ? activeRecipeCount : activeIngredientCount} <UiText text="Active" />
+              {activeTab === "recipes" ? activeRecipeCount : activeIngredientCount} <UiText text="Đang hoạt động" />
             </span>
           </div>
 
@@ -800,11 +800,11 @@ export default function AdminCategoriesPage() {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-[#F0EFEB] bg-[#FAF9F5] text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                 <tr>
-                  <th className="py-3.5 pl-6 pr-4"><UiText text="Category Name" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Description & Highlights" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Associated Items" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Status" /></th>
-                  <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Actions" /></th>
+                  <th className="py-3.5 pl-6 pr-4"><UiText text="Tên danh mục" /></th>
+                  <th className="px-4 py-3.5"><UiText text="Mô tả và điểm nổi bật" /></th>
+                  <th className="px-4 py-3.5"><UiText text="Mục liên quan" /></th>
+                  <th className="px-4 py-3.5"><UiText text="Trạng thái" /></th>
+                  <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Thao tác" /></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0EFEB]">
@@ -813,13 +813,13 @@ export default function AdminCategoriesPage() {
                     <td colSpan={5} className="py-12 text-center text-xs text-[#727974]">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <span className="text-3xl">🏷️</span>
-                        <p className="font-semibold text-[#07241A]"><UiText text="No categories found matching your search." /></p>
+                        <p className="font-semibold text-[#07241A]"><UiText text="Không tìm thấy danh mục phù hợp." /></p>
                         <button
                           type="button"
                           onClick={handleOpenAddModal}
                           className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
                         >
-                          <UiText text="Create a new category" />
+                          <UiText text="Tạo danh mục mới" />
                         </button>
                       </div>
                     </td>
@@ -846,7 +846,7 @@ export default function AdminCategoriesPage() {
 
                       {/* ASSOCIATED ITEMS COLUMN */}
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <button type="button" onClick={() => setExpandedCategoryId(current => current === cat.id ? null : cat.id)} aria-expanded={expandedCategoryId === cat.id} className="hover:underline"><span className="font-bold text-sm text-[#07241A]">{cat.itemCount}</span>{" "}<span className="text-xs text-[#727974]">{activeTab === "recipes" ? "recipes" : "ingredients"}</span></button>
+                        <button type="button" onClick={() => setExpandedCategoryId(current => current === cat.id ? null : cat.id)} aria-expanded={expandedCategoryId === cat.id} className="hover:underline"><span className="font-bold text-sm text-[#07241A]">{cat.itemCount}</span>{" "}<span className="text-xs text-[#727974]">{activeTab === "recipes" ? "công thức" : "nguyên liệu"}</span></button>
                       </td>
 
                       {/* STATUS COLUMN */}
@@ -941,13 +941,13 @@ export default function AdminCategoriesPage() {
                 </select>
               </label> : <label className="block text-xs font-semibold">{ui("Dietary group")}
                 <select value={formDietaryGroup} onChange={e => setFormDietaryGroup(e.target.value)} disabled={editingCategory !== null && ["PLANT", "DAIRY", "EGG", "HONEY", "UNVERIFIED"].includes(editingCategory.slug)} className="mt-2 block w-full rounded-xl border p-2">
-                  {["PLANT", "DAIRY", "EGG", "HONEY", "UNVERIFIED"].map(group => <option key={group} value={group}>{group}</option>)}
+                  {["PLANT", "DAIRY", "EGG", "HONEY", "UNVERIFIED"].map(group => <option key={group} value={group}><UiText text={group} /></option>)}
                 </select>
               </label>}
               {/* Category Group Type */}
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                  <UiText text="Category Classification" /> *
+                  <UiText text="Phân loại danh mục" /> *
                 </label>
                 <div className="mt-1.5 grid grid-cols-2 gap-2">
                   <button
@@ -959,7 +959,7 @@ export default function AdminCategoriesPage() {
                         : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
                     }`}
                   >
-                    <UiText text="Recipe Category" />
+                    <UiText text="Danh mục công thức" />
                   </button>
                   <button
                     type="button"
@@ -970,13 +970,13 @@ export default function AdminCategoriesPage() {
                         : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
                     }`}
                   >
-                    <UiText text="Ingredient Group" />
+                    <UiText text="Nhóm nguyên liệu" />
                   </button>
                 </div>
               </div>
 
               {/* Names */}
-              <div className={formType === "Ingredient Group" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
+              <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                     Tên danh mục *
@@ -1021,7 +1021,7 @@ export default function AdminCategoriesPage() {
                   <input
                     type="text"
                     required
-                    placeholder={formType === "Ingredient Group" ? "VEGETABLES" : "vietnamese-cuisine"}
+                    placeholder={formType === "Ingredient Group" ? "RAU_CU" : "am-thuc-viet-nam"}
                     value={formSlug}
                     readOnly={formType === "Ingredient Group" && editingCategory !== null && ["PLANT", "DAIRY", "EGG", "HONEY", "UNVERIFIED"].includes(editingCategory.slug)}
                     onChange={(e) => setFormSlug(e.target.value)}
@@ -1031,7 +1031,7 @@ export default function AdminCategoriesPage() {
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                    <UiText text="Item Count" />
+                    <UiText text="Số lượng" />
                   </label>
                   <input
                     type="number"
@@ -1046,7 +1046,7 @@ export default function AdminCategoriesPage() {
               {/* Badge Style Selector */}
               {formType === "Recipe Category" && <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                  <UiText text="Badge Emblem Style" />
+                  <UiText text="Kiểu biểu tượng" />
                 </label>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   {[
@@ -1083,7 +1083,7 @@ export default function AdminCategoriesPage() {
               {/* Description */}
               {formType === "Recipe Category" && <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                  <UiText text="Description & Highlights" />
+                  <UiText text="Mô tả và điểm nổi bật" />
                 </label>
                 <textarea
                   rows={3}
@@ -1104,7 +1104,7 @@ export default function AdminCategoriesPage() {
                   className="h-4 w-4 rounded border-gray-300 text-[#1E3A2F] focus:ring-[#1E3A2F]"
                 />
                 <label htmlFor="statusToggle" className="text-xs font-semibold text-[#07241A]">
-                  <UiText text="Active and visible across VeggieMate community" />
+                  <UiText text="Đang hoạt động và hiển thị trong cộng đồng VeggieMate" />
                 </label>
               </div>}
 
@@ -1115,7 +1115,7 @@ export default function AdminCategoriesPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="rounded-xl border border-[#EFEEEB] px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#F2EFE9]"
                 >
-                  <UiText text="Cancel" />
+                  <UiText text="Hủy bỏ" />
                 </button>
                 <button
                   type="submit"

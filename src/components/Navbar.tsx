@@ -105,7 +105,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     user?.fullName ||
     user?.displayName ||
     user?.email?.split("@")[0] ||
-    "User";
+    "Người dùng";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#EFEEEB] bg-[#FBF9F6]/90 backdrop-blur-md transition-all">
@@ -245,7 +245,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <rect width="7" height="9" x="14" y="12" rx="1" />
                             <rect width="7" height="5" x="3" y="16" rx="1" />
                           </svg>
-                          <span><UiText text={"Admin Dashboard"} /></span>
+                          <span><UiText text={"Bảng quản trị"} /></span>
                         </Link>
                         <Link
                           href="/admin/members"
@@ -258,7 +258,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                           </svg>
-                          <span><UiText text={"Members"} /></span>
+                          <span><UiText text={"Thành viên"} /></span>
                         </Link>
                         <Link
                           href="/admin/content"
@@ -270,7 +270,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <path d="M6 6h10" />
                             <path d="M6 10h10" />
                           </svg>
-                          <span><UiText text={"Content"} /></span>
+                          <span><UiText text={"Nội dung"} /></span>
                         </Link>
                         <Link
                           href="/admin/categories"
@@ -281,7 +281,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
                             <line x1="7" y1="7" x2="7.01" y2="7" />
                           </svg>
-                          <span><UiText text={"Categories"} /></span>
+                          <span><UiText text={"Danh mục"} /></span>
                         </Link>
                         <Link
                           href="/admin/restaurants"
@@ -294,7 +294,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
                             <path d="M2 7h20" />
                           </svg>
-                          <span><UiText text={"Restaurants"} /></span>
+                          <span><UiText text={"Nhà hàng"} /></span>
                         </Link>
                         <Link
                           href="/admin/allergens"
@@ -309,7 +309,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                             <line x1="3" y1="18" x2="19" y2="18" />
                             <path d="M6 18v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" />
                           </svg>
-                          <span><UiText text={"Allergens & Health"} /></span>
+                          <span><UiText text={"Dị ứng & Sức khỏe"} /></span>
                         </Link>
                         <Link
                           href="/admin/flagged"
@@ -321,7 +321,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                               <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                               <line x1="4" x2="4" y1="22" y2="15" />
                             </svg>
-                            <span><UiText text={"AI Flagged"} /></span>
+                            <span><UiText text={"AI cảnh báo"} /></span>
                           </div>
                           {flaggedCount > 0 && (
                             <span className="rounded-full bg-[#F97316] px-1.5 py-0.2 text-[10px] font-bold text-white">
@@ -343,7 +343,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     <Link
                       href="/create-content"
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#07241A] font-semibold hover:bg-[#D9E6DC]/40 transition"
+                      className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-[#424844] hover:bg-[#F5F3F0] transition"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M12 20h9" />
@@ -395,7 +395,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   href="/admin"
                   className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
                 >
-                  <span><UiText text={"🛠️ Admin Test"} /></span>
+                  <span><UiText text={"🛠️ Thử nghiệm quản trị"} /></span>
                 </Link>
               )}
               <Link
@@ -461,25 +461,25 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                 <div className="mb-2 pb-2 border-b border-[#EFEEEB] space-y-1">
                   <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Quản trị</div>
                   <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#1E3A2F] bg-[#D9E6DC]/40">
-                    <UiText text={"Admin Dashboard"} />
+                    <UiText text={"Bảng quản trị"} />
                   </Link>
                   <Link href="/admin/members" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
-                    <UiText text={"Members"} />
+                    <UiText text={"Thành viên"} />
                   </Link>
                   <Link href="/admin/content" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
-                    <UiText text={"Content"} />
+                    <UiText text={"Nội dung"} />
                   </Link>
                   <Link href="/admin/categories" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
-                    <UiText text={"Categories"} />
+                    <UiText text={"Danh mục"} />
                   </Link>
                   <Link href="/admin/restaurants" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
-                    <UiText text={"Restaurants"} />
+                    <UiText text={"Nhà hàng"} />
                   </Link>
                   <Link href="/admin/allergens" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
-                    <UiText text={"Allergens & Health"} />
+                    <UiText text={"Dị ứng & Sức khỏe"} />
                   </Link>
                   <Link href="/admin/flagged" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-between rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
-                    <span><UiText text={"AI Flagged"} /></span>
+                    <span><UiText text={"AI cảnh báo"} /></span>
                     {flaggedCount > 0 && (
                       <span className="rounded-full bg-[#F97316] px-1.5 py-0.2 text-[10px] font-bold text-white">
                         {flaggedCount}
@@ -494,7 +494,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               <Link
                 href="/create-content"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#07241A] bg-[#D9E6DC]/40"
+                className="block rounded-lg px-4 py-2 text-xs font-normal text-[#424844] hover:bg-[#F5F3F0]"
               >
                 {t("Create Content", "Tạo bài viết")}
               </Link>

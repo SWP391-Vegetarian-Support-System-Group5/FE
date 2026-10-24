@@ -77,7 +77,7 @@ export default function AdminFlaggedPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
             </svg>
-            <span><UiText text={"Admin Area"} /></span>
+            <span><UiText text={"Khu vực quản trị"} /></span>
           </div>
         </div>
 
@@ -109,9 +109,9 @@ export default function AdminFlaggedPage() {
           <div className="flex items-center gap-2 pl-2">
             <div className="text-right">
               <p className="text-xs font-bold text-[#07241A] leading-tight">
-                {user?.fullName || "Admin"}
+                {user?.fullName || "Quản trị viên"}
               </p>
-              <p className="text-[10px] text-[#727974] leading-tight"><UiText text={"Supervisor"} /></p>
+              <p className="text-[10px] text-[#727974] leading-tight"><UiText text={"Người giám sát"} /></p>
             </div>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white shadow-sm">
               AD
@@ -143,7 +143,7 @@ export default function AdminFlaggedPage() {
       <div className="flex items-start justify-between pt-2">
         <div>
           <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-            <span><UiText text={"EDITORIAL MODERATION"} /></span>
+            <span><UiText text={"KIỂM DUYỆT BIÊN TẬP"} /></span>
             <span>/</span>
             <span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[10px] font-bold text-[#C2410C]">
               {flaggedCount} {flaggedCount === 1 ? ui("Pending Review") : ui("Pending Reviews")}
@@ -177,7 +177,7 @@ export default function AdminFlaggedPage() {
             </svg>
           </div>
           <div>
-            <p className="text-xs font-bold text-[#07241A]"><UiText text={"Community Care Note"} /></p>
+            <p className="text-xs font-bold text-[#07241A]"><UiText text={"Lưu ý cho cộng đồng"} /></p>
             <p className="text-[11px] text-[#727974] leading-relaxed">Các báo cáo cộng đồng chờ quản trị viên xử lý.</p>
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function AdminFlaggedPage() {
                 ? "bg-[#1E3A2F] text-white shadow-sm"
                 : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
             }`}
-          ><UiText text={"All ("} />{flaggedCount})
+          ><UiText text={"Tất cả ("} />{flaggedCount})
           </button>
           <button
             type="button"
@@ -212,7 +212,7 @@ export default function AdminFlaggedPage() {
                 ? "bg-[#1E3A2F] text-white shadow-sm"
                 : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
             }`}
-          ><UiText text={"Content ("} />{contentCount})
+          ><UiText text={"Nội dung ("} />{contentCount})
           </button>
           <button
             type="button"
@@ -222,7 +222,7 @@ export default function AdminFlaggedPage() {
                 ? "bg-[#1E3A2F] text-white shadow-sm"
                 : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
             }`}
-          ><UiText text={"Comments ("} />{commentsCount})
+          ><UiText text={"Bình luận ("} />{commentsCount})
           </button>
         </div>
 
@@ -272,7 +272,7 @@ export default function AdminFlaggedPage() {
                         <span className="font-serif text-2xl font-bold text-[#C2410C] leading-none">
                           “
                         </span>
-                        <span className="rounded bg-white px-2 py-0.5 text-[10px] font-bold text-[#727974] border border-[#EFEEEB]"><UiText text={"Comment"} /></span>
+                        <span className="rounded bg-white px-2 py-0.5 text-[10px] font-bold text-[#727974] border border-[#EFEEEB]"><UiText text={"Bình luận"} /></span>
                       </div>
                       <p className="text-xs italic text-[#07241A] leading-relaxed">
                         {item.commentQuote}
@@ -323,7 +323,7 @@ export default function AdminFlaggedPage() {
                         {item.category === "Comment" ? ui("FLAGGED ITEM — COMMENT") : `FLAGGED CONTENT — ${item.category.toUpperCase()}`}
                       </span>
                       <span>•</span>
-                      <span><UiText text={"⏱ Flagged"} />{" "}{item.flagTime}</span>
+                      <span><UiText text={"⏱ Bị cảnh báo"} />{" "}{item.flagTime}</span>
                     </div>
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${item.flagTypeColor}`}>
                       ⚑ {item.flagTypeTag}
@@ -366,7 +366,7 @@ export default function AdminFlaggedPage() {
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                       </svg>
-                      <span><UiText text={"Flag Reason"} /></span>
+                      <span><UiText text={"Lý do cảnh báo"} /></span>
                     </div>
                     <p className="text-xs text-[#424844] leading-relaxed">
                       {item.flagReason}
@@ -409,7 +409,7 @@ export default function AdminFlaggedPage() {
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <span><UiText text={"Keep (Dismiss Flag)"} /></span>
+                    <span><UiText text={"Giữ lại (bỏ cảnh báo)"} /></span>
                   </button>
 
                   <button
@@ -422,7 +422,7 @@ export default function AdminFlaggedPage() {
                       <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
                       <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                     </svg>
-                    <span><UiText text={"Remove Content"} /></span>
+                    <span><UiText text={"Xóa nội dung"} /></span>
                   </button>
                 </div>
               </div>
@@ -446,8 +446,8 @@ export default function AdminFlaggedPage() {
 
       {/* Pagination Footer */}
       <div className="flex items-center justify-between border-t border-[#EFEEEB] pt-4 text-xs text-[#727974]">
-        <p><UiText text={"Displaying"} />{" "}<span className="font-bold text-[#07241A]">{filteredItems.length}</span>{" "}<UiText text={"of"} />{" "}
-          <span className="font-bold text-[#07241A]">{flaggedCount}</span>{" "}<UiText text={"flagged items awaiting administrator review"} /></p>
+        <p><UiText text={"Đang hiển thị"} />{" "}<span className="font-bold text-[#07241A]">{filteredItems.length}</span>{" "}<UiText text={"trên"} />{" "}
+          <span className="font-bold text-[#07241A]">{flaggedCount}</span>{" "}<UiText text={"nội dung cảnh báo chờ quản trị viên duyệt"} /></p>
       </div>
     </div>
   );

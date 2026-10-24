@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from "@/context/LanguageContext";
 import UiText, { useUiText } from "@/components/UiText";
 
 
@@ -211,8 +212,10 @@ export const ALTERNATIVE_DISHES: Record<string, Partial<MealItem>> = {
 
 export default function MealPlannerView() {
   const ui = useUiText();
+  const { t } = useLanguage();
   const {
     days, allergens, newAllergen, setNewAllergen, showAddAllergen, setShowAddAllergen,
+    availableAllergens, allergenStatus, allergenError, retryAllergens,
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
     toastMessage, isRegenerating, replacementLimitReached, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
     handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal, profileName, bmi, bmiCategory,
@@ -236,8 +239,8 @@ export default function MealPlannerView() {
             <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[11px] font-bold text-[#07241A]">{ui("Weekly meal plan")}</span>
           </div>
 
-          <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]"><UiText text={"Plan My Week"} /></h1>
-          <p className="mt-1.5 text-sm text-[#424844] max-w-2xl">{ui("Meals selected for your ingredients, vegetarian type and BMI group.")}</p>
+          <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]"><UiText text={"Lên thực đơn tuần"} /></h1>
+          <p className="mt-1.5 text-sm text-[#424844] max-w-2xl">{t("Meals selected for your vegetarian type, allergies and BMI group.", "Thực đơn phù hợp với kiểu ăn chay, dị ứng và nhóm BMI của bạn.")}</p>
         </div>
 
         {/* Action Buttons Top Right */}
@@ -249,7 +252,7 @@ export default function MealPlannerView() {
             className="flex items-center gap-2 rounded-xl bg-white border border-[#EFEEEB] px-4 py-2.5 text-xs font-semibold text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition cursor-pointer"
           >
             <span>✨</span>
-            <span>{isRegenerating ? ui("Đang tạo lại...") : ui("Regenerate Plan")}</span>
+            <span>{isRegenerating ? t("Generating…", "Đang tạo…") : days.length ? t("Regenerate Plan", "Tạo lại thực đơn") : t("Generate My 7-Day Plan", "Tạo thực đơn 7 ngày")}</span>
           </button>
 
           <button
@@ -288,7 +291,7 @@ export default function MealPlannerView() {
       {/* ── Main Two-Column Layout ─────────────────────────────────────── */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
         {/* =============================================================== */}
-        {/* Left Column: Profile, Larder & Pantry Utilization (4 cols)      */}
+        {/* Left Column: Profile & Allergies (4 cols)      */}
         {/* =============================================================== */}
         <div className="space-y-6 lg:col-span-4">
           {/* Card 1: User Profile & Goals */}
@@ -312,7 +315,7 @@ export default function MealPlannerView() {
             {/* Metrics Row */}
             <div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#FBF9F6] p-3.5 border border-[#EFEEEB]">
               <div>
-                <span className="text-[11px] font-medium text-[#727974]"><UiText text={"Body Tempo"} /></span>
+                <span className="text-[11px] font-medium text-[#727974]"><UiText text={"Nhịp cơ thể"} /></span>
                 <p className="mt-0.5 text-xs font-bold text-[#07241A]">
                   {bmi ?? ui("Not available")}
                 </p>
@@ -326,44 +329,59 @@ export default function MealPlannerView() {
             {/* Avoiding Allergens */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold tracking-wider text-[11px] text-[#727974] uppercase"><UiText text={"AVOIDING ALLERGENS"} /></span>
+                <span className="font-bold tracking-wider text-[11px] text-[#727974] uppercase"><UiText text={"TRÁNH CHẤT GÂY DỊ ỨNG"} /></span>
                 <button
                   type="button"
+                  disabled={isRegenerating || allergenStatus !== "ready"}
                   onClick={() => setShowAddAllergen(!showAddAllergen)}
-                  className="font-semibold text-xs text-[#07241A] hover:text-[#1E3A2F] cursor-pointer"
-                ><UiText text={"+ Add"} /></button>
+                  className="font-semibold text-xs text-[#07241A] hover:text-[#1E3A2F] cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+                ><UiText text={"+ Thêm"} /></button>
               </div>
 
-              {/* Add allergen inline form */}
-              {showAddAllergen && (
-                <form onSubmit={handleAddAllergen} className="flex gap-2 pt-1">
-                  <input
-                    type="text"
-                    value={newAllergen}
-                    onChange={(e) => setNewAllergen(e.target.value)}
-                    placeholder={ui("Tên chất dị ứng...")}
-                    className="flex-1 rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-1.5 text-xs outline-none"
-                    autoFocus
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-[#07241A] px-3 py-1.5 text-xs font-semibold text-white"
-                  ><UiText text={"Lưu"} /></button>
+              {allergenStatus === "loading" && <p role="status" className="text-xs text-[#727974]">{t("Loading allergens…", "Đang tải danh sách dị ứng…")}</p>}
+              {allergenStatus === "error" && <div role="alert" className="text-xs text-red-700">
+                <p>{t("Could not load the allergen catalog or your saved selections. Please sign in and try again.", "Không thể tải danh mục dị ứng hoặc lựa chọn đã lưu. Vui lòng đăng nhập và thử lại.")}</p>
+                <button type="button" onClick={retryAllergens} className="mt-2 underline">{t("Retry", "Thử lại")}</button>
+              </div>}
+              {showAddAllergen && allergenStatus === "ready" && (
+                <form noValidate onSubmit={handleAddAllergen} className="space-y-2 pt-1">
+                  <label htmlFor="meal-planner-allergen" className="block text-xs text-[#424844]">{t("Choose an allergen", "Chọn chất gây dị ứng")}</label>
+                  <div className="flex flex-wrap gap-2">
+                    <select id="meal-planner-allergen" name="allergen" value={newAllergen}
+                      onChange={event => setNewAllergen(event.target.value)}
+                      disabled={isRegenerating || availableAllergens.length === 0}
+                      aria-invalid={allergenError === "selection"}
+                      aria-describedby={allergenError ? "meal-planner-allergen-error" : undefined}
+                      className="min-w-0 flex-1 rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs outline-none focus:border-[#254B38] aria-invalid:border-red-600 disabled:opacity-50" autoFocus>
+                      <option value="">{t("Select an allergen…", "Chọn chất gây dị ứng…")}</option>
+                      {availableAllergens.map(item => <option key={item.allergenId} value={item.allergenId}><UiText text={item.name} /></option>)}
+                    </select>
+                    <button type="submit" disabled={isRegenerating || availableAllergens.length === 0}
+                      className="rounded-xl bg-[#07241A] px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">
+                      {isRegenerating ? t("Saving…", "Đang lưu…") : t("Save", "Lưu")}
+                    </button>
+                  </div>
+                  {availableAllergens.length === 0 && <p className="text-xs text-[#727974]">{t("No more allergens available to add.", "Không còn chất gây dị ứng nào để thêm.")}</p>}
                 </form>
               )}
+              {allergenError && <p id="meal-planner-allergen-error" role="alert" className="text-xs text-red-700">
+                {allergenError === "selection" ? t("Choose an allergen from the list before saving.", "Hãy chọn một chất gây dị ứng trong danh sách trước khi lưu.") : t("Could not save your allergies. Your saved selections are unchanged; please try again.", "Không thể lưu dị ứng. Lựa chọn đã lưu được giữ nguyên; vui lòng thử lại.")}
+              </p>}
 
               {/* Chips */}
               <div className="flex flex-wrap gap-1.5">
-                {allergens.map((alg) => (
+                {allergenStatus === "ready" && allergens.map((alg) => (
                   <span
                     key={alg}
                     className="inline-flex items-center gap-1.5 rounded-full bg-[#F5F3F0] px-3 py-1 text-xs text-[#424844] border border-[#EFEEEB]"
                   >
-                    <span>{alg}</span>
+                    <span><UiText text={alg} /></span>
                     <button
                       type="button"
+                      disabled={isRegenerating || allergenStatus !== "ready"}
                       onClick={() => handleRemoveAllergen(alg)}
                       className="text-[#727974] hover:text-red-600 transition"
+                      aria-label={t(`Remove allergy ${alg}`, `Gỡ dị ứng ${alg}`)}
                       title={ui("Gỡ dị ứng")}
                     >
                       ✕
@@ -386,75 +404,24 @@ export default function MealPlannerView() {
             </Link>
           </div>
 
-          {/* Card 2: Larder & Fresh Bin */}
-          <div className="rounded-3xl bg-white p-6 border border-[#EFEEEB] shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-serif text-base font-bold text-[#07241A]"><UiText text={"Larder & Fresh Bin"} /></h3>
-                <p className="text-[11px] text-[#727974]"><UiText text={"Used first to prevent culinary waste"} /></p>
-              </div>
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EFEEEB] text-xs font-bold text-[#07241A]">
-                {pantryIngredients.length}
-              </span>
+          <section className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-serif text-lg font-bold text-[#07241A]">Nguyên liệu sẵn có</h2>
+              <span className="text-xs text-[#727974]">{pantryIngredients.length}</span>
             </div>
-
-            {/* Chips */}
-            <div className="flex flex-wrap gap-2">
-              {pantryIngredients.map((item) => (
-                <span
-                  key={item}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#E8F1EC] px-3 py-1.5 text-xs font-medium text-[#07241A] border border-[#D9E6DC]"
-                >
-                  <span>{<UiText text={item} />}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePantry(item)}
-                    className="text-[#727974] hover:text-red-600 transition"
-                    title={ui("Xóa nguyên liệu")}
-                  >
-                    ✕
-                  </button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {pantryIngredients.map(item => (
+                <span key={item} className="inline-flex items-center gap-2 rounded-md border border-[#D9E6DC] bg-[#E8F1EC] px-3 py-1.5 text-xs text-[#07241A]">
+                  {item}
+                  <button type="button" onClick={() => handleRemovePantry(item)} aria-label={`Xóa nguyên liệu ${item}`} title="Xóa nguyên liệu" className="text-[#59635C] hover:text-red-700">×</button>
                 </span>
               ))}
             </div>
-
-            {/* Add ingredient input */}
-            <form onSubmit={handleAddPantry} className="flex gap-2">
-              <input
-                type="text"
-                value={newPantryItem}
-                onChange={(e) => setNewPantryItem(e.target.value)}
-                placeholder={ui("Add pantry staple (e.g., Lemongrass)")}
-                className="flex-1 rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs text-[#07241A] outline-none placeholder:text-[#727974] focus:border-[#1E3A2F]"
-              />
-              <button
-                type="submit"
-                className="rounded-xl bg-[#F5F3F0] border border-[#EFEEEB] px-3 py-2 text-xs font-semibold text-[#07241A] hover:bg-[#D9E6DC]/50 cursor-pointer"
-              ><UiText text={"+ Add"} /></button>
+            <form onSubmit={handleAddPantry} className="mt-4 flex gap-2">
+              <input type="text" value={newPantryItem} onChange={event => setNewPantryItem(event.target.value)} placeholder="Thêm nguyên liệu (ví dụ: sả)" aria-label="Tên nguyên liệu" className="min-w-0 flex-1 rounded-md border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-sm outline-none focus:border-[#1E3A2F]" />
+              <button type="submit" className="rounded-md bg-[#07241A] px-4 py-2 text-sm font-semibold text-white">Thêm</button>
             </form>
-
-            <p className="text-[11px] text-[#727974] italic">{ui("Available ingredients")}</p>
-
-            {/* Big Action Button */}
-            <button
-              type="button"
-              onClick={handleRegenerate}
-              disabled={isRegenerating || loading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#07241A] py-3 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] cursor-pointer"
-            >
-              <span>⚡</span>
-              <span><UiText text={"Generate My 7-Day Plan"} /></span>
-            </button>
-          </div>
-
-          {/* Card 3: Pantry Utilization */}
-          <div className="rounded-3xl bg-[#FBF9F6] p-5 border border-[#EFEEEB] space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#07241A]">
-              <span>🥕</span>
-              <span>{pantryIngredients.length} {ui("Available ingredients")}</span>
-            </div>
-            <p className="text-xs leading-relaxed text-[#727974]">{dietName}</p>
-          </div>
+          </section>
         </div>
 
         {/* =============================================================== */}
@@ -512,7 +479,7 @@ export default function MealPlannerView() {
                             {<UiText text={meal.durationCalories} />}
                           </span>
                           {meal.isSavedInCollection && (
-                            <span className="rounded-full bg-[#FDE8E4] px-2 py-0.2 text-[10px] font-semibold text-[#99462A]"><UiText text={"Saved in Collection"} /></span>
+                            <span className="rounded-full bg-[#FDE8E4] px-2 py-0.2 text-[10px] font-semibold text-[#99462A]"><UiText text={"Đã lưu vào bộ sưu tập"} /></span>
                           )}
                         </div>
 
@@ -531,7 +498,7 @@ export default function MealPlannerView() {
                         type="button"
                         onClick={() => viewMeal(meal)}
                         className="rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-1.5 text-xs font-semibold text-[#07241A] hover:bg-white hover:shadow-xs transition cursor-pointer"
-                      ><UiText text={"View Recipe"} /></button>
+                      ><UiText text={"Xem công thức"} /></button>
                       <button
                         type="button"
                         disabled={isRegenerating || replacementLimitReached} onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
@@ -539,7 +506,7 @@ export default function MealPlannerView() {
                         className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <span>🔄</span>
-                        <span><UiText text={"Replace"} /></span>
+                        <span><UiText text={"Thay món"} /></span>
                       </button>
                     </div>
                   </div>

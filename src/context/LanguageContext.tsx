@@ -2,13 +2,13 @@
 
 import { createContext, useContext } from "react";
 
+// Keep existing translation helpers compatible while the UI always uses Vietnamese.
 export type Language = "en" | "vi";
 interface LanguageContextValue {
   language: Language;
-  locale: "en-US" | "vi-VN";
+  locale: "vi-VN";
   t: (english: string, vietnamese: string) => string;
 }
-
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 const vietnamese: LanguageContextValue = {
   language: "vi",
@@ -26,6 +26,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
 export function useLanguage() {
   const context = useContext(LanguageContext);
-  if (!context) throw new Error("useLanguage must be used within LanguageProvider");
+  if (!context) throw new Error("useLanguage phải được dùng trong LanguageProvider");
   return context;
 }

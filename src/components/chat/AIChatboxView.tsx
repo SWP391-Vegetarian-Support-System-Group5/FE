@@ -43,6 +43,11 @@ const SAMPLE_PROMPTS = [
 ];
 
 export default function AIChatboxView() {
+  const { user, loading } = useAuth();
+  return <AIChatConversation key={loading ? "restoring" : user?.uid || "guest"} />;
+}
+
+function AIChatConversation() {
   const ui = useUiText();
   const { user, loading: authLoading } = useAuth();
   const { t } = useLanguage();
@@ -57,24 +62,20 @@ export default function AIChatboxView() {
   const [inputValue, setInputValue] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const isLoadingHistory = isLoadingSession && !!user;
   const [error, setError] = useState<string | null>(null);
-  const [signupRequired, setSignupRequired] = useState(false);
-  const [remainingGuestMessages, setRemainingGuestMessages] = useState<number | null>(null);
+  const [serverSignupRequired, setSignupRequired] = useState(false);
+  const [serverRemainingGuestMessages, setRemainingGuestMessages] = useState<number | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    if (!user && activeSessionId !== null && !isLoadingSession && !isThinking) {
-      const remaining = Math.max(0, 5 - messages.filter(message => message.sender === "USER").length);
-      setRemainingGuestMessages(remaining);
-      setSignupRequired(remaining === 0);
-    }
-  }, [user, activeSessionId, isLoadingSession, isThinking, messages]);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const remainingGuestMessages = user ? null : serverRemainingGuestMessages ?? (
+    activeSessionId !== null && !isLoadingSession
+      ? Math.max(0, 5 - messages.filter(message => message.sender === "USER").length)
+      : null
+  );
+  const signupRequired = !user && (serverSignupRequired || remainingGuestMessages === 0);
+
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +89,6 @@ export default function AIChatboxView() {
   const loadUserSessions = useCallback(async () => {
     const token = getStoredToken();
     if (!token) return [];
-    setIsLoadingHistory(true);
     try {
       const data = await getUserChatSessions();
       setSessions(data);
@@ -96,8 +96,6 @@ export default function AIChatboxView() {
     } catch {
       // Ignore background refresh errors
       return [];
-    } finally {
-      setIsLoadingHistory(false);
     }
   }, []);
 
@@ -107,12 +105,6 @@ export default function AIChatboxView() {
     let isCancelled = false;
 
     async function init() {
-      setIsLoadingSession(true);
-      setError(null);
-      setMessages([]);
-      setSessions([]);
-      setSignupRequired(false);
-      setRemainingGuestMessages(null);
       const token = getStoredToken();
 
       try {
@@ -143,14 +135,14 @@ export default function AIChatboxView() {
           // Guest user: restore stored guest session if available
           const stored = getStoredGuestSession();
           if (stored) {
-            setActiveSessionId(stored.chatSessionId);
-            setGuestToken(stored.guestAccessToken);
             try {
               const fullSession = await getChatSessionById(
                 stored.chatSessionId,
                 stored.guestAccessToken
               );
               if (!isCancelled) {
+                setActiveSessionId(stored.chatSessionId);
+                setGuestToken(stored.guestAccessToken);
                 setMessages(fullSession.messages || []);
               }
             } catch {
@@ -293,9 +285,7 @@ export default function AIChatboxView() {
         setMessages(prev => prev.filter(message => message !== optimisticMsg));
         return;
       }
-      if (res.remainingGuestMessages !== undefined) {
-        setRemainingGuestMessages(res.remainingGuestMessages);
-      }
+      setRemainingGuestMessages(res.remainingGuestMessages ?? null);
 
       const aiMsg: ChatMessageItem = {
         chatMessageId: res.chatMessageId,
@@ -347,7 +337,7 @@ export default function AIChatboxView() {
 
   // Group user sessions for sidebar
   const groupedSessions: GroupedSessions[] = groupSessionsByDate(sessions);
-  const isLoggedIn = isMounted && (!!user || !!getStoredToken());
+  const isLoggedIn = !authLoading && (!!user || !!getStoredToken());
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -817,7 +807,7 @@ export default function AIChatboxView() {
               </div>
 
               {/* Disclaimer */}
-              <p className="text-center font-serif text-xs text-[#727974]"><UiText text={"VeggieAI provides culinary and general nutritional guidance based on plant-based dietary recommendations."} /></p>
+              <p className="text-center font-serif text-xs text-[#727974]"><UiText text={"VeggieAI cung cấp gợi ý ẩm thực và dinh dưỡng tổng quát theo chế độ ăn thực vật."} /></p>
             </form>
           </footer>
         </section>

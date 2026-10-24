@@ -5,7 +5,7 @@ import MealPlannerView from "@/components/meal-planner/MealPlannerView";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 
 export const metadata: Metadata = {
-  title: "Plan My Week | VeggieMate",
+  title: "Thực đơn tuần | VeggieMate",
   description:
     "Lên kế hoạch thực đơn thuần chay 7 ngày được cá nhân hóa theo kho nguyên liệu và mục tiêu sức khỏe của bạn.",
 };

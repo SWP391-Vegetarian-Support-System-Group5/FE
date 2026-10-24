@@ -9,6 +9,7 @@ import { createCommunityEventSource, getMyPosts, postToRecipe, type PostResponse
 import { MY_CONTENT_EVENT, getMyContentSnapshot, getVideoThumbnailUrl, parseMyContent, removeManualContent, sampleContent, saveContentItem, type MyContentItem } from "@/lib/my-content";
 import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount } from "@/lib/localized-content";
 import ContentDialog from "./ContentDialog";
+import FeedImage from "@/components/ui/FeedImage";
 import CardSkeleton from "@/components/ui/CardSkeleton";
 import ContentIcon, { type ContentIconName } from "./ContentIcon";
 
@@ -99,15 +100,20 @@ export default function MyContentView() {
   const [publishingDraft, setPublishingDraft] = useState(false);
   const [publishError, setPublishError] = useState("");
   const hydratedRecipeIds = useRef(new Set<number>());
+  const latestServerRequest = useRef(0);
 
   const loadServerItems = useCallback(async () => {
+    const request = ++latestServerRequest.current;
     if (!user) {
       setServerItems([]);
+      setDraftLoadError(false);
+      setRemoteLoading(false);
       return;
     }
     setRemoteLoading(true);
     try {
       const [postsResult, draftsResult] = await Promise.allSettled([getMyPosts(), getMyVideoRecipeDrafts()]);
+      if (request !== latestServerRequest.current) return;
       setDraftLoadError(draftsResult.status === "rejected");
       const posts = postsResult.status === "fulfilled" ? postsResult.value : [];
       const drafts = draftsResult.status === "fulfilled" ? draftsResult.value : [];
@@ -128,25 +134,26 @@ export default function MyContentView() {
           return item;
         }
       }));
-      setServerItems([...items, ...drafts.map(videoDraftToContentItem)]);
+      if (request === latestServerRequest.current) setServerItems([...items, ...drafts.map(videoDraftToContentItem)]);
     } catch {
-      setServerItems([]);
+      if (request === latestServerRequest.current) setServerItems([]);
     } finally {
-      setRemoteLoading(false);
+      if (request === latestServerRequest.current) setRemoteLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
     void Promise.resolve().then(loadServerItems);
     if (!user) return;
+    const requestRef = latestServerRequest;
     const source = createCommunityEventSource();
-    const refresh = () => loadServerItems();
+    const refresh = () => { void loadServerItems(); };
     source.addEventListener("open", refresh);
     source.addEventListener("postCreated", refresh);
     source.addEventListener("postUpdated", refresh);
     source.addEventListener("postRemoved", refresh);
-    return () => source.close();
-  }, [loadServerItems, user]);
+    return () => { requestRef.current++; source.close(); };
+  }, [user, loadServerItems]);
 
   useEffect(() => {
     if (sampleMode) return;
@@ -354,7 +361,7 @@ export default function MyContentView() {
               const thumbnail = itemThumbnail(item);
               return <article key={item.id} className={`vm-card vm-enter group overflow-hidden rounded-2xl border border-[#E5E7DF] bg-white transition duration-200 hover:border-[#BBCAB7] hover:shadow-[0_8px_28px_#1E3A2F08] ${layout === "list" ? "flex flex-col sm:flex-row" : "flex flex-col"}`}>
                 <button type="button" onClick={() => setAction({ type: "preview", item })} aria-label={`${t("Preview", "Xem trước")}: ${text.title}`} className={`relative shrink-0 overflow-hidden bg-[#E8EDE4] ${layout === "list" ? "h-48 w-full sm:h-auto sm:min-h-44 sm:w-56" : "aspect-[16/9] w-full"}`}>
-                  {thumbnail ? <img src={thumbnail} alt={text.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,#D9E6DC,transparent)]"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="64" height="64" className="text-[#8AA18B]" /></div>}
+                  {thumbnail ? <FeedImage key={thumbnail} src={thumbnail} alt={text.title} compact={false} /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,#D9E6DC,transparent)]"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="64" height="64" className="text-[#8AA18B]" /></div>}
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#FBF9F6]/95 px-2.5 py-1.5 text-[10px] font-semibold text-[#1E3A2F] shadow-sm"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="12" height="12" />{item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")}</span>
                   {item.kind === "video" && <span className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-[#1E3A2F] shadow-sm backdrop-blur-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m9 5 12 7-12 7z" /></svg></span>}
                 </button>

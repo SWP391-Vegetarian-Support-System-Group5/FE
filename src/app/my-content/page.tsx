@@ -5,8 +5,8 @@ import VeggieAIWidget from "@/components/VeggieAIWidget";
 import MyContentView from "@/components/content/MyContentView";
 
 export const metadata: Metadata = {
-  title: "My Content",
-  description: "Manage your vegetarian recipes, cooking videos and saved drafts on VeggieMate.",
+  title: "Bài viết của tôi",
+  description: "Quản lý công thức món chay, video nấu ăn và bản nháp của bạn trên VeggieMate.",
 };
 
 export default function MyContentPage() {

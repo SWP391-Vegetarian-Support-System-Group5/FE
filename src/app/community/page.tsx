@@ -2,7 +2,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CommunityFeed from "@/components/content/CommunityFeed";
 
-export const metadata = { title: "Community | VeggieMate" };
+export const metadata = { title: "Cộng đồng | VeggieMate" };
 
 export default async function CommunityPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;

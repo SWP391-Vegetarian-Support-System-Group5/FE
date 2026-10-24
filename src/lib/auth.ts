@@ -40,14 +40,32 @@ export interface ResendOtpResponse {
 
 export class ApiError extends Error {
   status: number;
-  data: any;
+  data: unknown;
 
-  constructor(message: string, status: number, data?: any) {
+  constructor(message: string, status: number, data?: unknown) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.data = data;
   }
+}
+
+async function responseError(res: Response, fallback: string): Promise<ApiError> {
+  const text = await res.text();
+  let data: unknown = null;
+  let message = text.trim() || fallback;
+  if (text.trim()) {
+    try {
+      data = JSON.parse(text) as unknown;
+      if (typeof data === "string") message = data || fallback;
+      else if (data && typeof data === "object") {
+        const fields = data as Record<string, unknown>;
+        const detail = [fields.message, fields.error, fields.title].find(value => typeof value === "string" && value.trim());
+        if (typeof detail === "string") message = detail;
+      }
+    } catch { /* Plain-text error responses are valid too. */ }
+  }
+  return new ApiError(message, res.status, data);
 }
 
 /**
@@ -65,22 +83,7 @@ export async function registerWithApi(
   });
 
   if (!res.ok) {
-    let errorMessage = "Đăng ký thất bại. Vui lòng thử lại.";
-    let errData: any = null;
-    try {
-      errData = await res.json();
-      errorMessage =
-        errData.message ||
-        errData.error ||
-        errData.title ||
-        (typeof errData === "string" ? errData : JSON.stringify(errData));
-    } catch {
-      const text = await res.text();
-      if (text && text.trim().length > 0) {
-        errorMessage = text;
-      }
-    }
-    throw new ApiError(errorMessage, res.status, errData);
+    throw await responseError(res, "Đăng ký thất bại. Vui lòng thử lại.");
   }
 
   return (await res.json()) as RegisterResponse;
@@ -100,22 +103,7 @@ export async function verifyOtpWithApi(
   });
 
   if (!res.ok) {
-    let errorMessage = "Xác thực OTP thất bại. Vui lòng kiểm tra lại mã OTP.";
-    let errData: any = null;
-    try {
-      errData = await res.json();
-      errorMessage =
-        errData.message ||
-        errData.error ||
-        errData.title ||
-        (typeof errData === "string" ? errData : JSON.stringify(errData));
-    } catch {
-      const text = await res.text();
-      if (text && text.trim().length > 0) {
-        errorMessage = text;
-      }
-    }
-    throw new ApiError(errorMessage, res.status, errData);
+    throw await responseError(res, "Xác thực OTP thất bại. Vui lòng kiểm tra lại mã OTP.");
   }
 
   try {
@@ -138,22 +126,7 @@ export async function resendOtpWithApi(
   });
 
   if (!res.ok) {
-    let errorMessage = "Không thể gửi lại mã OTP. Vui lòng thử lại sau.";
-    let errData: any = null;
-    try {
-      errData = await res.json();
-      errorMessage =
-        errData.message ||
-        errData.error ||
-        errData.title ||
-        (typeof errData === "string" ? errData : JSON.stringify(errData));
-    } catch {
-      const text = await res.text();
-      if (text && text.trim().length > 0) {
-        errorMessage = text;
-      }
-    }
-    throw new ApiError(errorMessage, res.status, errData);
+    throw await responseError(res, "Không thể gửi lại mã OTP. Vui lòng thử lại sau.");
   }
 
   return (await res.json()) as ResendOtpResponse;
@@ -173,22 +146,7 @@ export async function loginWithApi(
   });
 
   if (!res.ok) {
-    let errorMessage = "Email hoặc mật khẩu không đúng. Nếu chưa có tài khoản, vui lòng đăng ký trước khi đăng nhập.";
-    let errData: any = null;
-    try {
-      errData = await res.json();
-      errorMessage =
-        errData.message ||
-        errData.error ||
-        errData.title ||
-        (typeof errData === "string" ? errData : JSON.stringify(errData));
-    } catch {
-      const text = await res.text();
-      if (text && text.trim().length > 0) {
-        errorMessage = text;
-      }
-    }
-    throw new ApiError(errorMessage, res.status, errData);
+    throw await responseError(res, "Email hoặc mật khẩu không đúng. Nếu chưa có tài khoản, vui lòng đăng ký trước khi đăng nhập.");
   }
 
   const data = (await res.json()) as LoginResponse;
@@ -227,22 +185,7 @@ export async function updateCurrentUserLocation(
   });
 
   if (!res.ok) {
-    let errorMessage = "Không thể lưu vị trí hiện tại.";
-    let errData: any = null;
-    try {
-      errData = await res.json();
-      errorMessage =
-        errData.message ||
-        errData.error ||
-        errData.title ||
-        (typeof errData === "string" ? errData : JSON.stringify(errData));
-    } catch {
-      const text = await res.text();
-      if (text && text.trim().length > 0) {
-        errorMessage = text;
-      }
-    }
-    throw new ApiError(errorMessage, res.status, errData);
+    throw await responseError(res, "Không thể lưu vị trí hiện tại.");
   }
 
   const user = (await res.json()) as BackendUser;

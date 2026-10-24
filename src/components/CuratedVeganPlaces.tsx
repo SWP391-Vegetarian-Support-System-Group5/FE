@@ -44,14 +44,14 @@ export default function CuratedVeganPlaces() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between border-b border-[#EFEEEB] pb-4">
           <div>
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#C25E48]">
-              <span><UiText text={"Featured Botanical Kitchens"} /></span>
+              <span><UiText text={"Những căn bếp chay nổi bật"} /></span>
             </div>
             <h2 className="mt-1 font-serif text-2xl font-bold tracking-tight text-[#07241A] sm:text-3xl">{t("Vegetarian places near you", "Địa điểm chay gần bạn")}</h2>
             <p className="mt-1 text-xs text-[#727974] sm:text-sm">{message}</p>
           </div>
 
           <div className="rounded-full border border-[#EFEEEB] bg-[#F5F3F0] px-3.5 py-1 text-xs font-medium text-[#727974] shrink-0 self-start sm:self-auto">
-            {places.length}{" "}<UiText text={"Curated Tables"} /></div>
+            {places.length}{" "}<UiText text={"Địa điểm chọn lọc"} /></div>
         </div>
 
         {loading && <p role="status" className="py-6">{t("Loading...", "Đang tải...")}</p>}
@@ -119,8 +119,8 @@ export default function CuratedVeganPlaces() {
         <div className="font-serif text-4xl sm:text-5xl font-bold text-[#C25E48]">
           &rdquo;
         </div>
-        <blockquote className="mt-2 mx-auto max-w-3xl font-serif text-2xl sm:text-3xl lg:text-[34px] lg:leading-[44px] italic text-[#07241A]"><UiText text={"“To sit at a plant-forward table is to honor the earth, the seasons, and the gentle pace of life.”"} /></blockquote>
-        <p className="mt-4 text-[11px] font-semibold tracking-widest uppercase text-[#727974]"><UiText text={"VeggieMate City Guide · Saigon Edition"} /></p>
+        <blockquote className="mt-2 mx-auto max-w-3xl font-serif text-2xl sm:text-3xl lg:text-[34px] lg:leading-[44px] italic text-[#07241A]"><UiText text={"“Một bữa ăn thực vật là cách trân trọng đất trời, mùa vụ và nhịp sống nhẹ nhàng.”"} /></blockquote>
+        <p className="mt-4 text-[11px] font-semibold tracking-widest uppercase text-[#727974]"><UiText text={"Cẩm nang VeggieMate · Sài Gòn"} /></p>
       </section>
 
       {/* 4. RESTAURANT DETAIL MODAL */}
@@ -165,17 +165,17 @@ export default function CuratedVeganPlaces() {
 
               <div className="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 border border-[#EFEEEB] text-xs sm:grid-cols-2">
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]"><UiText text={"📍 Address:"} /></span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"📍 Địa chỉ:"} /></span>
                   <span>{selectedPlace.address}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]"><UiText text={"🚶 Proximity:"} /></span>
+                  <span className="font-semibold text-[#07241A]"><UiText text={"🚶 Khoảng cách:"} /></span>
                   <span>{selectedPlace.distance}</span>
                 </div>
               </div>
 
               <div className="mt-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#727974]"><UiText text={"Signature Dishes & Recommendations"} /></h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#727974]"><UiText text={"Món đặc trưng & gợi ý"} /></h4>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   {selectedPlace.signatureDishes.map((dish) => (
                     <span
@@ -193,7 +193,7 @@ export default function CuratedVeganPlaces() {
                   type="button"
                   onClick={() => setSelectedPlace(null)}
                   className="rounded-xl border border-[#EFEEEB] bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] hover:bg-[#F5F3F0] transition"
-                ><UiText text={"Close"} /></button>
+                ><UiText text={"Đóng"} /></button>
                 <a
                   href={`https://www.openstreetmap.org/?mlat=${selectedPlace.latitude}&mlon=${selectedPlace.longitude}#map=18/${selectedPlace.latitude}/${selectedPlace.longitude}`} target="_blank" rel="noreferrer"
                   className="rounded-xl bg-[#07241A] px-6 py-2.5 text-center text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F] transition"
