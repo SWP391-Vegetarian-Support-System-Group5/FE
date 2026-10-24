@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { getMediaUrl } from "@/lib/api";
-import { generateMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, type MealPlanResponse } from "@/lib/meal-plan-api";
+import { generateMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse } from "@/lib/meal-plan-api";
 import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
 import { getBookmarks } from "@/lib/post-api";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
@@ -30,6 +30,7 @@ export function useMealPlanner() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRegenerating, setWorking] = useState(false);
+  const [replacementLimitReached, setReplacementLimitReached] = useState(false);
   const [startDate, setStartDate] = useState(() => initialMealPlanDate());
   const lock = useRef(false);
 
@@ -93,14 +94,25 @@ export function useMealPlanner() {
       if (!parsedDate) throw new Error(t("Enter a valid start date as dd/mm/yy (2000-2099).", "Nhập ngày bắt đầu hợp lệ theo dd/mm/yy (năm 2000–2099)."));
       const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", ") || null };
       const next = plan ? await regenerateMealPlan(plan.mealPlanId, payload) : await generateMealPlan(payload);
-      setPlan(next); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
+      setPlan(next); setReplacementLimitReached(false); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
     });
   }
   async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"]) {
-    if (!plan) return;
+    if (!plan || replacementLimitReached) return;
     const meal = plan.meals.find(item => item.mealPlanMealId === Number(mealId));
     if (!meal || meal.dayNumber !== _day + 1 || meal.mealType !== _slot) return;
-    await run(async () => { const next = await replaceMeal(plan.mealPlanId, Number(mealId)); setPlan(next); await hydrateRecipes(next); });
+    await run(async () => {
+      try {
+        const next = await replaceMeal(plan.mealPlanId, Number(mealId));
+        setPlan(next); await hydrateRecipes(next);
+      } catch (failure) {
+        if (failure instanceof MealPlanRequestError && failure.status === 429) {
+          setReplacementLimitReached(true);
+          return;
+        }
+        throw failure;
+      }
+    });
   }
   async function viewMeal(meal: MealItem) {
     if (!meal.recipeId) return;
@@ -113,7 +125,15 @@ export function useMealPlanner() {
     });
   }
   async function handleRemoveAllergen(name: string) {
-    await run(async () => { const next = selectedAllergens.filter(item => item.name !== name); await updateUserAllergens(next.map(item => item.allergenId)); setSelectedAllergens(next); });
+    await run(async () => {
+      const next = selectedAllergens.filter(item => item.name !== name);
+      await updateUserAllergens(next.map(item => item.allergenId));
+      setSelectedAllergens(next);
+      setPlan(null); setSelectedMealForView(null);
+      const plans = await getMealPlans();
+      setPlan(plans[0] || null);
+      await hydrateRecipes(plans[0] || null);
+    });
   }
   async function handleAddAllergen(event: FormEvent) {
     event.preventDefault();
@@ -121,7 +141,12 @@ export function useMealPlanner() {
     if (!match) { setError(t("Choose an allergen from your profile's catalog.", "Hãy chọn dị ứng có trong danh mục hồ sơ.")); return; }
     await run(async () => {
       const next = selectedAllergens.some(item => item.allergenId === match.allergenId) ? selectedAllergens : [...selectedAllergens, match];
-      await updateUserAllergens(next.map(item => item.allergenId)); setSelectedAllergens(next); setNewAllergen(""); setShowAddAllergen(false);
+      await updateUserAllergens(next.map(item => item.allergenId));
+      setSelectedAllergens(next); setNewAllergen(""); setShowAddAllergen(false);
+      setPlan(null); setSelectedMealForView(null);
+      const plans = await getMealPlans();
+      setPlan(plans[0] || null);
+      await hydrateRecipes(plans[0] || null);
     });
   }
   function handleAddPantry(event: FormEvent) { event.preventDefault(); if (newPantryItem.trim()) setPantryIngredients(items => [...new Set([...items, newPantryItem.trim()])]); setNewPantryItem(""); }
@@ -129,7 +154,7 @@ export function useMealPlanner() {
   return {
     days, allergens: selectedAllergens.map(item => item.name), newAllergen, setNewAllergen, showAddAllergen, setShowAddAllergen,
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
-    toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen,
+    toastMessage, isRegenerating, replacementLimitReached, handleRemoveAllergen, handleAddAllergen,
     handleRemovePantry: (name: string) => setPantryIngredients(items => items.filter(item => item !== name)),
     handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal,
     profileName: profile?.fullName || t("You", "Bạn"), bmi: plan?.bmi ?? null,

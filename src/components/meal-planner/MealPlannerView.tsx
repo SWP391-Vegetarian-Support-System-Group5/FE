@@ -214,7 +214,7 @@ export default function MealPlannerView() {
   const {
     days, allergens, newAllergen, setNewAllergen, showAddAllergen, setShowAddAllergen,
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
-    toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
+    toastMessage, isRegenerating, replacementLimitReached, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
     handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal, profileName, bmi, bmiCategory,
     dietName, savedCount, loading, error, startDate, setStartDate,
   } = useMealPlanner();
@@ -278,6 +278,11 @@ export default function MealPlannerView() {
 
       {loading && <p role="status" className="py-4">{ui("Loading...")}</p>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+      {!loading && days.length > 0 && <p role="status" className="mt-4 border-l-2 border-[#4A7659] bg-[#EDF4ED] px-4 py-3 text-sm text-[#1E3A2F]">
+        {replacementLimitReached
+          ? "Bạn đã hết 5 lượt đổi món cho thực đơn này. Các nút Thay món tạm khóa; vui lòng thử lại sau."
+          : "Giới hạn đổi món: tối đa 5 lần cho mỗi thực đơn trong 7 ngày."}
+      </p>}
       {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
       <label className="mt-4 block text-sm">{ui("Start date")} <input type="text" inputMode="numeric" placeholder="dd/mm/yy" maxLength={10} value={startDate} onChange={e => setStartDate(e.target.value)} className="ml-3 w-36 rounded-lg border p-2" /></label>
       {/* ── Main Two-Column Layout ─────────────────────────────────────── */}
@@ -529,8 +534,9 @@ export default function MealPlannerView() {
                       ><UiText text={"View Recipe"} /></button>
                       <button
                         type="button"
-                        disabled={isRegenerating} onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
-                        className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition cursor-pointer"
+                        disabled={isRegenerating || replacementLimitReached} onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
+                        title={replacementLimitReached ? "Đã hết lượt đổi món cho thực đơn này" : "Thay món"}
+                        className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <span>🔄</span>
                         <span><UiText text={"Replace"} /></span>

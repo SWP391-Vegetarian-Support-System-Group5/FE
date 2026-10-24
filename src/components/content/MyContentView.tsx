@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { getRecipeById } from "@/lib/recipe-api";
+import { createRecipe, deleteVideoRecipeDraft, getMyVideoRecipeDrafts, getRecipeById, publishVideoRecipeDraft, type VideoRecipeDraftResponse } from "@/lib/recipe-api";
 import { createCommunityEventSource, getMyPosts, postToRecipe, type PostResponse } from "@/lib/community-api";
 import { MY_CONTENT_EVENT, getMyContentSnapshot, getVideoThumbnailUrl, parseMyContent, removeManualContent, sampleContent, saveContentItem, type MyContentItem } from "@/lib/my-content";
 import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount } from "@/lib/localized-content";
@@ -58,6 +58,17 @@ function postToContentItem(post: PostResponse): MyContentItem {
   };
 }
 
+function videoDraftToContentItem(draft: VideoRecipeDraftResponse): MyContentItem {
+  return {
+    id: `video-draft-${draft.videoRecipeDraftId}`,
+    title: draft.title || draft.recipeName || `Video #${draft.videoRecipeDraftId}`,
+    description: draft.description || draft.errorMessage || "",
+    kind: "video", status: "draft", createdAt: draft.createdAt, updatedAt: draft.updatedAt,
+    image: getVideoThumbnailUrl(draft.videoUrl), minutes: draft.estimatedPrepMinutes || undefined,
+    videoDraft: draft,
+  };
+}
+
 export default function MyContentView() {
   const { user, loading } = useAuth();
   const { language, locale, t } = useLanguage();
@@ -67,13 +78,14 @@ export default function MyContentView() {
   const localSavedItems = useMemo(() => parseMyContent(snapshot), [snapshot]);
   const [serverItems, setServerItems] = useState<MyContentItem[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
+  const [draftLoadError, setDraftLoadError] = useState(false);
   const savedItems = useMemo(() => [
     ...serverItems,
     ...localSavedItems.filter((item) => item.status === "draft"),
   ], [localSavedItems, serverItems]);
   const [samples, setSamples] = useState(sampleContent);
   const [source, setSource] = useState<"mine" | "sample" | null>(null);
-  const sampleMode = source === "sample" || (source === null && savedItems.length === 0);
+  const sampleMode = source === "sample" || (source === null && !user && savedItems.length === 0);
   const items = sampleMode ? samples : savedItems;
   const [kind, setKind] = useState<KindFilter>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -84,6 +96,8 @@ export default function MyContentView() {
   const [action, setAction] = useState<ContentAction | null>(null);
   const [notice, setNotice] = useState<{ en: string; vi: string; tone?: "error"; undo?: { item: MyContentItem; sample: boolean; owner: string } } | null>(null);
   const [storageError, setStorageError] = useState(false);
+  const [publishingDraft, setPublishingDraft] = useState(false);
+  const [publishError, setPublishError] = useState("");
   const hydratedRecipeIds = useRef(new Set<number>());
 
   const loadServerItems = useCallback(async () => {
@@ -93,7 +107,10 @@ export default function MyContentView() {
     }
     setRemoteLoading(true);
     try {
-      const posts = await getMyPosts();
+      const [postsResult, draftsResult] = await Promise.allSettled([getMyPosts(), getMyVideoRecipeDrafts()]);
+      setDraftLoadError(draftsResult.status === "rejected");
+      const posts = postsResult.status === "fulfilled" ? postsResult.value : [];
+      const drafts = draftsResult.status === "fulfilled" ? draftsResult.value : [];
       const items = await Promise.all(posts.map(async (post) => {
         const item = postToContentItem(post);
         if (post.postType !== "RECIPE") return item;
@@ -111,7 +128,7 @@ export default function MyContentView() {
           return item;
         }
       }));
-      setServerItems(items);
+      setServerItems([...items, ...drafts.map(videoDraftToContentItem)]);
     } catch {
       setServerItems([]);
     } finally {
@@ -120,7 +137,7 @@ export default function MyContentView() {
   }, [user]);
 
   useEffect(() => {
-    loadServerItems();
+    void Promise.resolve().then(loadServerItems);
     if (!user) return;
     const source = createCommunityEventSource();
     const refresh = () => loadServerItems();
@@ -190,14 +207,60 @@ export default function MyContentView() {
   const resetFilters = () => { setQuery(""); setKind("all"); setStatus("all"); setPage(1); };
   const switchSource = (next: "mine" | "sample") => { setSource(next); resetFilters(); setNotice(null); };
 
-  function deleteItem(item: MyContentItem) {
+  async function publishDraft(draft: VideoRecipeDraftResponse) {
+    if (draft.status !== "READY" || publishingDraft) return;
+    if (!window.confirm(t("Publish this reviewed draft now?", "Bạn đã kiểm tra nội dung và muốn đăng bản nháp này ngay?"))) return;
+    setPublishingDraft(true);
+    setPublishError("");
+    try {
+      await publishVideoRecipeDraft(draft.videoRecipeDraftId, { recipeName: draft.recipeName || draft.title || "Video recipe", categoryIds: [] });
+      setAction(null);
+      await loadServerItems();
+      setNotice({ en: "Post published.", vi: "Đã đăng bài viết." });
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : t("Could not publish the draft.", "Không đăng được bản nháp."));
+    } finally {
+      setPublishingDraft(false);
+    }
+  }
+
+  async function publishManualDraft(item: MyContentItem) {
+    const draft = item.draft;
+    if (!draft || publishingDraft) return;
+    if (!window.confirm(t("Publish this reviewed draft now?", "Bạn đã kiểm tra nội dung và muốn đăng bản nháp này ngay?"))) return;
+    setPublishingDraft(true);
+    setPublishError("");
+    try {
+      await createRecipe({
+        title: draft.title.trim(), recipeName: (draft.recipeName || "").trim(), content: draft.content.trim(), videoUrl: null,
+        prepMinutes: Number(draft.prepMinutes) || null, cookMinutes: Number(draft.cookMinutes) || null,
+        servings: Number(draft.servings) || null, ingredients: draft.ingredients, steps: draft.steps,
+        categoryIds: draft.selectedCategoryIds || [],
+        ...(user?.role === "ADMIN" ? { bmiTypeIds: draft.selectedBmiTypeIds || [] } : {}),
+      });
+      removeManualContent(owner);
+      setAction(null);
+      await loadServerItems();
+      setNotice({ en: "Post published.", vi: "Đã đăng bài viết." });
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : t("Could not publish the draft.", "Không đăng được bản nháp."));
+    } finally {
+      setPublishingDraft(false);
+    }
+  }
+
+  async function deleteItem(item: MyContentItem) {
     try {
       if (sampleMode) setSamples((current) => current.filter((entry) => entry.id !== item.id));
+      else if (item.videoDraft) {
+        await deleteVideoRecipeDraft(item.videoDraft.videoRecipeDraftId);
+        setServerItems((current) => current.filter((entry) => entry.id !== item.id));
+      }
       else if (item.status === "draft") removeManualContent(owner);
       else return;
       setAction(null);
       setStorageError(false);
-      setNotice({ ...(sampleMode ? { en: "Sample post removed.", vi: "Đã xóa bài mẫu." } : { en: "Draft deleted.", vi: "Đã xóa bản nháp." }), undo: { item, sample: sampleMode, owner } });
+      setNotice({ ...(sampleMode ? { en: "Sample post removed.", vi: "Đã xóa bài mẫu." } : { en: "Draft deleted.", vi: "Đã xóa bản nháp." }), ...(!item.videoDraft ? { undo: { item, sample: sampleMode, owner } } : {}) });
     } catch { setStorageError(true); }
   }
 
@@ -261,10 +324,11 @@ export default function MyContentView() {
         </div>
 
         <div className="mt-4 flex flex-col justify-between gap-3 rounded-xl border border-[#E5E7DF] bg-[#F0F2E9]/70 px-4 py-3 text-xs leading-6 text-[#647068] sm:flex-row sm:items-center">
-          <div className="flex items-start gap-2.5"><ContentIcon name="leaf" className="mt-1 shrink-0 text-[#658266]" /><p>{sampleMode ? t("You’re exploring sample content. Try the filters, preview, edit or delete a sample post.", "Bạn đang xem nội dung mẫu. Thử bộ lọc, xem trước, chỉnh sửa hoặc xóa bài mẫu.") : t("Posts published and drafts saved on this browser appear here. Earlier posts and changes on other devices aren’t synced yet.", "Bài đăng thành công và bản nháp lưu trên trình duyệt này sẽ hiện ở đây. Bài cũ và thay đổi trên thiết bị khác chưa được đồng bộ.")}</p></div>
+          <div className="flex items-start gap-2.5"><ContentIcon name="leaf" className="mt-1 shrink-0 text-[#658266]" /><p>{sampleMode ? t("You’re exploring sample content. Try the filters, preview, edit or delete a sample post.", "Bạn đang xem nội dung mẫu. Thử bộ lọc, xem trước, chỉnh sửa hoặc xóa bài mẫu.") : t("Published posts and video drafts come from your account. Manual drafts are saved in this browser.", "Bài đã đăng và bản nháp video lấy từ tài khoản của bạn. Bản nháp viết tay được lưu trên trình duyệt này.")}</p></div>
           {sampleMode && <button type="button" onClick={() => switchSource("mine")} className="inline-flex shrink-0 items-center gap-2 self-start font-semibold text-[#1E3A2F] hover:underline">{t("Go to my posts", "Đến bài của tôi")}<ContentIcon name="arrow" width="15" height="15" /></button>}
         </div>
 
+        {draftLoadError && !sampleMode && <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{t("Video drafts could not be loaded. Refresh to try again.", "Không tải được bản nháp video. Hãy tải lại trang để thử lại.")}</p>}
         <div className="mt-5 flex flex-col justify-between gap-4 border-b border-[#E5E7DF] pb-5 lg:flex-row lg:items-center">
           <div className="flex flex-wrap gap-1.5" aria-label={t("Content type", "Loại nội dung")}>
             {([{ value: "all", label: t("All posts", "Tất cả"), count: counts.all }, { value: "recipe", label: t("Recipes", "Công thức"), count: counts.recipe }, { value: "video", label: t("Videos & Recipes", "Video & Công thức"), count: counts.video }] as const).map((tab) => <button key={tab.value} type="button" aria-pressed={kind === tab.value} onClick={() => { setKind(tab.value); setPage(1); }} className={`vm-button inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition ${kind === tab.value ? "bg-[#1E3A2F] text-white" : "bg-[#F0F0E9] text-[#68766A] hover:bg-[#E8EDE4]"}`}>{tab.label}<span className={kind === tab.value ? "text-[#C3D5C8]" : "text-[#899388]"}>{tab.count}</span></button>)}
@@ -302,7 +366,7 @@ export default function MyContentView() {
                     <span className="inline-flex items-center gap-1.5 text-[11px] text-[#899388]">{item.minutes ? <><ContentIcon name="clock" width="14" height="14" />{item.minutes} {t("min", "phút")}</> : <><ContentIcon name="leaf" width="14" height="14" />VeggieMate</>}</span>
                     <div className="flex items-center gap-1">
                       <button type="button" onClick={() => setAction({ type: "preview", item })} aria-label={`${t("Preview", "Xem trước")}: ${text.title}`} title={t("Preview", "Xem trước")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="eye" width="16" height="16" /></button>
-                      {canEdit && (sampleMode ? <button type="button" onClick={() => setAction({ type: "edit", item })} aria-label={`${t("Edit sample", "Sửa bài mẫu")}: ${text.title}`} title={t("Edit sample", "Sửa bài mẫu")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></button> : <Link href="/create-content?draft=manual" aria-label={`${t("Continue draft", "Viết tiếp bản nháp")}: ${text.title}`} title={t("Continue draft", "Viết tiếp bản nháp")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></Link>)}
+                      {canEdit && (sampleMode ? <button type="button" onClick={() => setAction({ type: "edit", item })} aria-label={`${t("Edit sample", "Sửa bài mẫu")}: ${text.title}`} title={t("Edit sample", "Sửa bài mẫu")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></button> : <Link href={item.videoDraft ? `/create-content?draft=video-${item.videoDraft.videoRecipeDraftId}` : "/create-content?draft=manual"} aria-label={`${t("Edit draft", "Chỉnh sửa bản nháp")}: ${text.title}`} title={t("Edit draft", "Chỉnh sửa bản nháp")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></Link>)}
                       {canEdit && <button type="button" onClick={() => { setStorageError(false); setAction({ type: "delete", item }); }} aria-label={`${t("Delete", "Xóa")}: ${text.title}`} title={t("Delete", "Xóa")} className="rounded-lg p-2 text-[#899388] transition hover:bg-red-50 hover:text-red-600"><ContentIcon name="trash" width="16" height="16" /></button>}
                     </div>
                   </div></div>
@@ -317,14 +381,53 @@ export default function MyContentView() {
 
       <aside className="mt-10 flex flex-col justify-between gap-5 rounded-2xl border border-[#DFE5D7] bg-[#ECF0E5] p-6 sm:flex-row sm:items-center sm:p-7"><div className="flex items-start gap-4"><span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#D0DAC5] text-[#658266] sm:flex"><ContentIcon name="leaf" width="24" height="24" /></span><div><p className="font-serif text-2xl">{t("Every recipe has a story. What’s yours?", "Mỗi công thức là một câu chuyện. Của bạn là gì?")}</p><p className="mt-2 text-xs leading-6 text-[#727974]">{t("Turn a favorite dish into a little inspiration for someone else’s table.", "Biến món ăn yêu thích thành cảm hứng cho một bữa cơm khác.")}</p></div></div><Link href="/create-content" className="inline-flex shrink-0 items-center gap-2 self-start text-xs font-semibold text-[#1E3A2F] hover:underline">{t("Share something delicious", "Chia sẻ một món ngon")}<ContentIcon name="arrow" width="16" height="16" /></Link></aside>
 
-      {action?.type === "preview" && (() => {
+      {action?.type === "preview" && action.item.videoDraft && <ContentDialog title={t("Video draft", "Bản nháp video")} onClose={() => setAction(null)}><div className="space-y-4 p-6">
+        <h3 className="font-serif text-2xl">{displayText(action.item, language).title}</h3>
+        <p className="whitespace-pre-wrap text-sm text-[#647068]">{displayText(action.item, language).description}</p>
+        {action.item.videoDraft.videoUrl && <video controls preload="metadata" src={action.item.videoDraft.videoUrl} className="w-full rounded-md" />}
+        <p className="text-xs text-[#647068]">{({ PENDING: "Đang chờ", UPLOADING: "Đang tải video", PROCESSING: "Đang phân tích", READY: "Sẵn sàng", FAILED: "Thất bại", PUBLISHED: "Đã đăng" } as const)[action.item.videoDraft.status]}</p>
+        {action.item.videoDraft.recipeName && <p className="text-sm"><strong>{t("Dish name", "Tên món ăn")}:</strong> {action.item.videoDraft.recipeName}</p>}
+        {action.item.videoDraft.transcript && <section><h4 className="font-semibold">{t("Transcript", "Lời nói trong video")}</h4><p className="mt-1 whitespace-pre-wrap text-sm text-[#647068]">{action.item.videoDraft.transcript}</p></section>}
+        {action.item.videoDraft.ingredients.length > 0 && <section><h4 className="font-semibold">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-1 space-y-1 text-sm text-[#647068]">{action.item.videoDraft.ingredients.map((ingredient, index) => <li key={index}>{ingredient.amount} {ingredient.ingredientName}</li>)}</ul></section>}
+        {action.item.videoDraft.steps.length > 0 && <section><h4 className="font-semibold">{t("Steps", "Các bước nấu")}</h4><ol className="mt-1 list-inside list-decimal space-y-1 text-sm text-[#647068]">{action.item.videoDraft.steps.map((step, index) => <li key={index}>{step.instruction}</li>)}</ol></section>}
+        {action.item.videoDraft.errorMessage && <p role="alert" className="text-sm text-red-700">{action.item.videoDraft.errorMessage}</p>}
+        {publishError && <p role="alert" className="text-sm text-red-700">{publishError}</p>}
+        <div className="flex flex-wrap gap-2 border-t border-[#E5E7DF] pt-4">
+          <Link href={`/create-content?draft=video-${action.item.videoDraft.videoRecipeDraftId}`} className={buttonClass}>{t("Edit draft", "Chỉnh sửa bản nháp")}</Link>
+          {action.item.videoDraft.status === "READY" && <button type="button" disabled={publishingDraft} onClick={() => void publishDraft(action.item.videoDraft!)} className="rounded-xl border border-[#1E3A2F] px-5 py-3 text-sm font-semibold text-[#1E3A2F] disabled:opacity-50">{publishingDraft ? t("Publishing...", "Đang đăng...") : t("Publish now", "Đăng bài")}</button>}
+        </div>
+      </div></ContentDialog>}
+      {action?.type === "preview" && action.item.draft && !sampleMode && <ContentDialog title={t("Draft preview", "Bản nháp bài viết")} onClose={() => setAction(null)}><div className="space-y-4 p-6">
+        <h3 className="font-serif text-2xl">{action.item.draft.title || t("Untitled recipe", "Công thức chưa có tên")}</h3>
+        <p className="whitespace-pre-wrap text-sm text-[#647068]">{action.item.draft.content}</p>
+        {action.item.draft.recipeName && <p className="text-sm"><strong>{t("Dish name", "Tên món ăn")}:</strong> {action.item.draft.recipeName}</p>}
+        <section><h4 className="font-semibold">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-1 space-y-1 text-sm text-[#647068]">{action.item.draft.ingredients.map((ingredient, index) => <li key={index}>{ingredient.amount} {ingredient.ingredientName}</li>)}</ul></section>
+        <section><h4 className="font-semibold">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-1 list-inside list-decimal space-y-1 text-sm text-[#647068]">{action.item.draft.steps.map((step, index) => <li key={index}>{step.instruction}</li>)}</ol></section>
+        {publishError && <p role="alert" className="text-sm text-red-700">{publishError}</p>}
+        <div className="flex flex-wrap gap-2 border-t border-[#E5E7DF] pt-4">
+          <Link href="/create-content?draft=manual" className={buttonClass}>{t("Edit draft", "Chỉnh sửa bản nháp")}</Link>
+          <button type="button" disabled={publishingDraft || !action.item.draft.title.trim() || !action.item.draft.recipeName?.trim() || !action.item.draft.ingredients.some((ingredient) => ingredient.ingredientName.trim()) || !action.item.draft.steps.some((step) => step.instruction.trim())} onClick={() => void publishManualDraft(action.item)} className="rounded-xl border border-[#1E3A2F] px-5 py-3 text-sm font-semibold text-[#1E3A2F] disabled:opacity-50">{publishingDraft ? t("Publishing...", "Đang đăng...") : t("Publish now", "Đăng bài")}</button>
+        </div>
+      </div></ContentDialog>}
+      {action?.type === "preview" && !action.item.videoDraft && (!action.item.draft || sampleMode) && (() => {
         const previewImage = itemThumbnail(action.item);
         return <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={previewImage} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><dl className="mt-5 border-b border-[#EFEEEB] pb-4"><dt className="text-xs font-semibold text-[#647068]">{t("Recipe name", "Tên món ăn")}</dt><dd className="mt-1 break-words text-lg font-semibold">{localizeRecipeTitle(action.item.recipe?.recipeName || action.item.draft?.recipeName, language) || t("Not provided", "Chưa có tên món ăn")}</dd></dl><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {localizeAmount(ingredient.amount, language)} {localizeIngredient(ingredient.ingredientName, language)}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{localizeText(step.instruction, language)}</li>)}</ol></>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>;
       })()}
 
       {action?.type === "edit" && <SampleEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSave={(next) => { setSamples((current) => current.map((item) => item.id === next.id ? next : item)); setAction(null); setNotice({ en: "Sample changes saved for this preview session.", vi: "Đã lưu thay đổi bài mẫu trong phiên xem trước này." }); }} />}
 
-      {action?.type === "delete" && <ContentDialog title={sampleMode ? t("Delete sample post?", "Xóa bài mẫu?") : t("Delete this draft?", "Xóa bản nháp này?")} onClose={() => setAction(null)}><div className="p-6"><p className="text-sm leading-7 text-[#647068]">{sampleMode ? t("This removes the sample from your preview session. Reloading the page restores all sample posts.", "Bài mẫu sẽ được xóa trong phiên xem trước. Tải lại trang để khôi phục tất cả bài mẫu.") : t("Your draft will be removed from this browser. You can undo while the confirmation message remains visible.", "Bản nháp sẽ bị xóa khỏi trình duyệt. Bạn có thể hoàn tác khi thông báo xác nhận vẫn còn hiển thị.")}</p><p className="mt-4 rounded-xl bg-[#F0F0E9] p-4 font-serif text-xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</p>{storageError && <p role="alert" className="mt-4 text-sm text-red-600">{t("Could not delete the draft. Check your browser storage settings and try again.", "Không thể xóa bản nháp. Kiểm tra quyền lưu trữ của trình duyệt rồi thử lại.")}</p>}<div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setAction(null)} className="rounded-xl border border-[#E5E7DF] px-5 py-3 text-sm font-semibold hover:bg-[#E8EDE4]">{t("Keep it", "Giữ lại")}</button><button type="button" onClick={() => deleteItem(action.item)} className="inline-flex items-center gap-2 rounded-xl bg-[#A24635] px-5 py-3 text-sm font-semibold text-white hover:bg-[#883727]"><ContentIcon name="trash" width="16" height="16" />{t("Delete", "Xóa")}</button></div></div></ContentDialog>}
+      {action?.type === "delete" && <ContentDialog title={sampleMode ? t("Delete sample post?", "Xóa bài mẫu?") : t("Delete this draft?", "Xóa bản nháp này?")} onClose={() => setAction(null)}>
+        <div className="p-6">
+          <p className="text-sm leading-7 text-[#647068]">{sampleMode
+            ? t("This removes the sample from your preview session. Reloading restores it.", "Bài mẫu sẽ xuất hiện lại sau khi tải lại trang.")
+            : action.item.videoDraft
+              ? t("This removes the video draft from your account and cannot be undone.", "Bản nháp video sẽ bị xóa khỏi tài khoản và không thể hoàn tác.")
+              : t("This removes the draft from this browser. You can undo from the confirmation message.", "Bản nháp sẽ bị xóa khỏi trình duyệt. Bạn có thể hoàn tác trong thông báo xác nhận.")}</p>
+          <p className="mt-4 rounded-xl bg-[#F0F0E9] p-4 font-serif text-xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</p>
+          {storageError && <p role="alert" className="mt-4 text-sm text-red-600">{t("Could not delete the draft. Please try again.", "Không thể xóa bản nháp. Hãy thử lại.")}</p>}
+          <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setAction(null)} className="rounded-xl border border-[#E5E7DF] px-5 py-3 text-sm font-semibold hover:bg-[#E8EDE4]">{t("Keep it", "Giữ lại")}</button><button type="button" onClick={() => void deleteItem(action.item)} className="inline-flex items-center gap-2 rounded-xl bg-[#A24635] px-5 py-3 text-sm font-semibold text-white hover:bg-[#883727]"><ContentIcon name="trash" width="16" height="16" />{t("Delete", "Xóa")}</button></div>
+        </div>
+      </ContentDialog>}
     </div>
   );
 }

@@ -1,8 +1,7 @@
 "use client";
 
-import { LanguageSwitch } from "@/components/UiText";
 import UiText, { useUiText } from "@/components/UiText";
-
+import { localizeRecipeTitle } from "@/lib/localized-content";
 
 import { useState } from "react";
 import Image from "next/image";
@@ -106,7 +105,6 @@ export default function AdminFlaggedPage() {
             </svg>
           </div>
 
-          <LanguageSwitch />
 
           <div className="flex items-center gap-2 pl-2">
             <div className="text-right">
@@ -334,7 +332,7 @@ export default function AdminFlaggedPage() {
 
                   {/* Title */}
                   <h2 className="mt-1 font-serif text-xl font-bold tracking-tight text-[#07241A]">
-                    {item.title}
+                    {localizeRecipeTitle(item.title, "vi")}
                   </h2>
 
                   {/* Author Row */}

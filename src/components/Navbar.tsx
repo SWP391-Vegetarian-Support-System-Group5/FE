@@ -35,17 +35,15 @@ interface NavbarProps {
 export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProps) {
   const { user, loading, logout } = useAuth();
   const { flaggedCount } = useAdminModeration();
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
 
   const [searchValue, setSearchValue] = useState(initialSearchQuery);
-  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
-  const languageMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click or Escape key
   useEffect(() => {
@@ -56,18 +54,11 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
       ) {
         setShowProfileMenu(false);
       }
-      if (
-        languageMenuRef.current &&
-        !languageMenuRef.current.contains(event.target as Node)
-      ) {
-        setShowLanguageDropdown(false);
-      }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setShowProfileMenu(false);
-        setShowLanguageDropdown(false);
         setIsMobileMenuOpen(false);
       }
     }
@@ -85,7 +76,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     if (onSearch) {
       onSearch(searchValue);
     } else if (searchValue.trim()) {
-      router.push(`/explore?q=${encodeURIComponent(searchValue.trim())}`);
+      router.push(`/community?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };
 
@@ -98,7 +89,6 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
   const navLinks = [
     { label: t("Home", "Trang chủ"), href: "/" },
-    { label: t("Explore", "Khám phá"), href: "/explore" },
     { label: t("Community", "Cộng đồng"), href: "/community" },
     { label: t("Vegan Places", "Địa điểm chay"), href: "/vegan-places" },
     { label: t("Meal Planner", "Thực đơn"), href: "/meal-planner" },
@@ -189,61 +179,6 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               <path d="m21 21-4.3-4.3" />
             </svg>
           </form>
-
-          {/* Language Selector */}
-          <div ref={languageMenuRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-              className="vm-button inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-2 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0] transition"
-              title={t("Select language", "Chọn ngôn ngữ")}
-              aria-expanded={showLanguageDropdown}
-              aria-controls="navbar-languages"
-            >
-              <span className="whitespace-nowrap text-[13px]" aria-hidden="true">文A</span>
-              <span>{language.toUpperCase()}</span>
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className={`transition-transform ${showLanguageDropdown ? "rotate-180" : ""}`}
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </button>
-
-            {showLanguageDropdown && (
-              <div id="navbar-languages" className="vm-popover absolute right-0 z-50 mt-1.5 w-36 rounded-xl border border-[#EFEEEB] bg-white py-1.5 shadow-lg ring-1 ring-black/5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLanguage("en");
-                    setShowLanguageDropdown(false);
-                  }}
-                  className={`w-full px-3 py-1.5 text-left text-xs transition ${language === "en"
-                    ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
-                    : "text-[#424844] hover:bg-[#F5F3F0]"
-                    }`}
-                ><UiText text={"English (EN)"} /></button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLanguage("vi");
-                    setShowLanguageDropdown(false);
-                  }}
-                  className={`w-full px-3 py-1.5 text-left text-xs transition ${language === "vi"
-                    ? "bg-[#D9E6DC]/40 font-semibold text-[#07241A]"
-                    : "text-[#424844] hover:bg-[#F5F3F0]"
-                    }`}
-                >
-                  Tiếng Việt (VI)
-                </button>
-              </div>
-            )}
-          </div>
 
           {/* Auth State Actions */}
           {loading ? (
@@ -524,7 +459,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
               {(BYPASS_ADMIN_ROLE || user?.role?.toLowerCase() === "admin") && (
                 <div className="mb-2 pb-2 border-b border-[#EFEEEB] space-y-1">
-                  <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Admin</div>
+                  <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Quản trị</div>
                   <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#1E3A2F] bg-[#D9E6DC]/40">
                     <UiText text={"Admin Dashboard"} />
                   </Link>

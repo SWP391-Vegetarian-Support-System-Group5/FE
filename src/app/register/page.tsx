@@ -1,4 +1,3 @@
-import { LanguageSwitch } from "@/components/UiText";
 import UiText from "@/components/UiText";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -21,7 +20,6 @@ export default function RegisterPage() {
           <span>←</span>
           <span><UiText text={"Back to Homepage"} /></span>
         </Link>
-      <LanguageSwitch />
 </div>
 
       {/* Main Register Card */}

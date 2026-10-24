@@ -43,7 +43,7 @@ export default function HomePage() {
               {/* Search Bar Input Form */}
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <form
-                  action="/explore"
+                  action="/community"
                   className="flex w-full items-center rounded-2xl bg-[#F5F3F0] p-1.5 shadow-sm border border-[#EFEEEB]"
                 >
                   <div className="flex items-center pl-3 text-[#727974]">
@@ -67,7 +67,7 @@ export default function HomePage() {
               {/* Primary CTA Link */}
               <div className="mt-6">
                 <Link
-                  href="/explore?tab=recipes"
+                  href="/community"
                   className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-3 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
                 >
                   <span><UiText text={"Explore Recipes"} /></span>
@@ -119,7 +119,7 @@ export default function HomePage() {
                 </p>
               </div>
               <Link
-                href="/explore?tab=recipes"
+                href="/community"
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#99462A] hover:underline"
               >
                 <span>{t("View All Recipes", "Xem tất cả công thức")}</span>
@@ -152,7 +152,7 @@ export default function HomePage() {
             <p className="mt-3 text-base text-[#424844] max-w-xl mx-auto"><UiText text={"Discover its vegetarian version and explore recipes you can cook."} /></p>
             <div className="mt-8">
               <Link
-                href="/explore?tab=recipes"
+                href="/community"
                 className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-8 py-3.5 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
               >
                 <span><UiText text={"Find a Vegetarian Version"} /></span>

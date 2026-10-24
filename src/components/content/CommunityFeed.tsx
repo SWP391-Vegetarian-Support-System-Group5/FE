@@ -9,8 +9,10 @@ import { useRememberedFilters } from "@/hooks/useRememberedFilters";
 import { useRememberedScroll } from "@/hooks/useRememberedScroll";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { localizeRecipeTitle, localizeText } from "@/lib/localized-content";
 import { getStoredToken } from "@/lib/auth";
 import { getMediaUrl } from "@/lib/api";
+import { formatDietTypeName } from "@/lib/diet-type-display";
 import { bookmarkPost, communityError, getBookmarks, getPosts, PostApiError, removeBookmark, type PostResponse } from "@/lib/post-api";
 
 export default function CommunityFeed({ keyword = "", bookmarksOnly = false, mineOnly = false, compact = false }: { keyword?: string; bookmarksOnly?: boolean; mineOnly?: boolean; compact?: boolean }) {
@@ -93,12 +95,12 @@ export default function CommunityFeed({ keyword = "", bookmarksOnly = false, min
       {(compact ? visible.slice(0, 4) : visible).map(post => <article key={post.postId} className="vm-card vm-enter group overflow-hidden rounded-3xl border border-[#EFEEEB] bg-white shadow-xs">
         <div className="relative aspect-[16/10] overflow-hidden bg-[#E8EDE4]">
           <Link href={`/view-detail/post-${post.postId}`} className="absolute inset-0 flex items-center justify-center">
-            {post.thumbnailUrl ? <FeedImage key={post.thumbnailUrl} src={getMediaUrl(post.thumbnailUrl)} alt={post.title} compact={compact} /> : <span className="font-serif text-xl text-[#658266]">{post.postType}</span>}
+            {post.thumbnailUrl ? <FeedImage key={post.thumbnailUrl} src={getMediaUrl(post.thumbnailUrl)} alt={post.title} compact={compact} /> : <span className="font-serif text-xl text-[#658266]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</span>}
           </Link>
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs">★ {post.averageRating.toFixed(1)} / 5</span>
           <button type="button" aria-label={bookmarks?.includes(post.postId) ? "Bỏ lưu bài" : "Lưu bài"} aria-pressed={bookmarks?.includes(post.postId) || false} disabled={pending.includes(post.postId) || authLoading || (!!user && !!getStoredToken() && bookmarks === null)} onClick={() => toggleBookmark(post.postId)} className="vm-button absolute right-3 top-3 rounded-full bg-white/90 px-3 py-2 text-sm disabled:opacity-40">{pending.includes(post.postId) ? "…" : bookmarks?.includes(post.postId) ? "🔖" : "♡"}</button>
         </div>
-        <div className="p-5"><p className="text-xs text-[#727974]">{post.postType}</p><Link href={`/view-detail/post-${post.postId}`}><h3 className="mt-2 line-clamp-2 font-serif text-xl font-semibold">{post.title}</h3></Link><p className="mt-2 line-clamp-2 text-sm text-[#59635C]">{post.content}</p><p className="mt-4 border-t border-[#EFEEEB] pt-3 text-xs">{post.authorName}</p></div>
+        <div className="p-5"><p className="text-xs text-[#727974]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</p><Link href={`/view-detail/post-${post.postId}`}><h3 className="mt-2 line-clamp-2 font-serif text-xl font-semibold">{localizeRecipeTitle(post.title, "vi")}</h3></Link><p className="mt-2 line-clamp-2 text-sm text-[#59635C]">{localizeText(post.content, "vi")}</p>{post.compatibleDietTypes?.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs"><span className="text-[#59635C]">Phù hợp:</span>{post.compatibleDietTypes.map(type => <span key={type.id} className="rounded-md bg-[#E8F0E5] px-2 py-1 text-[#254B38]">{formatDietTypeName(type.name, "vi")}</span>)}</div>}<p className="mt-4 border-t border-[#EFEEEB] pt-3 text-xs">{post.authorName}</p></div>
       </article>)}
     </div>}
   </section>;

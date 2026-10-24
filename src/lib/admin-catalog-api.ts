@@ -6,11 +6,13 @@ export interface AdminRestaurant {
   address: string;
   latitude: number | null;
   longitude: number | null;
-  dietTypeId: number | null;
+  dietTypeIds: number[];
   foods: string[];
+  ingredientIds: number[];
+  ingredientNames: string[];
 }
 
-export type RestaurantPayload = Pick<AdminRestaurant, "name" | "address" | "dietTypeId" | "foods">;
+export type RestaurantPayload = Pick<AdminRestaurant, "name" | "address" | "dietTypeIds" | "foods" | "ingredientIds">;
 
 export interface DietTypeOption {
   id: number;

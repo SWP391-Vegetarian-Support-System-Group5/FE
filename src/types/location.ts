@@ -31,4 +31,6 @@ export type Restaurant = {
   rating: number;
   reviewCount: number;
   distanceKm?: number | null;
+  foods?: string[];
+  ingredientNames?: string[];
 };

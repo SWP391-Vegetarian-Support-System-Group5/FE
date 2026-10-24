@@ -1,4 +1,3 @@
-import { LanguageSwitch } from "@/components/UiText";
 import UiText from "@/components/UiText";
 import { Suspense } from "react";
 import type { Metadata } from "next";
@@ -22,7 +21,6 @@ export default function VerifyOtpPage() {
           <span>←</span>
           <span><UiText text={"Back to Login"} /></span>
         </Link>
-      <LanguageSwitch />
 </div>
 
       {/* Main Verify Card */}

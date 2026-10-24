@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { LanguageSwitch } from "@/components/UiText";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { apiFetch, apiGet } from "@/lib/api";
@@ -75,7 +74,7 @@ export default function AdminMembersPage() {
   return <div className="space-y-6">
     <header className="flex items-center justify-between border-b border-[#EFEEEB] pb-4">
       <div className="flex items-center gap-2"><Link href="/" className="font-serif text-xl font-bold text-[#07241A]">VeggieMate</Link><span className="text-[#A0A5A1]">/</span><span className="rounded-full border border-[#EFEEEB] bg-white px-2.5 py-1 text-xs">{t("Admin Area", "Khu vực quản trị")}</span></div>
-      <div className="flex items-center gap-4"><LanguageSwitch /><div className="text-right"><p className="text-xs font-bold text-[#07241A]">{user?.fullName || "Admin"}</p><p className="text-[10px] text-[#727974]">{t("Supervisor", "Quản trị viên")}</p></div><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white">AD</div></div>
+      <div className="flex items-center gap-4"><div className="text-right"><p className="text-xs font-bold text-[#07241A]">{user?.fullName || "Quản trị viên"}</p><p className="text-[10px] text-[#727974]">{t("Supervisor", "Quản trị viên")}</p></div><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white">AD</div></div>
     </header>
     <div className="pt-2"><p className="text-[11px] font-bold uppercase tracking-wider text-[#727974]">{t("Directory • Community Roster", "Danh mục • Danh sách cộng đồng")}</p><h1 className="mt-1 font-serif text-3xl font-bold text-[#07241A] lg:text-4xl">{t("Members", "Thành viên")}</h1><p className="mt-1 text-xs text-[#727974]">{t("Manage registered VeggieMate community members.", "Quản lý thành viên cộng đồng VeggieMate.")}</p></div>
     <div className="flex flex-wrap items-center gap-3">

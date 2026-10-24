@@ -10,6 +10,7 @@ import { getMediaUrl } from "@/lib/api";
 import { communityError, getBookmarks, removeBookmark, type PostResponse } from "@/lib/post-api";
 import Link from "next/link";
 import Image from "next/image";
+import { localizeRecipeTitle, localizeText } from "@/lib/localized-content";
 
 export interface BookmarkItem {
   id: string;
@@ -32,7 +33,7 @@ function toBookmarkItem(post: PostResponse): BookmarkItem {
   return {
     id: String(post.postId), type: post.postType === "RECIPE" || post.postType === "VIDEO" ? "recipe" : "post",
     badge: post.postType, rating: { score: post.averageRating }, categoryPrep: "",
-    title: post.title, description: post.content, author: { name: post.authorName },
+    title: localizeRecipeTitle(post.title, "vi"), description: localizeText(post.content, "vi"), author: { name: post.authorName },
     image: getMediaUrl(post.thumbnailUrl), isBookmarked: true,
   };
 }
@@ -226,7 +227,7 @@ export default function BookmarksView() {
           <h3 className="mt-4 font-serif text-xl font-bold text-[#07241A]"><UiText text={"Chưa có mục nào được lưu"} /></h3>
           <p className="mt-1 text-xs text-[#727974] max-w-sm mx-auto"><UiText text={"Khám phá các công thức nấu ăn thuần chay hoặc nhà hàng yêu thích và nhấn lưu lại để đưa vào bộ sưu tập cá nhân."} /></p>
           <Link
-            href="/explore"
+            href="/community"
             className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F]"
           ><UiText text={"Khám phá công thức ngay"} /></Link>
         </div>

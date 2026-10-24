@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import RecipeBrowser from "@/components/recipe/RecipeBrowser";
 import CommunityFeed from "@/components/content/CommunityFeed";
 import Reveal from "@/components/ui/Reveal";
@@ -12,6 +13,7 @@ import VeggieAIWidget from "@/components/VeggieAIWidget";
 import { locationApi } from "@/lib/location-api";
 import { readLivingLocation } from "@/lib/living-location";
 import { getProfile } from "@/lib/profile-api";
+import { displayPlaceCategory } from "@/hooks/useNearbyPlaces";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import type { Coordinates, Restaurant } from "@/types/location";
@@ -19,17 +21,14 @@ import type { Coordinates, Restaurant } from "@/types/location";
 interface RestaurantItem {
   id: string;
   name: string;
-  isOpen: boolean;
   statusText: string;
   categoryBadge: string;
   type: string;
   address: string;
   district: string;
-  priceRange: string;
   description: string;
   signatureDishes: string[];
-  phone: string;
-  openHours: string;
+  ingredientNames: string[];
   latitude: number;
   longitude: number;
   distanceKm?: number | null;
@@ -42,17 +41,14 @@ function toRestaurantItem(place: Restaurant): RestaurantItem {
   return {
     id: place.id,
     name: place.name,
-    isOpen: true,
     statusText: distanceText,
-    categoryBadge: "OSM",
+    categoryBadge: "VeggieMate",
     type: place.category || "Vegetarian",
     address: place.address,
     district: place.areaCode === "all" ? "Nearby" : place.areaCode,
-    priceRange: "OpenStreetMap data",
-    description: "Địa điểm chay thật được tìm quanh tọa độ hiện tại của bạn trong bán kính 5km.",
-    signatureDishes: [],
-    phone: "",
-    openHours: "Check map listing",
+    description: "Nhà hàng do quản trị viên thêm, gần địa chỉ đã lưu của bạn.",
+    signatureDishes: place.foods ?? [],
+    ingredientNames: place.ingredientNames ?? [],
     latitude: place.latitude,
     longitude: place.longitude,
     distanceKm: place.distanceKm,
@@ -70,13 +66,8 @@ function getBrowserLocation(): Promise<Coordinates | null> {
   });
 }
 
-function nearestSix<T extends { distanceKm?: number | null }>(items: T[]) {
-  return [...items]
-    .sort((a, b) => (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY))
-    .slice(0, 6);
-}
-
 export default function ExplorePage() {
+  const router = useRouter();
   const { t } = useLanguage();
   const { user } = useAuth();
   const [{ query: searchQuery, tab: activeTab }, setFilters] = useRememberedFilters(`explore:${user?.uid || "guest"}`, { query: "", tab: "all" });
@@ -99,21 +90,26 @@ export default function ExplorePage() {
   }, [setFilters]);
 
   useEffect(() => {
-    if (!user) { setRestaurants([]); setRestaurantLoading(false); return; }
+    if (!user) {
+      queueMicrotask(() => { setRestaurants([]); setRestaurantLoading(false); });
+      return;
+    }
     let cancelled = false;
 
     async function loadNearbyRestaurants() {
       setRestaurantLoading(true);
-      setRestaurantMessage(t("Searching real vegetarian places near you...", "Đang tìm địa điểm chay thật quanh vị trí của bạn..."));
+      setRestaurantMessage(t("Finding nearby VeggieMate restaurants...", "Đang tìm nhà hàng VeggieMate gần bạn..."));
 
       const saved = readLivingLocation();
       const provinceCode = saved?.provinceCode || "hochiminh";
       const areaCode = saved?.areaCode || "all";
       let center: Coordinates | null = null;
+      let dietTypeId: number | null = null;
       let label = t("your profile address", "địa chỉ trong hồ sơ của bạn");
 
       try {
         const profile = await getProfile();
+        dietTypeId = profile.dietTypeId;
         if (profile.latitude != null && profile.longitude != null) {
           center = { lat: profile.latitude, lng: profile.longitude };
         }
@@ -144,14 +140,14 @@ export default function ExplorePage() {
         return;
       }
 
-      const places = nearestSix(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng));
+      const places = await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId);
       if (cancelled) return;
       setRestaurants(places.map(toRestaurantItem));
       setSelectedRestaurant((current) => current && places.some((place) => place.id === current.id) ? current : null);
       setLocationLabel(label);
       setRestaurantMessage(places.length > 0
-        ? t(`Showing the 6 nearest real OSM places within 5km of ${label}.`, `Đang hiển thị 6 địa điểm OSM thật gần nhất trong bán kính 5km quanh ${label}.`)
-        : t(`No real vegetarian restaurants were found within 5km of ${label}.`, `Không tìm thấy nhà hàng chay thật trong bán kính 5km quanh ${label}.`));
+        ? t(`Showing nearby VeggieMate restaurants around ${label}.`, `Đang hiển thị nhà hàng VeggieMate gần ${label}.`)
+        : t(`No matching restaurants were found within 5km of ${label}.`, `Không tìm thấy nhà hàng phù hợp trong bán kính 5km quanh ${label}.`));
       setRestaurantLoading(false);
     }
 
@@ -166,7 +162,7 @@ export default function ExplorePage() {
 
   const toggleSave = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) { window.location.assign("/login"); return; }
+    if (!user) { router.push("/login"); return; }
     setSavedIds((prev) => ({
       ...prev,
       [id]: !prev[id],
@@ -179,7 +175,8 @@ export default function ExplorePage() {
         place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         place.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
         place.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        place.description.toLowerCase().includes(searchQuery.toLowerCase());
+        place.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        place.ingredientNames.some(name => name.toLowerCase().includes(searchQuery.toLowerCase()));
 
       return matchQuery;
     });
@@ -363,12 +360,12 @@ export default function ExplorePage() {
                   </h2>
                   <p className="mt-1 text-xs text-[#727974] sm:text-sm">
                     {restaurantLoading
-                      ? t("Searching real nearby places...", "Đang tìm địa điểm thật gần bạn...")
-                      : t(`Showing ${filteredRestaurants.length} real places near ${locationLabel}`, `Đang hiển thị ${filteredRestaurants.length} địa điểm thật gần ${locationLabel}`)}
+                      ? t("Finding nearby restaurants...", "Đang tìm nhà hàng gần bạn...")
+                      : t(`Showing ${filteredRestaurants.length} restaurants near ${locationLabel}`, `Đang hiển thị ${filteredRestaurants.length} nhà hàng gần ${locationLabel}`)}
                   </p>
                 </div>
                 <p className="font-serif italic text-xs text-[#727974] sm:text-sm">
-                  {t("Real data from OpenStreetMap", "Dữ liệu thật từ OpenStreetMap")}
+                  {t("VeggieMate restaurant directory", "Danh sách nhà hàng VeggieMate")}
                 </p>
               </div>
 
@@ -435,7 +432,7 @@ export default function ExplorePage() {
                               {place.categoryBadge}
                             </span>
                             <span className="text-[#727974]">·</span>
-                            <span className="font-medium text-[#424844]">{place.type}</span>
+                            <span className="font-medium text-[#424844]">{displayPlaceCategory(place.type, t)}</span>
                           </div>
 
                           {/* Name */}
@@ -508,7 +505,7 @@ export default function ExplorePage() {
               <div className="absolute inset-0 bg-[linear-gradient(135deg,#EDF3E9_0%,#F8F4ED_52%,#D9E6DC_100%)]" />
               <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 rounded-2xl bg-white/90 px-5 py-4 text-center text-[#1E3A2F] shadow-md">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                <span className="text-xs font-semibold">{t("Real OSM location", "Vị trí thật từ OSM")}</span>
+                <span className="text-xs font-semibold">{t("Restaurant location", "Vị trí nhà hàng")}</span>
                 <span className="text-[11px] text-[#68766A]">{selectedRestaurant.latitude.toFixed(5)}, {selectedRestaurant.longitude.toFixed(5)}</span>
               </div>
               <button
@@ -521,7 +518,7 @@ export default function ExplorePage() {
               </button>
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
                 <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
-                  {selectedRestaurant.type}
+                  {displayPlaceCategory(selectedRestaurant.type, t)}
                 </span>
               </div>
             </div>
@@ -547,12 +544,8 @@ export default function ExplorePage() {
                   <span>{selectedRestaurant.latitude.toFixed(5)}, {selectedRestaurant.longitude.toFixed(5)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">{t("Listing:", "Thông tin:")}</span>
-                  <span>{selectedRestaurant.openHours}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">{t("Source:", "Nguồn:")}</span>
-                  <span>{selectedRestaurant.priceRange}</span>
+                  <span className="font-semibold text-[#07241A]">{t("Diet type:", "Loại ăn chay:")}</span>
+                  <span>{displayPlaceCategory(selectedRestaurant.type, t)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
                   <span className="font-semibold text-[#07241A]">{t("Distance:", "Khoảng cách:")}</span>
@@ -576,6 +569,7 @@ export default function ExplorePage() {
                   ))}
                 </div>
               </div>}
+              {selectedRestaurant.ingredientNames.length > 0 && <p className="mt-4 text-sm text-[#424844]">{t("Ingredients:", "Nguyên liệu:")} {selectedRestaurant.ingredientNames.join(", ")}</p>}
 
               {/* Action buttons */}
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -592,7 +586,7 @@ export default function ExplorePage() {
                   rel="noreferrer"
                   className="rounded-xl bg-[#07241A] px-6 py-2.5 text-center text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F] transition"
                 >
-                  {t("Open in OpenStreetMap", "Mở trong OpenStreetMap")}
+                  {t("Open map", "Mở bản đồ")}
                 </a>
               </div>
             </div>

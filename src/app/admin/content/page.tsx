@@ -1,6 +1,5 @@
 "use client";
 
-import { LanguageSwitch } from "@/components/UiText";
 import UiText, { useUiText } from "@/components/UiText";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -8,6 +7,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getMediaUrl } from "@/lib/api";
+import { localizeRecipeTitle } from "@/lib/localized-content";
 import {
   deleteAdminComment, deleteAdminPost, getAdminContent, setAdminCommentVisibility,
   type AdminComment, type AdminFlag, type AdminPost,
@@ -197,7 +197,6 @@ export default function AdminContentPage() {
             </svg>
           </div>
 
-          <LanguageSwitch />
 
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-[#1E3A2F] text-white flex items-center justify-center text-xs font-bold shadow-sm">
@@ -458,7 +457,7 @@ export default function AdminContentPage() {
                               </div>
                               <div>
                                 <p className="font-bold text-[#07241A] group-hover:text-[#1E3A2F] transition">
-                                  {item.title}
+                                  {localizeRecipeTitle(item.title, "vi")}
                                 </p>
                                 <p className="text-[11px] italic text-[#727974]">
                                   {item.content.slice(0, 70)}
@@ -482,7 +481,7 @@ export default function AdminContentPage() {
                                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                                   <polyline points="9 22 9 12 15 12 15 22" />
                                 </svg>
-                                <span>Post</span>
+                                <span>Bài viết</span>
                               </span>
                             )}
                           </td>
