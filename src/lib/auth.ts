@@ -38,6 +38,12 @@ export interface ResendOtpResponse {
   expiresInSeconds?: number;
 }
 
+export interface PasswordResetResponse {
+  message?: string;
+  email?: string;
+  expiresInSeconds?: number;
+}
+
 export class ApiError extends Error {
   status: number;
   data: unknown;
@@ -130,6 +136,24 @@ export async function resendOtpWithApi(
   }
 
   return (await res.json()) as ResendOtpResponse;
+}
+
+export async function requestPasswordResetWithApi(email: string): Promise<PasswordResetResponse> {
+  const res = await apiFetch("/api/auth/password/forgot", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw await responseError(res, "Không thể gửi mã đặt lại mật khẩu.");
+  return (await res.json()) as PasswordResetResponse;
+}
+
+export async function resetPasswordWithApi(email: string, otpCode: string, newPassword: string): Promise<PasswordResetResponse> {
+  const res = await apiFetch("/api/auth/password/reset", {
+    method: "POST",
+    body: JSON.stringify({ email, otpCode, newPassword }),
+  });
+  if (!res.ok) throw await responseError(res, "Không thể đặt lại mật khẩu.");
+  return (await res.json()) as PasswordResetResponse;
 }
 
 /**

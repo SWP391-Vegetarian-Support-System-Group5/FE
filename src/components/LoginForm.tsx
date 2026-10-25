@@ -7,32 +7,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, getStoredToken, updateCurrentUserLocation } from "@/lib/auth";
+import { ApiError } from "@/lib/auth";
 import { useLanguage } from "@/context/LanguageContext";
-
-function requestBrowserLocation(): Promise<GeolocationPosition | null> {
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    return Promise.resolve(null);
-  }
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => resolve(position),
-      () => resolve(null),
-      { enableHighAccuracy: true, maximumAge: 60_000, timeout: 10_000 },
-    );
-  });
-}
-
-async function captureLocationAfterLogin(expectedToken: string) {
-  const position = await requestBrowserLocation();
-  if (!position || getStoredToken() !== expectedToken) return;
-
-  await updateCurrentUserLocation(
-    position.coords.latitude,
-    position.coords.longitude,
-  );
-}
 
 export default function LoginForm() {
   const ui = useUiText();
@@ -92,7 +68,6 @@ export default function LoginForm() {
       setIsSubmitting(true);
       const loginRes = await loginWithCredentials(targetEmail, password);
       router.replace(loginRes.user.role.toLowerCase() === "admin" ? "/admin" : "/");
-      if (loginRes.user.role.toLowerCase() !== "admin") void captureLocationAfterLogin(loginRes.token).catch(() => {});
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         const lowerMsg = (err.message || "").toLowerCase();
@@ -338,6 +313,7 @@ export default function LoginForm() {
             <input
               id="email"
               type="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -362,7 +338,7 @@ export default function LoginForm() {
               {t("Password", "Mật khẩu")}
             </label>
             <a
-              href="#forgot-password"
+              href="/forgot-password"
               className="text-[11px] font-semibold text-[#99462A] hover:underline"
             >
               {t("Forgot password?", "Quên mật khẩu?")}
@@ -372,6 +348,7 @@ export default function LoginForm() {
             <input
               id="password"
               type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
