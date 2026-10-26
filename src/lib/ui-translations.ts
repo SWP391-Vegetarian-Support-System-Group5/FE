@@ -984,6 +984,39 @@ Failed to fetch|Không thể kết nối máy chủ. Vui lòng kiểm tra mạng
 Load failed|Không thể tải dữ liệu. Vui lòng thử lại.
 Resolved|Đã xử lý
 Dismissed|Đã bỏ qua
+DIRECTORY • COMMUNITY ROSTER|DANH MỤC • DANH SÁCH CỘNG ĐỒNG
+Members|Thành viên
+Manage registered VeggieMate members and community contributors.|Quản lý thành viên đã đăng ký và người đóng góp cộng đồng VeggieMate.
+Search members by name or email...|Tìm thành viên theo tên hoặc email...
+Status: All Statuses|Trạng thái: Mọi trạng thái
+Status: Active|Trạng thái: Đang hoạt động
+Status: Suspended|Trạng thái: Đã đình chỉ
+Joined Date: Newest|Ngày tham gia: Mới nhất
+Joined Date: Oldest|Ngày tham gia: Cũ nhất
+Export members|Xuất danh sách thành viên
+VIEWING|ĐANG XEM
+Member Profile|Hồ sơ thành viên
+Account Status: Active|Trạng thái tài khoản: Đang hoạt động
+Account Status: Suspended|Trạng thái tài khoản: Đã đình chỉ
+COMMUNITY ACTIVITY|HOẠT ĐỘNG CỘNG ĐỒNG
+Last active 2 hrs ago|Hoạt động 2 giờ trước
+Posts|Bài đăng
+Comments|Bình luận
+Saved|Đã lưu
+Videos|Video
+Reviews|Đánh giá
+Helpful|Hữu ích
+Recipes|Công thức
+30-Day Contribution Cadence|Tần suất đóng góp 30 ngày
+vs prev|so với trước
+Member Privacy Guarded|Bảo vệ quyền riêng tư thành viên
+Admin view strictly omits private biometric data and physical addresses.|Chế độ quản trị viên loại bỏ nghiêm ngặt dữ liệu sinh trắc học và địa chỉ cá nhân.
+Send Notification / Email|Gửi thông báo / Email
+Suspend Member|Đình chỉ thành viên
+Reactivate Member|Kích hoạt lại thành viên
+Contributing Cook|Đầu bếp đóng góp
+Flagged|Đã gắn cờ
+Total|Tổng số
 `;
 
 const catalog = new Map<string, readonly [string, string]>();
