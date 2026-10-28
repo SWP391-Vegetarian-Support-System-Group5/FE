@@ -23,6 +23,10 @@ export interface AdminAllergen {
   id: number;
   name: string;
   type: string | null;
+  createdAt?: string;
+  createdDate?: string;
+  requestedAt?: string;
+  userId?: number;
 }
 
 async function mutate<T>(path: string, method: "POST" | "PUT" | "DELETE", body?: unknown): Promise<T> {
