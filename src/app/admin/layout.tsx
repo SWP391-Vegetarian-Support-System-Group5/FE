@@ -1,13 +1,12 @@
 "use client";
 
 import UiText from "@/components/UiText";
-
-
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminModeration } from "@/context/AdminModerationContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function AdminLayout({
   children,
@@ -16,8 +15,11 @@ export default function AdminLayout({
 }) {
   const { user, loading, logout } = useAuth();
   const { flaggedCount } = useAdminModeration();
+  const { t, language } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
+
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // Authorization check: Only allow users with "admin" role
   useEffect(() => {
@@ -136,52 +138,152 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased">
-      {/* Left Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-4 py-6">
-        <div>
-          {/* Header Sidebar: ADMIN v1.4 */}
-          <div className="mb-4 flex items-center justify-between px-3">
-            <span className="text-[11px] font-bold tracking-widest text-[#727974]"><UiText text={"Quản trị viên"} /></span>
-            <span className="text-[11px] font-medium text-[#A0A5A1]">v1.4</span>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="space-y-1.5">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/admin" && pathname?.startsWith(item.href));
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${isActive
-                    ? "bg-[#1E3A2F] text-white shadow-sm"
-                    : "text-[#424844] hover:bg-[#F2EFE9] hover:text-[#07241A]"
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={isActive ? "text-white" : "text-[#727974] group-hover:text-[#07241A]"}>
-                      {item.icon}
-                    </span>
-                    <span><UiText text={item.label} /></span>
-                  </div>
-                  {item.badge && (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isActive
-                        ? "bg-[#F97316] text-white"
-                        : "bg-[#F97316] text-white"
-                        }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+    <div className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased">
+      {/* 1. TOP NAVBAR CỐ ĐỊNH - KHÔNG CUỘN THEO TRANG */}
+      <header className="fixed top-0 left-0 right-0 z-40 flex h-16 border-b border-[#EFEEEB]">
+        {/* Khối bên trái: ADMIN v1.4 (rộng w-60 khớp sidebar) */}
+        <div className="flex h-full w-60 shrink-0 items-center justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-6">
+          <span className="text-xs font-bold tracking-widest text-[#727974]">ADMIN</span>
+          <span className="text-[11px] font-medium text-[#A0A5A1]">v1.4</span>
         </div>
 
-        {/* Log Out button at bottom of sidebar */}
+        {/* Khối bên phải: Main Admin Navbar (nền trắng) */}
+        <div className="flex h-full flex-1 items-center justify-between bg-white px-6 sm:px-8">
+          {/* Logo VeggieMate & Huy hiệu Admin Area */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="flex items-center gap-2 font-serif text-lg sm:text-xl font-bold tracking-tight text-[#07241A] hover:opacity-85 transition"
+            >
+              <span className="text-[#0F2F24]">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+                  <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+                </svg>
+              </span>
+              <span>VeggieMate</span>
+            </Link>
+            <span className="rounded-full bg-[#F0EFEB] px-2.5 py-0.5 text-xs font-medium text-[#59635C]">
+              Admin Area
+            </span>
+          </div>
+
+          {/* Các nút hành động bên phải: Ngôn ngữ, Chuông thông báo, Divider, Profile */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Bộ chọn ngôn ngữ */}
+            <div className="inline-flex items-center gap-1 text-xs font-semibold text-[#59635C]">
+              <span>{language === "vi" ? "VI" : "EN"}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </div>
+
+            {/* Nút Chuông thông báo (kèm chấm thông báo cam) */}
+            <Link
+              href="/admin/flagged"
+              title={t("Flagged moderation reports", "Báo cáo kiểm duyệt")}
+              aria-label={t("Flagged moderation reports", "Báo cáo kiểm duyệt")}
+              className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[#59635C] hover:bg-[#F7F6F3] hover:text-[#07241A] transition"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+              </svg>
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#B45309] ring-2 ring-white" />
+            </Link>
+
+            {/* Vạch kẻ phân cách đứng */}
+            <div className="h-5 w-px bg-[#EFEEEB]" />
+
+            {/* Admin Profile Pill & Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2.5 rounded-xl p-1 hover:bg-[#F7F6F3] transition"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#16382B] text-xs font-bold text-white shadow-2xs">
+                  VM
+                </div>
+                <div className="text-left hidden sm:block">
+                  <p className="text-xs font-bold text-[#07241A] leading-tight">
+                    Admin Supervisor
+                  </p>
+                  <p className="text-[11px] font-normal text-[#727974] leading-tight mt-0.5">
+                    System Admin
+                  </p>
+                </div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="text-[#727974]">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              {/* Menu xổ xuống của User */}
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-[#EFEEEB] bg-white p-2 shadow-xl z-50">
+                  <div className="border-b border-[#F5F4F0] px-3 py-2">
+                    <p className="text-xs font-bold text-[#07241A]">{user?.fullName || "Admin Supervisor"}</p>
+                    <p className="text-[11px] text-[#727974] truncate">{user?.email}</p>
+                  </div>
+                  <Link
+                    href="/admin"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-[#424844] hover:bg-[#F7F6F3]"
+                  >
+                    {t("Dashboard", "Bảng điều khiển")}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span><UiText text={"Đăng xuất"} /></span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* 2. SIDEBAR CỐ ĐỊNH BÊN TRÁI - DƯỚI THANH TOP BAR */}
+      <aside className="fixed top-16 left-0 bottom-0 z-30 flex w-60 flex-col justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-4 py-6 overflow-y-auto">
+        <nav className="space-y-1.5">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== "/admin" && pathname?.startsWith(item.href));
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${isActive
+                  ? "bg-[#1E3A2F] text-white shadow-sm"
+                  : "text-[#424844] hover:bg-[#F2EFE9] hover:text-[#07241A]"
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={isActive ? "text-white" : "text-[#727974] group-hover:text-[#07241A]"}>
+                    {item.icon}
+                  </span>
+                  <span><UiText text={item.label} /></span>
+                </div>
+                {item.badge && (
+                  <span
+                    className="rounded-full bg-[#F97316] px-2 py-0.5 text-[10px] font-bold text-white"
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Nút Đăng xuất ở cuối Sidebar */}
         <div className="border-t border-[#EFEEEB] pt-4">
           <button
             type="button"
@@ -198,9 +300,9 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 flex-col pl-60">
-        <main className="flex-1 p-8 lg:p-10">{children}</main>
+      {/* 3. VÙNG NỘI DUNG CHÍNH - BÙ KHOẢNG TRỐNG CHO FIXED NAVBAR & SIDEBAR */}
+      <div className="flex flex-1 flex-col pl-60 pt-16">
+        <main className="flex-1 p-8 lg:p-10 min-h-[calc(100vh-4rem)]">{children}</main>
       </div>
     </div>
   );
