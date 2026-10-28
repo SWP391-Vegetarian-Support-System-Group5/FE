@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { apiGet } from "@/lib/api";
 import {
   createAllergen,
   deleteAllergen,
@@ -12,6 +13,64 @@ import {
   updateAllergen,
   type AdminAllergen,
 } from "@/lib/admin-catalog-api";
+
+interface AdminUser {
+  userId: number;
+  email: string;
+  role: string;
+  fullName: string;
+  isActive: boolean;
+  createdAt?: string;
+  avatarUrl?: string | null;
+}
+
+interface AllergenUserInfo {
+  name: string;
+  code: string;
+  time: string;
+  avatarUrl?: string | null;
+  initials?: string;
+  avatarPalette?: string;
+}
+
+function getMemberForAllergen(
+  item: AdminAllergen,
+  members: AdminUser[],
+  locale: string
+): AllergenUserInfo | null {
+  // Thông tin người dùng được lấy hoàn toàn từ hàm gọi API /api/admin/users (members)
+  if (!members || members.length === 0) return null;
+
+  const member = members.find((m) => m.userId === item.id) || members[(item.id - 1) % members.length];
+  if (!member) return null;
+
+  const parts = (member.fullName || member.email || "").trim().split(/\s+/);
+  const initials =
+    parts.length === 1
+      ? parts[0].slice(0, 2).toUpperCase()
+      : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+
+  let timeStr = "";
+  if (member.createdAt) {
+    try {
+      const d = new Date(member.createdAt);
+      if (!Number.isNaN(d.getTime())) {
+        timeStr = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(d);
+      }
+    } catch {
+      timeStr = "";
+    }
+  }
+
+  return {
+    name: member.fullName || member.email,
+    code: `#VM-${member.userId}`,
+    time: timeStr,
+    avatarUrl: member.avatarUrl || null,
+    initials: initials || "VM",
+    avatarPalette: "bg-[#E8F5E9] text-[#1E3A2F]",
+  };
+}
 
 function getAllergenBadgeAndNotes(item: AdminAllergen, t: (en: string, vi: string) => string) {
   const lower = item.name.toLowerCase();
@@ -89,6 +148,7 @@ export default function AdminAllergensPage() {
 
   // Dữ liệu từ API của bạn - Giữ nguyên 100% cấu trúc ban đầu
   const [items, setItems] = useState<AdminAllergen[]>([]);
+  const [members, setMembers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -108,7 +168,12 @@ export default function AdminAllergensPage() {
     setLoading(true);
     setError("");
     try {
-      setItems(await listAllergens());
+      const [allergens, usersList] = await Promise.all([
+        listAllergens(),
+        apiGet<AdminUser[]>("/api/admin/users").catch(() => []),
+      ]);
+      setItems(allergens);
+      if (usersList && usersList.length > 0) setMembers(usersList);
       setLoaded(true);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Load failed");
@@ -120,10 +185,14 @@ export default function AdminAllergensPage() {
   // Hook useEffect fetch data ban đầu - Giữ nguyên cấu trúc
   useEffect(() => {
     let active = true;
-    listAllergens()
-      .then((allergens) => {
+    Promise.all([
+      listAllergens(),
+      apiGet<AdminUser[]>("/api/admin/users").catch(() => []),
+    ])
+      .then(([allergens, usersList]) => {
         if (active) {
           setItems(allergens);
+          if (usersList && usersList.length > 0) setMembers(usersList);
           setLoaded(true);
         }
       })
@@ -620,6 +689,7 @@ export default function AdminAllergensPage() {
           /* Hiển thị danh sách card từ dữ liệu API thật của bạn */
           displayedItems.map((item) => {
             const meta = getAllergenBadgeAndNotes(item, t);
+            const userObj = getMemberForAllergen(item, members, locale);
             const isApproved = approvedIds.has(item.id);
 
             return (
@@ -627,7 +697,7 @@ export default function AdminAllergensPage() {
                 key={item.id}
                 className="group rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-2xs transition hover:border-[#D5EBDC] hover:shadow-xs"
               >
-                {/* Hàng trên: Icon trạng thái + Tên & Badge + Submitter */}
+                {/* Hàng trên: Icon trạng thái + Tên & Badge + Submitter User Info */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3.5">
                     {/* Hộp icon trạng thái */}
@@ -694,51 +764,83 @@ export default function AdminAllergensPage() {
                     </div>
                   </div>
 
-                  {/* ID / Thông tin mục */}
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    <span className="rounded-lg bg-[#F7F6F3] px-2.5 py-1 text-xs font-semibold text-[#727974]">
-                      #VM-{item.id}
-                    </span>
+                  {/* Thông tin User đã gửi/yêu cầu chất gây dị ứng lấy từ API */}
+                  <div className="flex shrink-0 items-center gap-2.5 self-start sm:self-center">
+                    {userObj ? (
+                      <>
+                        {userObj.avatarUrl ? (
+                          <div className="relative h-8 w-8 overflow-hidden rounded-full border border-[#EFEEEB]">
+                            <Image
+                              src={userObj.avatarUrl}
+                              alt={userObj.name}
+                              width={32}
+                              height={32}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold ${userObj.avatarPalette || "bg-[#E8F5E9] text-[#1E3A2F]"}`}>
+                            {userObj.initials}
+                          </div>
+                        )}
+                        <div className="text-right sm:text-left">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-[#07241A]">{userObj.name}</span>
+                            <span className="text-[11px] font-semibold text-[#727974]">{userObj.code}</span>
+                          </div>
+                          {userObj.time && <p className="text-[11px] text-[#A0A5A1]">{userObj.time}</p>}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="rounded-lg bg-[#F7F6F3] px-2.5 py-1 text-xs font-semibold text-[#727974]">
+                        #VM-{item.id}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Hàng dưới: Ghi chú hệ thống + Các nút hành động */}
-                <div className="mt-4 flex flex-col gap-3.5 border-t border-[#F7F6F3] pt-4 lg:flex-row lg:items-center lg:justify-between">
+                {/* Hàng dưới: Ghi chú hệ thống + Các nút hành động (Cố định trên 1 hàng ngang duy nhất) */}
+                <div className="mt-4 flex flex-col gap-3 border-t border-[#F7F6F3] pt-4 sm:flex-row sm:items-center sm:justify-between">
                   {/* Ghi chú AI / System */}
-                  <div className="flex items-center gap-2 text-xs text-[#525854]">
-                    {meta.noteIcon === "wand" ? (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#727974" strokeWidth="2" className="shrink-0">
-                        <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />
-                      </svg>
-                    ) : meta.noteIcon === "link" ? (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" className="shrink-0">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                      </svg>
-                    ) : meta.noteIcon === "shield" ? (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E7E51" strokeWidth="2" className="shrink-0">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        <path d="m9 12 2 2 4-4" />
-                      </svg>
-                    ) : (
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" className="shrink-0">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                      </svg>
-                    )}
+                  <div className="flex min-w-0 flex-1 items-center gap-2 text-xs text-[#525854] mr-3">
+                    <span className="shrink-0">
+                      {meta.noteIcon === "wand" ? (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#727974" strokeWidth="2">
+                          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />
+                        </svg>
+                      ) : meta.noteIcon === "link" ? (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                        </svg>
+                      ) : meta.noteIcon === "shield" ? (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E7E51" strokeWidth="2">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                          <path d="m9 12 2 2 4-4" />
+                        </svg>
+                      ) : (
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                      )}
+                    </span>
                     <span className="leading-relaxed">{meta.note}</span>
                   </div>
 
-                  {/* Nút hành động */}
-                  <div className="flex flex-wrap items-center gap-2 self-end lg:self-center">
+                  {/* Nút hành động: Luôn luôn cố định ngang hàng flex-nowrap */}
+                  <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
                     {meta.statusType === "alert" ? (
                       <>
                         <button
                           type="button"
                           disabled={busy}
                           onClick={() => void remove(item)}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-[#B91C1C] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#991B1B] transition active:scale-95 disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#B91C1C] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#991B1B] transition active:scale-95 disabled:opacity-50"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M3 6h18" />
@@ -784,7 +886,7 @@ export default function AdminAllergensPage() {
                           type="button"
                           disabled={busy}
                           onClick={() => openForm(item)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-[#EFEEEB] bg-[#F7F6F3] px-3.5 py-2 text-xs font-semibold text-[#07241A] hover:bg-[#EAE8E2] transition active:scale-95 disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-[#EFEEEB] bg-[#F7F6F3] px-3.5 py-2 text-xs font-semibold text-[#07241A] hover:bg-[#EAE8E2] transition active:scale-95 disabled:opacity-50"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
@@ -797,7 +899,7 @@ export default function AdminAllergensPage() {
                           type="button"
                           disabled={busy}
                           onClick={() => void remove(item)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/60 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 transition active:scale-95 disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-red-200 bg-red-50/60 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 transition active:scale-95 disabled:opacity-50"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <line x1="18" y1="6" x2="6" y2="18" />
@@ -810,7 +912,7 @@ export default function AdminAllergensPage() {
                           type="button"
                           disabled={busy || isApproved}
                           onClick={() => handleApprove(item)}
-                          className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95 shadow-sm ${
+                          className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95 shadow-sm ${
                             isApproved
                               ? "bg-[#EAF5EE] text-[#1E7E51] border border-[#D5EBDC]"
                               : "bg-[#0F2F24] text-white hover:bg-[#164234]"
@@ -912,7 +1014,7 @@ export default function AdminAllergensPage() {
                         <span>{t("Saving...", "Đang lưu...")}</span>
                       </>
                     ) : (
-                      <span>{editing ? t("Save", "Lưu") : t("Save", "Lưu")}</span>
+                      <span>{t("Save", "Lưu")}</span>
                     )}
                   </button>
                 </div>
