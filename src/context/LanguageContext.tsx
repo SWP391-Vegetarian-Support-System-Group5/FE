@@ -1,29 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useSyncExternalStore } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 export type Language = "en" | "vi";
 const storageKey = "veggiemate-language";
 const changeEvent = "veggiemate-language-change";
 let fallbackLanguage: Language = "vi";
-
-function getLanguage(): Language {
-  try {
-    const stored = localStorage.getItem(storageKey);
-    return stored === "vi" ? "vi" : stored === "en" ? "en" : fallbackLanguage;
-  } catch {
-    return fallbackLanguage;
-  }
-}
-
-function subscribe(listener: () => void) {
-  window.addEventListener(changeEvent, listener);
-  window.addEventListener("storage", listener);
-  return () => {
-    window.removeEventListener(changeEvent, listener);
-    window.removeEventListener("storage", listener);
-  };
-}
 
 export interface LanguageContextValue {
   language: Language;
@@ -35,16 +17,42 @@ export interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const language = useSyncExternalStore(subscribe, getLanguage, () => "vi" as Language);
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window === "undefined") return fallbackLanguage;
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored === "en" ? "en" : "vi";
+    } catch {
+      return fallbackLanguage;
+    }
+  });
 
   const setLanguage = useCallback((next: Language) => {
     fallbackLanguage = next;
+    setLanguageState(next);
     try {
       localStorage.setItem(storageKey, next);
     } catch {
       /* Keep the session preference. */
     }
     window.dispatchEvent(new Event(changeEvent));
+  }, []);
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored === "vi" || stored === "en") {
+          setLanguageState(stored);
+        }
+      } catch {}
+    };
+    window.addEventListener(changeEvent, handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener(changeEvent, handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
   }, []);
 
   const t = useCallback(

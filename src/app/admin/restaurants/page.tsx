@@ -278,7 +278,7 @@ export default function AdminRestaurantsPage() {
       {notice && (
         <div
           role="status"
-          className="fixed top-6 right-6 z-50 flex items-center gap-2 rounded-2xl bg-[#07241A] px-4 py-3 text-xs font-semibold text-white shadow-xl animate-fade-in"
+          className="fixed top-20 right-6 z-50 flex items-center gap-2 rounded-2xl bg-[#07241A] px-4 py-3 text-xs font-semibold text-white shadow-xl animate-fade-in"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="20 6 9 17 4 12" />

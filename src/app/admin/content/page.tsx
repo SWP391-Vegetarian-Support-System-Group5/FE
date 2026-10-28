@@ -224,7 +224,7 @@ export default function AdminContentPage() {
       {feedback && (
         <div
           role="status"
-          className={`fixed top-6 right-6 z-50 flex items-center gap-2 rounded-2xl ${
+          className={`fixed top-20 right-6 z-50 flex items-center gap-2 rounded-2xl ${
             feedback.error ? "bg-red-700" : "bg-[#07241A]"
           } px-4 py-3 text-xs font-semibold text-white shadow-xl animate-fade-in`}
         >
