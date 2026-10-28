@@ -27,7 +27,6 @@ export default function AdminDashboardPage() {
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (user?.role?.toLowerCase() !== "admin") return;
@@ -49,14 +48,11 @@ export default function AdminDashboardPage() {
     ...posts.map(post => ({ id: `p${post.postId}`, author: post.authorName, detail: post.title, kind: post.postType, date: post.createdAt })),
     ...comments.map(comment => ({ id: `c${comment.commentId}`, author: comment.authorName, detail: comment.content, kind: "COMMENT", date: comment.createdAt })),
   ].filter(item => !Number.isNaN(Date.parse(item.date))).sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 4), [posts, comments]);
-  const recent = posts.filter(post => `${post.title} ${post.authorName}`.toLowerCase().includes(search.toLowerCase()))
+  const recent = posts
+    .slice()
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 4);
 
   return <div className="space-y-6">
-    <header className="flex items-center justify-between border-b border-[#EFEEEB] pb-4">
-      <div className="flex items-center gap-2"><Link href="/" className="font-serif text-xl font-bold text-[#07241A]">VeggieMate</Link><span className="text-[#A0A5A1]">/</span><span className="rounded-full border border-[#EFEEEB] bg-white px-2.5 py-1 text-xs">{t("Admin Area", "Khu vực quản trị")}</span></div>
-      <div className="flex items-center gap-4"><input value={search} onChange={event => setSearch(event.target.value)} aria-label={t("Search content", "Tìm nội dung")} placeholder={t("Search admin...", "Tìm kiếm quản trị...")} className="w-60 rounded-full border border-[#EFEEEB] bg-white px-4 py-1.5 text-xs" /><div className="text-right"><p className="text-xs font-bold text-[#07241A]">{user?.fullName || "Quản trị viên"}</p><p className="text-[10px] text-[#727974]">{t("Supervisor", "Quản trị viên")}</p></div><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white">AD</div></div>
-    </header>
     <div className="pt-2"><p className="text-[11px] font-bold uppercase tracking-wider text-[#2D5A46]">{t("Overview & Moderation", "Tổng quan & Kiểm duyệt")}</p><h1 className="mt-1 font-serif text-3xl font-bold text-[#07241A] lg:text-4xl">{t("Administration", "Quản trị")}</h1><p className="mt-1 text-xs text-[#727974]">{t("Keep the VeggieMate community healthy and organized.", "Giữ cộng đồng VeggieMate lành mạnh và ngăn nắp.")}</p></div>
     {(error || moderation.error) && <p role="alert" className="text-xs text-[#C2410C]">{t("Could not load all dashboard data.", "Không thể tải toàn bộ dữ liệu tổng quan.")}</p>}
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

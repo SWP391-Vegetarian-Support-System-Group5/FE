@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { apiGet } from "@/lib/api";
@@ -339,85 +338,6 @@ export default function AdminAllergensPage() {
         </div>
       )}
 
-      {/* Top Header Bar */}
-      <header className="flex flex-col gap-4 border-b border-[#EFEEEB] pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-serif text-xl font-bold tracking-tight text-[#07241A] hover:opacity-80 transition"
-          >
-            <span>VeggieMate</span>
-          </Link>
-          <span className="text-sm text-[#A0A5A1]">/</span>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-1 text-xs font-semibold text-[#424844] shadow-2xs">
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#2D5A46"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span>{t("Admin Area", "Khu vực quản trị")}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          {/* Ô tìm kiếm Search admin */}
-          <div className="relative">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#8F948F"
-              strokeWidth="2"
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("Search admin...", "Tìm kiếm quản trị...")}
-              aria-label={t("Search admin", "Tìm kiếm quản trị")}
-              className="w-44 rounded-full border border-[#EFEEEB] bg-white pl-9 pr-3 py-1.5 text-xs text-[#07241A] placeholder-[#8F948F] focus:border-[#1E3A2F] focus:outline-none sm:w-56 shadow-2xs"
-            />
-          </div>
-
-          {/* Ngôn ngữ */}
-          <div className="inline-flex items-center gap-1 rounded-full border border-[#EFEEEB] bg-white px-2.5 py-1 text-xs font-medium text-[#424844] shadow-2xs">
-            <span>{locale.startsWith("vi") ? "VI" : "EN"}</span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </div>
-
-          {/* Supervisor Info */}
-          <div className="flex items-center gap-2">
-            <div className="relative h-8 w-8 overflow-hidden rounded-full border border-[#D5EBDC] bg-[#EAF5EE]">
-              <Image
-                src="/images/profile_avatar.png"
-                alt="Admin Supervisor"
-                width={32}
-                height={32}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            </div>
-            <span className="text-xs font-bold text-[#07241A]">
-              {user?.fullName ?? t("Admin Supervisor", "Quản trị viên")}
-            </span>
-          </div>
-        </div>
-      </header>
 
       {/* Tiêu đề trang & Nút hành động */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
