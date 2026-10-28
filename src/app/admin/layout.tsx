@@ -1,7 +1,7 @@
 "use client";
 
 import UiText from "@/components/UiText";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -22,19 +22,23 @@ export default function AdminLayout({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
   // Close menus when clicking outside
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      if (!target.closest("[data-lang-menu]")) {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (langMenuRef.current && !langMenuRef.current.contains(target)) {
         setLangMenuOpen(false);
       }
-      if (!target.closest("[data-user-menu]")) {
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setUserMenuOpen(false);
       }
     }
-    window.addEventListener("click", handleClickOutside);
-    return () => window.removeEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Authorization check: Only allow users with "admin" role
@@ -156,7 +160,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased">
       {/* 1. TOP NAVBAR CỐ ĐỊNH - KHÔNG CUỘN THEO TRANG */}
-      <header className="fixed top-0 left-0 right-0 z-40 flex h-16 border-b border-[#EFEEEB]">
+      <header className="fixed top-0 left-0 right-0 z-50 flex h-16 border-b border-[#EFEEEB] bg-white">
         {/* Khối bên trái: ADMIN v1.4 (rộng w-60 khớp sidebar) */}
         <div className="flex h-full w-60 shrink-0 items-center justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-6">
           <span className="text-xs font-bold tracking-widest text-[#727974]">ADMIN</span>
@@ -187,16 +191,19 @@ export default function AdminLayout({
           {/* Các nút hành động bên phải: Ngôn ngữ, Chuông thông báo, Divider, Profile */}
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Bộ chọn ngôn ngữ (EN / VI) có thể click và chuyển đổi */}
-            <div className="relative" data-lang-menu>
+            <div ref={langMenuRef} className="relative">
               <button
                 type="button"
-                onClick={() => setLangMenuOpen((prev) => !prev)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLangMenuOpen((prev) => !prev);
+                }}
                 title={t("Switch language (EN/VI)", "Chuyển đổi ngôn ngữ (EN/VI)")}
                 aria-label={t("Switch language", "Chuyển đổi ngôn ngữ")}
                 aria-expanded={langMenuOpen}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#59635C] hover:bg-[#F2EFE9] hover:text-[#07241A] transition active:scale-95"
+                className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#59635C] hover:bg-[#F2EFE9] hover:text-[#07241A] transition active:scale-95 select-none"
               >
-                <span>{language.toUpperCase()}</span>
+                <span className="font-bold tracking-wide">{language.toUpperCase()}</span>
                 <svg
                   width="12"
                   height="12"
@@ -212,18 +219,27 @@ export default function AdminLayout({
 
               {/* Menu chọn ngôn ngữ */}
               {langMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-40 rounded-2xl border border-[#EFEEEB] bg-white p-1.5 shadow-xl z-50 animate-fade-in">
+                <div
+                  className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-[#EFEEEB] bg-white p-1.5 shadow-xl z-50 animate-fade-in"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-2.5 py-1.5 text-[11px] font-semibold text-[#727974] border-b border-[#F5F4F0] mb-1">
+                    {t("Select Language", "Chọn ngôn ngữ")}
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
                       setLanguage("en");
                       setLangMenuOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    className={`cursor-pointer flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
                       language === "en" ? "bg-[#EAF5EE] text-[#1E7E51]" : "text-[#424844] hover:bg-[#F7F6F3]"
                     }`}
                   >
-                    <span>English (EN)</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">🇬🇧</span>
+                      <span>English (EN)</span>
+                    </span>
                     {language === "en" && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <polyline points="20 6 9 17 4 12" />
@@ -236,11 +252,14 @@ export default function AdminLayout({
                       setLanguage("vi");
                       setLangMenuOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    className={`cursor-pointer flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
                       language === "vi" ? "bg-[#EAF5EE] text-[#1E7E51]" : "text-[#424844] hover:bg-[#F7F6F3]"
                     }`}
                   >
-                    <span>Tiếng Việt (VI)</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm">🇻🇳</span>
+                      <span>Tiếng Việt (VI)</span>
+                    </span>
                     {language === "vi" && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <polyline points="20 6 9 17 4 12" />
@@ -269,11 +288,14 @@ export default function AdminLayout({
             <div className="h-5 w-px bg-[#EFEEEB]" />
 
             {/* Admin Profile Pill & Dropdown */}
-            <div className="relative" data-user-menu>
+            <div ref={userMenuRef} className="relative">
               <button
                 type="button"
-                onClick={() => setUserMenuOpen((prev) => !prev)}
-                className="flex items-center gap-2.5 rounded-xl p-1 hover:bg-[#F7F6F3] transition"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUserMenuOpen((prev) => !prev);
+                }}
+                className="cursor-pointer flex items-center gap-2.5 rounded-xl p-1 hover:bg-[#F7F6F3] transition select-none"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#16382B] text-xs font-bold text-white shadow-2xs">
                   VM
@@ -293,7 +315,10 @@ export default function AdminLayout({
 
               {/* Menu xổ xuống của User */}
               {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-[#EFEEEB] bg-white p-2 shadow-xl z-50">
+                <div
+                  className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-[#EFEEEB] bg-white p-2 shadow-xl z-50 animate-fade-in"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="border-b border-[#F5F4F0] px-3 py-2">
                     <p className="text-xs font-bold text-[#07241A]">{user?.fullName || "Admin Supervisor"}</p>
                     <p className="text-[11px] text-[#727974] truncate">{user?.email}</p>
@@ -308,7 +333,7 @@ export default function AdminLayout({
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                    className="cursor-pointer mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
