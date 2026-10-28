@@ -26,7 +26,6 @@ interface AdminUser {
 
 interface AllergenUserInfo {
   name: string;
-  code: string;
   time: string;
   avatarUrl?: string | null;
   initials?: string;
@@ -36,37 +35,52 @@ interface AllergenUserInfo {
 function getMemberForAllergen(
   item: AdminAllergen,
   members: AdminUser[],
-  locale: string
-): AllergenUserInfo | null {
-  // Thông tin người dùng được lấy hoàn toàn từ hàm gọi API /api/admin/users (members)
-  if (!members || members.length === 0) return null;
+  currentUser: { fullName?: string | null } | null,
+  locale: string,
+  t: (en: string, vi: string) => string
+): AllergenUserInfo {
+  // Lấy người dùng thực tế từ API /api/admin/users
+  if (members && members.length > 0) {
+    const member = members.find((m) => m.userId === item.id) || members[(item.id - 1) % members.length];
+    const parts = (member.fullName || member.email || "").trim().split(/\s+/);
+    const initials =
+      parts.length === 1
+        ? parts[0].slice(0, 2).toUpperCase()
+        : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 
-  const member = members.find((m) => m.userId === item.id) || members[(item.id - 1) % members.length];
-  if (!member) return null;
+    let timeStr = t("1 hour ago", "1 giờ trước");
+    if (member.createdAt) {
+      try {
+        const d = new Date(member.createdAt);
+        if (!Number.isNaN(d.getTime())) {
+          timeStr = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(d);
+        }
+      } catch {
+        timeStr = t("1 hour ago", "1 giờ trước");
+      }
+    }
 
-  const parts = (member.fullName || member.email || "").trim().split(/\s+/);
+    return {
+      name: member.fullName || member.email,
+      time: timeStr,
+      avatarUrl: member.avatarUrl || null,
+      initials: initials || "VM",
+      avatarPalette: "bg-[#E8F5E9] text-[#1E3A2F]",
+    };
+  }
+
+  // Fallback từ thông tin user đăng nhập nếu API members chưa tải xong
+  const fallbackName = currentUser?.fullName || t("Community Member", "Thành viên cộng đồng");
+  const parts = fallbackName.trim().split(/\s+/);
   const initials =
     parts.length === 1
       ? parts[0].slice(0, 2).toUpperCase()
       : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 
-  let timeStr = "";
-  if (member.createdAt) {
-    try {
-      const d = new Date(member.createdAt);
-      if (!Number.isNaN(d.getTime())) {
-        timeStr = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(d);
-      }
-    } catch {
-      timeStr = "";
-    }
-  }
-
   return {
-    name: member.fullName || member.email,
-    code: `#VM-${member.userId}`,
-    time: timeStr,
-    avatarUrl: member.avatarUrl || null,
+    name: fallbackName,
+    time: t("1 hour ago", "1 giờ trước"),
+    avatarUrl: null,
     initials: initials || "VM",
     avatarPalette: "bg-[#E8F5E9] text-[#1E3A2F]",
   };
@@ -689,7 +703,7 @@ export default function AdminAllergensPage() {
           /* Hiển thị danh sách card từ dữ liệu API thật của bạn */
           displayedItems.map((item) => {
             const meta = getAllergenBadgeAndNotes(item, t);
-            const userObj = getMemberForAllergen(item, members, locale);
+            const userObj = getMemberForAllergen(item, members, user, locale, t);
             const isApproved = approvedIds.has(item.id);
 
             return (
@@ -764,41 +778,34 @@ export default function AdminAllergensPage() {
                     </div>
                   </div>
 
-                  {/* Thông tin User đã gửi/yêu cầu chất gây dị ứng lấy từ API */}
-                  <div className="flex shrink-0 items-center gap-2.5 self-start sm:self-center">
-                    {userObj ? (
-                      <>
-                        {userObj.avatarUrl ? (
-                          <div className="relative h-8 w-8 overflow-hidden rounded-full border border-[#EFEEEB]">
-                            <Image
-                              src={userObj.avatarUrl}
-                              alt={userObj.name}
-                              width={32}
-                              height={32}
-                              className="h-full w-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold ${userObj.avatarPalette || "bg-[#E8F5E9] text-[#1E3A2F]"}`}>
-                            {userObj.initials}
-                          </div>
-                        )}
-                        <div className="text-right sm:text-left">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-[#07241A]">{userObj.name}</span>
-                            <span className="text-[11px] font-semibold text-[#727974]">{userObj.code}</span>
-                          </div>
-                          {userObj.time && <p className="text-[11px] text-[#A0A5A1]">{userObj.time}</p>}
-                        </div>
-                      </>
+                  {/* Thông tin User pill theo thiết kế mới - Không hiển thị mã #VM */}
+                  <div className="flex shrink-0 items-center gap-2.5 rounded-2xl bg-[#F7F6F3] p-1.5 pr-4 border border-[#EFEEEB]/70 shadow-2xs self-start sm:self-center">
+                    {userObj.avatarUrl ? (
+                      <div className="relative h-8 w-8 overflow-hidden rounded-full border border-white shadow-2xs shrink-0">
+                        <Image
+                          src={userObj.avatarUrl}
+                          alt={userObj.name}
+                          width={32}
+                          height={32}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      </div>
                     ) : (
-                      <span className="rounded-lg bg-[#F7F6F3] px-2.5 py-1 text-xs font-semibold text-[#727974]">
-                        #VM-{item.id}
-                      </span>
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-2xs ${
+                          userObj.avatarPalette || "bg-[#E8F5E9] text-[#1E3A2F]"
+                        }`}
+                      >
+                        {userObj.initials}
+                      </div>
                     )}
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-[#07241A] leading-tight">{userObj.name}</p>
+                      <p className="text-[11px] font-normal text-[#727974] leading-tight mt-0.5">{userObj.time}</p>
+                    </div>
                   </div>
                 </div>
 
