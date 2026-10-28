@@ -984,6 +984,78 @@ Failed to fetch|Không thể kết nối máy chủ. Vui lòng kiểm tra mạng
 Load failed|Không thể tải dữ liệu. Vui lòng thử lại.
 Resolved|Đã xử lý
 Dismissed|Đã bỏ qua
+DIRECTORY • COMMUNITY ROSTER|DANH MỤC • DANH SÁCH CỘNG ĐỒNG
+Members|Thành viên
+Manage registered VeggieMate members and community contributors.|Quản lý thành viên đã đăng ký và người đóng góp cộng đồng VeggieMate.
+Search members by name or email...|Tìm thành viên theo tên hoặc email...
+Status: All Statuses|Trạng thái: Mọi trạng thái
+Status: Active|Trạng thái: Đang hoạt động
+Status: Suspended|Trạng thái: Đã đình chỉ
+Joined Date: Newest|Ngày tham gia: Mới nhất
+Joined Date: Oldest|Ngày tham gia: Cũ nhất
+Export members|Xuất danh sách thành viên
+VIEWING|ĐANG XEM
+Member Profile|Hồ sơ thành viên
+Account Status: Active|Trạng thái tài khoản: Đang hoạt động
+Account Status: Suspended|Trạng thái tài khoản: Đã đình chỉ
+COMMUNITY ACTIVITY|HOẠT ĐỘNG CỘNG ĐỒNG
+Last active 2 hrs ago|Hoạt động 2 giờ trước
+Posts|Bài đăng
+Comments|Bình luận
+Saved|Đã lưu
+Videos|Video
+Reviews|Đánh giá
+Helpful|Hữu ích
+Recipes|Công thức
+30-Day Contribution Cadence|Tần suất đóng góp 30 ngày
+vs prev|so với trước
+Member Privacy Guarded|Bảo vệ quyền riêng tư thành viên
+Admin view strictly omits private biometric data and physical addresses.|Chế độ quản trị viên loại bỏ nghiêm ngặt dữ liệu sinh trắc học và địa chỉ cá nhân.
+Send Notification / Email|Gửi thông báo / Email
+Suspend Member|Đình chỉ thành viên
+Reactivate Member|Kích hoạt lại thành viên
+Contributing Cook|Đầu bếp đóng góp
+Flagged|Đã gắn cờ
+Total|Tổng số
+EDITORIAL DESK & TAXONOMY|BÀN BIÊN TẬP & PHÂN LOẠI
+Manage recipes, restaurant reviews, community discourse, and culinary taxonomies.|Quản lý công thức, đánh giá nhà hàng, thảo luận cộng đồng và phân loại ẩm thực.
+Total Library|Tổng thư viện
+Pending Moderation|Chờ kiểm duyệt
++ Create Entry|+ Tạo nội dung mới
+All|Tất cả
+Video & Recipes|Video & Công thức
+Restaurant Reviews|Đánh giá nhà hàng
+Published Stories & Guides|Bài viết & Hướng dẫn đã xuất bản
+Moderation Stream|Luồng kiểm duyệt
+Comments on:|Bình luận trong:
+Total Comments|Tổng bình luận
+Live sync|Đồng bộ trực tiếp
+Verified Reader|Độc giả đã xác minh
+Top Contributor|Người đóng góp hàng đầu
+Bulk Actions:|Thao tác hàng loạt:
+Mute thread|Tắt thông báo luồng
+Approve All|Duyệt tất cả
+Restaurants Management|Quản lý nhà hàng
+Manage curated plant-based sanctuaries, verified dining coordinates, partner submissions, and allergen-safe certifications across Vietnam.|Quản lý các địa điểm thuần chay, tọa độ ăn uống đã xác thực, hồ sơ đối tác và chứng nhận an toàn dị ứng trên khắp Việt Nam.
+TOTAL PLACES|TỔNG CƠ SỞ
+Total Places|Tổng cơ sở
+Tổng cơ sở đã được thêm|Total places added
+cơ sở đã thêm trong hệ thống|places registered in system
+Export CSV|Xuất CSV
++ Add New Restaurant|+ Thêm nhà hàng mới
+Add New Restaurant|Thêm nhà hàng mới
+Search restaurant by name, ID, or address...|Tìm nhà hàng theo tên, mã hoặc địa chỉ...
+Location: All Localities|Địa điểm: Tất cả khu vực
+Types of Vegetarianism: All|Loại hình ăn chay: Tất cả
+RESTAURANT & IDENTITY|NHÀ HÀNG & NHẬN DIỆN
+LOCATION|ĐỊA ĐIỂM
+TYPES OF VEGETARIANISM|LOẠI HÌNH ĂN CHAY
+RATING & COMMUNITY|ĐÁNH GIÁ & CỘNG ĐỒNG
+STATUS|TRẠNG THÁI
+verified reviews|đánh giá xác thực
+Public|Công khai
+Private|Riêng tư
+dining places in Vietnam database|địa điểm ăn chay trong hệ thống Việt Nam
 `;
 
 const catalog = new Map<string, readonly [string, string]>();
