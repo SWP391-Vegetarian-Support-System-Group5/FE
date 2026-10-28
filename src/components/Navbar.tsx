@@ -10,7 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useAdminModeration, BYPASS_ADMIN_ROLE } from "@/context/AdminModerationContext";
+import { useAdminModeration } from "@/context/AdminModerationContext";
 import { useLanguage } from "@/context/LanguageContext";
 
 function getInitials(name?: string | null, email?: string | null): string {
@@ -231,8 +231,8 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     )}
                   </div>
                   <div className="py-1">
-                    {/* Admin Dashboard & Members: Hiển thị khi role là admin hoặc khi bật bypass */}
-                    {(BYPASS_ADMIN_ROLE || user?.role?.toLowerCase() === "admin") && (
+                    {/* Admin Dashboard & Members: Hiển thị khi role là admin */}
+                    {user?.role?.toLowerCase() === "admin" && (
                       <>
                         <Link
                           href="/admin"
@@ -390,14 +390,6 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              {BYPASS_ADMIN_ROLE && (
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
-                >
-                  <span><UiText text={"🛠️ Thử nghiệm quản trị"} /></span>
-                </Link>
-              )}
               <Link
                 href="/login"
                 aria-label={t("Login / Sign Up", "Đăng nhập / Đăng ký")}
@@ -457,7 +449,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
           {user ? (
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
-              {(BYPASS_ADMIN_ROLE || user?.role?.toLowerCase() === "admin") && (
+              {user?.role?.toLowerCase() === "admin" && (
                 <div className="mb-2 pb-2 border-b border-[#EFEEEB] space-y-1">
                   <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Quản trị</div>
                   <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#1E3A2F] bg-[#D9E6DC]/40">

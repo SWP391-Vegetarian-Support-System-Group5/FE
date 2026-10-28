@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useAdminModeration, BYPASS_ADMIN_ROLE } from "@/context/AdminModerationContext";
+import { useAdminModeration } from "@/context/AdminModerationContext";
 
 export default function AdminLayout({
   children,
@@ -19,10 +19,8 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  // Authorization check: Only allow users with "admin" role (Skipped when bypass is active)
+  // Authorization check: Only allow users with "admin" role
   useEffect(() => {
-    if (BYPASS_ADMIN_ROLE) return;
-
     if (!loading) {
       if (!user) {
         // Not logged in -> Redirect to login page
@@ -39,8 +37,8 @@ export default function AdminLayout({
     router.replace("/login");
   };
 
-  // Loading screen & unauthorized access block (Skipped when bypass is active)
-  if (!BYPASS_ADMIN_ROLE && (loading || !user || user.role?.toLowerCase() !== "admin")) {
+  // Loading screen & unauthorized access block
+  if (loading || !user || user.role?.toLowerCase() !== "admin") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#FBF9F6]">
         <div className="flex flex-col items-center gap-3">
@@ -147,13 +145,6 @@ export default function AdminLayout({
             <span className="text-[11px] font-bold tracking-widest text-[#727974]"><UiText text={"Quản trị viên"} /></span>
             <span className="text-[11px] font-medium text-[#A0A5A1]">v1.4</span>
           </div>
-
-          {BYPASS_ADMIN_ROLE && (
-            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-1.5 text-[10px] font-semibold text-amber-800 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              <span><UiText text={"Chế độ phát triển đang bỏ qua kiểm tra quyền"} /></span>
-            </div>
-          )}
 
           {/* Navigation Links */}
           <nav className="space-y-1.5">

@@ -5,8 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch, apiGet, getMediaUrl } from "@/lib/api";
 import type { PostResponse } from "@/lib/post-api";
 
-export const BYPASS_ADMIN_ROLE = false;
-
 interface ModerationFlag {
   flagId: number;
   postId: number | null;
