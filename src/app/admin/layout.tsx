@@ -15,11 +15,27 @@ export default function AdminLayout({
 }) {
   const { user, loading, logout } = useAuth();
   const { flaggedCount } = useAdminModeration();
-  const { t, language } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-lang-menu]")) {
+        setLangMenuOpen(false);
+      }
+      if (!target.closest("[data-user-menu]")) {
+        setUserMenuOpen(false);
+      }
+    }
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, []);
 
   // Authorization check: Only allow users with "admin" role
   useEffect(() => {
@@ -170,12 +186,69 @@ export default function AdminLayout({
 
           {/* Các nút hành động bên phải: Ngôn ngữ, Chuông thông báo, Divider, Profile */}
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Bộ chọn ngôn ngữ */}
-            <div className="inline-flex items-center gap-1 text-xs font-semibold text-[#59635C]">
-              <span>{language === "vi" ? "VI" : "EN"}</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
+            {/* Bộ chọn ngôn ngữ (EN / VI) có thể click và chuyển đổi */}
+            <div className="relative" data-lang-menu>
+              <button
+                type="button"
+                onClick={() => setLangMenuOpen((prev) => !prev)}
+                title={t("Switch language (EN/VI)", "Chuyển đổi ngôn ngữ (EN/VI)")}
+                aria-label={t("Switch language", "Chuyển đổi ngôn ngữ")}
+                aria-expanded={langMenuOpen}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#59635C] hover:bg-[#F2EFE9] hover:text-[#07241A] transition active:scale-95"
+              >
+                <span>{language.toUpperCase()}</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  className={`transition-transform duration-150 ${langMenuOpen ? "rotate-180" : ""}`}
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+
+              {/* Menu chọn ngôn ngữ */}
+              {langMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-40 rounded-2xl border border-[#EFEEEB] bg-white p-1.5 shadow-xl z-50 animate-fade-in">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLanguage("en");
+                      setLangMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                      language === "en" ? "bg-[#EAF5EE] text-[#1E7E51]" : "text-[#424844] hover:bg-[#F7F6F3]"
+                    }`}
+                  >
+                    <span>English (EN)</span>
+                    {language === "en" && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLanguage("vi");
+                      setLangMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                      language === "vi" ? "bg-[#EAF5EE] text-[#1E7E51]" : "text-[#424844] hover:bg-[#F7F6F3]"
+                    }`}
+                  >
+                    <span>Tiếng Việt (VI)</span>
+                    {language === "vi" && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Nút Chuông thông báo (kèm chấm thông báo cam) */}
@@ -196,7 +269,7 @@ export default function AdminLayout({
             <div className="h-5 w-px bg-[#EFEEEB]" />
 
             {/* Admin Profile Pill & Dropdown */}
-            <div className="relative">
+            <div className="relative" data-user-menu>
               <button
                 type="button"
                 onClick={() => setUserMenuOpen((prev) => !prev)}
