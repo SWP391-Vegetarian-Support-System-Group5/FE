@@ -12,6 +12,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminModeration } from "@/context/AdminModerationContext";
 import { useLanguage } from "@/context/LanguageContext";
+import NotificationBell from "@/components/NotificationBell";
 
 function getInitials(name?: string | null, email?: string | null): string {
   if (name && name.trim().length > 0) {
@@ -184,7 +185,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
           {loading ? (
             <div className="h-9 w-9 animate-pulse rounded-xl bg-[#EFEEEB] sm:w-24" />
           ) : user ? (
-            <div ref={profileMenuRef} className="relative">
+            <><NotificationBell key={user.uid} userId={user.userId || Number(user.uid) || 0} /><div ref={profileMenuRef} className="relative">
               <button
                 type="button"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -387,7 +388,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   </div>
                 </div>
               )}
-            </div>
+            </div></>
           ) : (
             <div className="flex items-center gap-2">
               <Link

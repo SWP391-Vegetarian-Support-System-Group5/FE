@@ -20,6 +20,7 @@ import {
   getAllAllergens,
   getUserAllergens,
   updateUserAllergens,
+  createCustomAllergen,
   getProvinces,
   getAreas,
   getAddressSuggestions,
@@ -106,6 +107,9 @@ function ProfileFields() {
   const [allAllergens, setAllAllergens] = useState<AllergenItem[]>([]);
   const [selectedAllergenIds, setSelectedAllergenIds] = useState<number[]>([]);
   const [savedAllergenIds, setSavedAllergenIds] = useState<number[]>([]);
+  const [customAllergenName, setCustomAllergenName] = useState("");
+  const [customAllergenError, setCustomAllergenError] = useState<string | null>(null);
+  const [customAllergenBusy, setCustomAllergenBusy] = useState(false);
   const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
   const [areas, setAreas] = useState<AreaItem[]>([]);
 
@@ -329,6 +333,27 @@ function ProfileFields() {
     );
   }, []);
 
+  const handleAddCustomAllergen = async () => {
+    if (customAllergenBusy || saving) return;
+    const name = customAllergenName.trim();
+    if (!name) { setCustomAllergenError("Vui lòng nhập tên nguyên liệu gây dị ứng."); return; }
+    setCustomAllergenError(null);
+    setCustomAllergenBusy(true);
+    try {
+      const selected = await createCustomAllergen(name);
+      setAllAllergens(current => [...new Map([...current, ...selected].map(item => [item.allergenId, item])).values()]);
+      const ids = selected.map(item => item.allergenId);
+      setSelectedAllergenIds(current => [...new Set([...current, ...ids])]);
+      setSavedAllergenIds(ids);
+      setCustomAllergenName("");
+      setToastMessage("Đã kiểm tra và thêm dị ứng vào hồ sơ.");
+    } catch (error) {
+      setCustomAllergenError(error instanceof Error ? error.message : "Không thể thêm dị ứng. Vui lòng thử lại.");
+    } finally {
+      setCustomAllergenBusy(false);
+    }
+  };
+
   const removeAllergen = useCallback((id: number) => {
     setSelectedAllergenIds((prev) => prev.filter((x) => x !== id));
   }, []);
@@ -362,6 +387,7 @@ function ProfileFields() {
 
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
+    if (customAllergenBusy || saving) return;
     const validationErrors = validateDraft(draft);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -975,6 +1001,23 @@ function ProfileFields() {
               )}
             </div>
           </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={customAllergenName}
+              onChange={event => { setCustomAllergenName(event.target.value); setCustomAllergenError(null); }}
+              onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); void handleAddCustomAllergen(); } }}
+              maxLength={80}
+              placeholder="Nguyên liệu dị ứng chưa có, ví dụ: mè"
+              aria-label="Tên dị ứng mới"
+              className="min-w-56 flex-1 rounded-xl border border-[#DBDAD7] bg-white px-3 py-2 text-sm"
+            />
+            <button type="button" disabled={customAllergenBusy || saving} onClick={() => void handleAddCustomAllergen()} className="rounded-xl bg-[#143D30] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+              {customAllergenBusy ? "Đang kiểm tra…" : "Thêm dị ứng mới"}
+            </button>
+          </div>
+          {customAllergenError && <p role="alert" className="text-sm text-red-700">{customAllergenError}</p>}
+          <p className="text-xs text-[#727974]">Tên mới được AI kiểm tra trùng nghĩa và nội dung trước khi lưu tự động.</p>
         </div>
       </section>
 
@@ -1121,12 +1164,13 @@ function ProfileFields() {
         <button
           type="button"
           onClick={handleCancel}
+          disabled={saving || customAllergenBusy}
           className="rounded-xl px-5 py-2.5 text-sm font-semibold tracking-[0.01em] text-[#727974] transition hover:bg-[#F5F3F0] hover:text-[#07241A]"
         ><UiText text={"Hủy bỏ"} /></button>
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || customAllergenBusy}
           className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-2.5 text-sm font-semibold tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-[#1E3A2F] disabled:opacity-60"
         >
           {saving ? (

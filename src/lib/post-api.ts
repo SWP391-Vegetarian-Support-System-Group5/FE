@@ -19,6 +19,7 @@ export interface PostResponse {
   postType: PostType;
   videoUrl: string | null;
   status: string;
+  moderationReason?: string | null;
   thumbnailUrl: string | null;
   averageRating: number;
   ratingCount: number;
@@ -96,7 +97,7 @@ export const removeBookmark = (id: number) => request<void>(`/api/posts/${id}/bo
 export async function createPost(payload: CreatePostPayload): Promise<PostResponse> {
   // Recipes with ingredients/steps use /api/recipes, never a second /api/posts call.
   const post = await request<PostResponse>("/api/posts", "POST", payload);
-  if (!post || !Number.isInteger(post.postId) || post.postId <= 0 || post.status !== "PUBLISHED" || typeof post.title !== "string") {
+  if (!post || !Number.isInteger(post.postId) || post.postId <= 0 || !["PUBLISHED", "DRAFT"].includes(post.status) || typeof post.title !== "string") {
     throw new PostApiError(201, "");
   }
   return post;

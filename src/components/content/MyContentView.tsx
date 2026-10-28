@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { createRecipe, deleteVideoRecipeDraft, getMyVideoRecipeDrafts, getRecipeById, publishVideoRecipeDraft, type VideoRecipeDraftResponse } from "@/lib/recipe-api";
+import { createRecipe, deleteVideoRecipeDraft, getMyVideoRecipeDrafts, getRecipeById, publishVideoRecipeDraft, updateRecipe, type VideoRecipeDraftResponse } from "@/lib/recipe-api";
+import { deletePost, updatePost } from "@/lib/post-api";
 import { createCommunityEventSource, getMyPosts, postToRecipe, type PostResponse } from "@/lib/community-api";
 import { MY_CONTENT_EVENT, getMyContentSnapshot, getVideoThumbnailUrl, parseMyContent, removeManualContent, sampleContent, saveContentItem, type MyContentItem } from "@/lib/my-content";
 import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount } from "@/lib/localized-content";
@@ -50,6 +51,8 @@ function postToContentItem(post: PostResponse): MyContentItem {
     id: `recipe-${post.postId}`,
     title: post.title,
     description: post.content,
+    postType: post.postType,
+    moderationReason: post.moderationReason,
     kind: post.videoUrl ? "video" : "recipe",
     status: post.status === "PUBLISHED" ? "published" : "draft",
     createdAt: post.createdAt,
@@ -134,7 +137,10 @@ export default function MyContentView() {
           return item;
         }
       }));
-      if (request === latestServerRequest.current) setServerItems([...items, ...drafts.map(videoDraftToContentItem)]);
+      if (request === latestServerRequest.current) setServerItems([
+        ...items.map(item => ({ ...item, videoDraft: drafts.find(draft => draft.recipePostId === recipeIdFromItem(item) && draft.status !== "PUBLISHED") })),
+        ...drafts.filter(draft => !draft.recipePostId).map(videoDraftToContentItem),
+      ]);
     } catch {
       if (request === latestServerRequest.current) setServerItems([]);
     } finally {
@@ -220,10 +226,10 @@ export default function MyContentView() {
     setPublishingDraft(true);
     setPublishError("");
     try {
-      await publishVideoRecipeDraft(draft.videoRecipeDraftId, { recipeName: draft.recipeName || draft.title || "Video recipe", categoryIds: [] });
+      const result = await publishVideoRecipeDraft(draft.videoRecipeDraftId, { recipeName: draft.recipeName || draft.title || "Video recipe", categoryIds: [] });
       setAction(null);
       await loadServerItems();
-      setNotice({ en: "Post published.", vi: "Đã đăng bài viết." });
+      setNotice({ en: result.status === "PUBLISHED" ? "Post published." : "Saved as draft.", vi: result.status === "PUBLISHED" ? "Bài viết đã được AI duyệt và đăng." : result.moderationReason || "Bài chưa qua kiểm duyệt; đã giữ trong bản nháp." });
     } catch (error) {
       setPublishError(error instanceof Error ? error.message : t("Could not publish the draft.", "Không đăng được bản nháp."));
     } finally {
@@ -238,7 +244,7 @@ export default function MyContentView() {
     setPublishingDraft(true);
     setPublishError("");
     try {
-      await createRecipe({
+      const result = await createRecipe({
         title: draft.title.trim(), recipeName: (draft.recipeName || "").trim(), content: draft.content.trim(), videoUrl: null,
         prepMinutes: Number(draft.prepMinutes) || null, cookMinutes: Number(draft.cookMinutes) || null,
         servings: Number(draft.servings) || null, ingredients: draft.ingredients, steps: draft.steps,
@@ -248,12 +254,39 @@ export default function MyContentView() {
       removeManualContent(owner);
       setAction(null);
       await loadServerItems();
-      setNotice({ en: "Post published.", vi: "Đã đăng bài viết." });
+      setNotice({ en: result.status === "PUBLISHED" ? "Post published." : "Saved as draft.", vi: result.status === "PUBLISHED" ? "Bài viết đã được AI duyệt và đăng." : result.moderationReason || "Bài chưa qua kiểm duyệt; đã giữ trong bản nháp." });
     } catch (error) {
       setPublishError(error instanceof Error ? error.message : t("Could not publish the draft.", "Không đăng được bản nháp."));
     } finally {
       setPublishingDraft(false);
     }
+  }
+
+  async function publishServerDraft(item: MyContentItem) {
+    const id = recipeIdFromItem(item);
+    if (!id || publishingDraft) return;
+    setPublishingDraft(true);
+    setPublishError("");
+    try {
+      if (item.postType === "RECIPE") {
+        const recipe = item.recipe || await getRecipeById(id);
+        const result = await updateRecipe(id, {
+          title: recipe.title, recipeName: recipe.recipeName, content: recipe.content,
+          videoUrl: recipe.videoUrl || null, prepMinutes: recipe.prepMinutes || null,
+          cookMinutes: recipe.cookMinutes || null, servings: recipe.servings || null,
+          ingredients: recipe.ingredients, steps: recipe.steps,
+          categoryIds: recipe.categories.map(category => category.id),
+          ...(user?.role === "ADMIN" ? { bmiTypeIds: recipe.bmiTypes?.map(type => type.id) || [] } : {}),
+        });
+        setNotice({ en: result.status === "PUBLISHED" ? "Post published." : "Saved as draft.", vi: result.status === "PUBLISHED" ? "Bài đã được AI duyệt và đăng." : result.moderationReason || "Bài vẫn ở bản nháp. Hãy chỉnh sửa và thử lại." });
+      } else {
+        await updatePost(id, { title: item.title, content: item.description, postType: (item.postType || "BLOG") as "BLOG", videoUrl: item.recipe?.videoUrl || null });
+        setNotice({ en: "Moderation completed.", vi: "Đã gửi kiểm duyệt lại. Kiểm tra trạng thái bài viết." });
+      }
+      setAction(null);
+      await loadServerItems();
+    } catch (error) { setPublishError(error instanceof Error ? error.message : "Không thể gửi kiểm duyệt lại."); }
+    finally { setPublishingDraft(false); }
   }
 
   async function deleteItem(item: MyContentItem) {
@@ -263,11 +296,17 @@ export default function MyContentView() {
         await deleteVideoRecipeDraft(item.videoDraft.videoRecipeDraftId);
         setServerItems((current) => current.filter((entry) => entry.id !== item.id));
       }
-      else if (item.status === "draft") removeManualContent(owner);
+      else if (item.status === "draft" && item.draft) removeManualContent(owner);
+      else if (item.status === "draft") {
+        const id = recipeIdFromItem(item);
+        if (!id) return;
+        await deletePost(id);
+        setServerItems(current => current.filter(entry => entry.id !== item.id));
+      }
       else return;
       setAction(null);
       setStorageError(false);
-      setNotice({ ...(sampleMode ? { en: "Sample post removed.", vi: "Đã xóa bài mẫu." } : { en: "Draft deleted.", vi: "Đã xóa bản nháp." }), ...(!item.videoDraft ? { undo: { item, sample: sampleMode, owner } } : {}) });
+      setNotice({ ...(sampleMode ? { en: "Sample post removed.", vi: "Đã xóa bài mẫu." } : { en: "Draft deleted.", vi: "Đã xóa bản nháp." }), ...(sampleMode || item.draft ? { undo: { item, sample: sampleMode, owner } } : {}) });
     } catch { setStorageError(true); }
   }
 
@@ -373,7 +412,7 @@ export default function MyContentView() {
                     <span className="inline-flex items-center gap-1.5 text-[11px] text-[#899388]">{item.minutes ? <><ContentIcon name="clock" width="14" height="14" />{item.minutes} {t("min", "phút")}</> : <><ContentIcon name="leaf" width="14" height="14" />VeggieMate</>}</span>
                     <div className="flex items-center gap-1">
                       <button type="button" onClick={() => setAction({ type: "preview", item })} aria-label={`${t("Preview", "Xem trước")}: ${text.title}`} title={t("Preview", "Xem trước")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="eye" width="16" height="16" /></button>
-                      {canEdit && (sampleMode ? <button type="button" onClick={() => setAction({ type: "edit", item })} aria-label={`${t("Edit sample", "Sửa bài mẫu")}: ${text.title}`} title={t("Edit sample", "Sửa bài mẫu")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></button> : <Link href={item.videoDraft ? `/create-content?draft=video-${item.videoDraft.videoRecipeDraftId}` : "/create-content?draft=manual"} aria-label={`${t("Edit draft", "Chỉnh sửa bản nháp")}: ${text.title}`} title={t("Edit draft", "Chỉnh sửa bản nháp")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></Link>)}
+                      {canEdit && (sampleMode ? <button type="button" onClick={() => setAction({ type: "edit", item })} aria-label={`${t("Edit sample", "Sửa bài mẫu")}: ${text.title}`} title={t("Edit sample", "Sửa bài mẫu")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></button> : item.postType && item.postType !== "RECIPE" ? <button type="button" onClick={() => setAction({ type: "edit", item })} aria-label={`Chỉnh sửa: ${text.title}`} className="rounded-lg p-2"><ContentIcon name="edit" width="16" height="16" /></button> : <Link href={item.videoDraft ? `/create-content?draft=video-${item.videoDraft.videoRecipeDraftId}` : item.draft ? "/create-content?draft=manual" : `/create-content?draft=${item.id}`} aria-label={`${t("Edit draft", "Chỉnh sửa bản nháp")}: ${text.title}`} title={t("Edit draft", "Chỉnh sửa bản nháp")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></Link>)}
                       {canEdit && <button type="button" onClick={() => { setStorageError(false); setAction({ type: "delete", item }); }} aria-label={`${t("Delete", "Xóa")}: ${text.title}`} title={t("Delete", "Xóa")} className="rounded-lg p-2 text-[#899388] transition hover:bg-red-50 hover:text-red-600"><ContentIcon name="trash" width="16" height="16" /></button>}
                     </div>
                   </div></div>
@@ -416,12 +455,10 @@ export default function MyContentView() {
           <button type="button" disabled={publishingDraft || !action.item.draft.title.trim() || !action.item.draft.recipeName?.trim() || !action.item.draft.ingredients.some((ingredient) => ingredient.ingredientName.trim()) || !action.item.draft.steps.some((step) => step.instruction.trim())} onClick={() => void publishManualDraft(action.item)} className="rounded-xl border border-[#1E3A2F] px-5 py-3 text-sm font-semibold text-[#1E3A2F] disabled:opacity-50">{publishingDraft ? t("Publishing...", "Đang đăng...") : t("Publish now", "Đăng bài")}</button>
         </div>
       </div></ContentDialog>}
-      {action?.type === "preview" && !action.item.videoDraft && (!action.item.draft || sampleMode) && (() => {
-        const previewImage = itemThumbnail(action.item);
-        return <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={previewImage} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><dl className="mt-5 border-b border-[#EFEEEB] pb-4"><dt className="text-xs font-semibold text-[#647068]">{t("Recipe name", "Tên món ăn")}</dt><dd className="mt-1 break-words text-lg font-semibold">{localizeRecipeTitle(action.item.recipe?.recipeName || action.item.draft?.recipeName, language) || t("Not provided", "Chưa có tên món ăn")}</dd></dl><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {localizeAmount(ingredient.amount, language)} {localizeIngredient(ingredient.ingredientName, language)}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{localizeText(step.instruction, language)}</li>)}</ol></>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>;
-      })()}
+      {action?.type === "preview" && !action.item.videoDraft && (!action.item.draft || sampleMode) && <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={itemThumbnail(action.item)} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><dl className="mt-5 border-b border-[#EFEEEB] pb-4"><dt className="text-xs font-semibold text-[#647068]">{t("Recipe name", "Tên món ăn")}</dt><dd className="mt-1 break-words text-lg font-semibold">{localizeRecipeTitle(action.item.recipe?.recipeName || action.item.draft?.recipeName, language) || t("Not provided", "Chưa có tên món ăn")}</dd></dl><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {localizeAmount(ingredient.amount, language)} {localizeIngredient(ingredient.ingredientName, language)}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{localizeText(step.instruction, language)}</li>)}</ol></>}{action.item.status === "draft" && !sampleMode && <div className="mt-5 space-y-3"><p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{action.item.moderationReason || "Bài đang được giữ ở bản nháp. Chỉnh sửa rồi gửi kiểm duyệt lại."}</p>{publishError && <p role="alert" className="text-sm text-red-700">{publishError}</p>}<div className="flex gap-3">{action.item.postType === "RECIPE" ? <Link className={buttonClass} href={`/create-content?draft=${action.item.id}`}>Chỉnh sửa bản nháp</Link> : <button type="button" className={buttonClass} onClick={() => setAction({ type: "edit", item: action.item })}>Chỉnh sửa bản nháp</button>}<button type="button" disabled={publishingDraft} onClick={() => void publishServerDraft(action.item)} className="rounded-xl border px-5 py-3 text-sm font-semibold disabled:opacity-50">{publishingDraft ? "Đang kiểm duyệt..." : "Gửi duyệt và đăng"}</button></div></div>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>}
 
-      {action?.type === "edit" && <SampleEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSave={(next) => { setSamples((current) => current.map((item) => item.id === next.id ? next : item)); setAction(null); setNotice({ en: "Sample changes saved for this preview session.", vi: "Đã lưu thay đổi bài mẫu trong phiên xem trước này." }); }} />}
+      {action?.type === "edit" && sampleMode && <SampleEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSave={(next) => { setSamples((current) => current.map((item) => item.id === next.id ? next : item)); setAction(null); setNotice({ en: "Sample changes saved for this preview session.", vi: "Đã lưu thay đổi bài mẫu trong phiên xem trước này." }); }} />}
+      {action?.type === "edit" && !sampleMode && action.item.postType !== "RECIPE" && <ServerPostEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSaved={async () => { setAction(null); await loadServerItems(); setNotice({ en: "Moderation completed.", vi: "Đã gửi kiểm duyệt lại. Kiểm tra trạng thái bài viết." }); }} />}
 
       {action?.type === "delete" && <ContentDialog title={sampleMode ? t("Delete sample post?", "Xóa bài mẫu?") : t("Delete this draft?", "Xóa bản nháp này?")} onClose={() => setAction(null)}>
         <div className="p-6">
@@ -437,6 +474,22 @@ export default function MyContentView() {
       </ContentDialog>}
     </div>
   );
+}
+
+function ServerPostEditDialog({ item, onClose, onSaved }: { item: MyContentItem; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [title, setTitle] = useState(item.title);
+  const [content, setContent] = useState(item.description);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  return <ContentDialog title="Chỉnh sửa bản nháp" onClose={onClose}><form className="space-y-4 p-6" onSubmit={async event => {
+    event.preventDefault();
+    const id = recipeIdFromItem(item);
+    if (!id) return;
+    setBusy(true); setError("");
+    try { await updatePost(id, { title: title.trim(), content: content.trim(), postType: (item.postType || "BLOG") as "BLOG", videoUrl: item.recipe?.videoUrl || null }); await onSaved(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể lưu bài viết."); }
+    finally { setBusy(false); }
+  }}><label className="block text-sm font-semibold">Tiêu đề<input required maxLength={150} value={title} onChange={event => setTitle(event.target.value)} className="mt-2 w-full rounded-xl border p-3" /></label><label className="block text-sm font-semibold">Nội dung<textarea required rows={6} value={content} onChange={event => setContent(event.target.value)} className="mt-2 w-full rounded-xl border p-3" /></label>{error && <p role="alert" className="text-sm text-red-700">{error}</p>}<button type="submit" disabled={busy} className={buttonClass}>{busy ? "Đang kiểm duyệt..." : "Lưu và gửi kiểm duyệt"}</button></form></ContentDialog>;
 }
 
 function SampleEditDialog({ item, onSave, onClose }: { item: MyContentItem; onSave: (item: MyContentItem) => void; onClose: () => void }) {
