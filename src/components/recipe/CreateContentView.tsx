@@ -30,6 +30,8 @@ import {
   getIngredients,
   getAllergens,
   createRecipe,
+  getRecipeById,
+  updateRecipe,
   uploadVideoRecipeDraft,
   getVideoRecipeDraft,
   updateVideoRecipeDraft,
@@ -98,6 +100,7 @@ function RecipeContentView() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<number | null>(null);
+  const [serverRecipeDraftId, setServerRecipeDraftId] = useState<number | null>(null);
   const [draftStatus, setDraftStatus] = useState<VideoDraftStatus | null>(null);
   const [draftErrorMessage, setDraftErrorMessage] = useState<string | null>(null);
   const [restoringVideoDraft, setRestoringVideoDraft] = useState(false);
@@ -145,6 +148,34 @@ function RecipeContentView() {
     });
     return () => { cancelled = true; };
   }, [authLoading, contentOwner]);
+
+  useEffect(() => {
+    if (authLoading || restoredDraftRef.current) return;
+    const match = /^recipe-(\d+)$/.exec(new URLSearchParams(window.location.search).get("draft") || "");
+    if (!match) return;
+    let cancelled = false;
+    const id = Number(match[1]);
+    getRecipeById(id).then(recipe => {
+      if (cancelled) return;
+      if (recipe.status !== "DRAFT") throw new Error("Bài viết này không còn là bản nháp.");
+      restoredDraftRef.current = true;
+      setServerRecipeDraftId(id);
+      setCreationMode("manual");
+      setTitle(recipe.title);
+      setRecipeName(recipe.recipeName);
+      setContent(recipe.content);
+      setVideoPreviewUrl(recipe.videoUrl || null);
+      setPrepMinutes(recipe.prepMinutes?.toString() || "");
+      setCookMinutes(recipe.cookMinutes?.toString() || "");
+      setServings(recipe.servings?.toString() || "");
+      setIngredients(recipe.ingredients);
+      setSteps(recipe.steps);
+      setSelectedCategoryIds(recipe.categories.map(category => category.id));
+      setSelectedBmiTypeIds(recipe.bmiTypes?.map(type => type.id) || []);
+      setStatusMessage({ type: "info", text: recipe.moderationReason || "Đã mở bản nháp trên máy chủ. Chỉnh sửa rồi gửi kiểm duyệt lại." });
+    }).catch(error => { if (!cancelled) setStatusMessage({ type: "error", text: error instanceof Error ? error.message : "Không mở được bản nháp." }); });
+    return () => { cancelled = true; };
+  }, [authLoading]);
 
   // Load master data on mount
   useEffect(() => {
@@ -595,10 +626,10 @@ function RecipeContentView() {
         });
 
         setPublishedResult(published);
-        try { rememberPublishedContent(contentOwner, published, "video"); } catch { /* Publishing already succeeded. */ }
+        if (published.status === "PUBLISHED") try { rememberPublishedContent(contentOwner, published, "video"); } catch { /* Publishing already succeeded. */ }
         setStatusMessage({
-          type: "success",
-          text: "Recipe published successfully.",
+          type: published.status === "PUBLISHED" ? "success" : "info",
+          text: published.status === "PUBLISHED" ? "Bài viết đã được AI duyệt và đăng." : published.moderationReason || "Bài chưa qua kiểm duyệt và vẫn ở bản nháp.",
         });
       } else {
         // Manual mode: POST /api/recipes
@@ -616,18 +647,19 @@ function RecipeContentView() {
           categoryIds: selectedCategoryIds,
         };
 
-        const res = await createRecipe(payload);
+        const res = serverRecipeDraftId ? await updateRecipe(serverRecipeDraftId, payload) : await createRecipe(payload);
+        if (res.status === "DRAFT") setServerRecipeDraftId(res.postId);
         setPublishedResult(res);
         try {
-          rememberPublishedContent(contentOwner, res, "recipe");
+          if (res.status === "PUBLISHED") rememberPublishedContent(contentOwner, res, "recipe");
           removeManualContent(contentOwner);
         } catch { /* Publishing already succeeded. */ }
         // Clear local manual draft
         localStorage.removeItem("veggie_manual_recipe_draft");
 
         setStatusMessage({
-          type: "success",
-          text: "Recipe published successfully.",
+          type: res.status === "PUBLISHED" ? "success" : "info",
+          text: res.status === "PUBLISHED" ? "Bài viết đã được AI duyệt và đăng." : res.moderationReason || "Bài chưa qua kiểm duyệt và đã được lưu bản nháp.",
         });
       }
     } catch (err: unknown) {
@@ -679,13 +711,13 @@ function RecipeContentView() {
                   ? "⚠️"
                   : "ℹ️"}
               </span>
-              <div><UiText text={statusMessage.text} />{publishedResult && statusMessage.type === "success" && <p className="mt-1 break-words">{publishedResult.title} · #{publishedResult.postId}</p>}</div>
+              <div><UiText text={statusMessage.text} />{publishedResult && <p className="mt-1 break-words">{publishedResult.title} · #{publishedResult.postId}</p>}</div>
             </div>
-            {statusMessage.type === "success" && (
+            {publishedResult && statusMessage.type !== "error" && (
               <Link
                 href="/my-content"
                 className="underline font-bold hover:text-black ml-4"
-              ><UiText text={publishedResult ? "Xem bài viết" : "Xem bản nháp"} /></Link>
+              ><UiText text={publishedResult?.status === "PUBLISHED" ? "Xem bài viết" : "Xem bản nháp"} /></Link>
             )}
           </div>
         </div>

@@ -60,12 +60,12 @@ export default function PostComposer({ postType }: { postType: PostType }) {
   return <div className="mx-auto max-w-5xl px-4 pb-12 sm:px-6 lg:px-8">
     <header className="border-b border-[#E5E7DF] pb-6">
       <h1 className="font-serif text-3xl font-bold text-[#07241A] sm:text-4xl">{t("Create a post", "Tạo bài viết")}</h1>
-      <p className="mt-3 text-sm text-[#727974]">{t("Share your story, ask the community, or share a video. Your post becomes public when you publish it.", "Chia sẻ câu chuyện, hỏi cộng đồng hoặc chia sẻ video. Bài viết sẽ công khai ngay khi đăng.")}</p>
+      <p className="mt-3 text-sm text-[#727974]">Bài viết chỉ công khai sau khi AI kiểm duyệt. Nội dung chưa đạt sẽ được lưu vào bản nháp để bạn chỉnh sửa.</p>
     </header>
     {visiblePublished && <div ref={resultRef} role="status" aria-live="polite" className="mt-6 rounded-2xl border border-[#CAEADA] bg-[#E8F0E4] p-5 text-[#254B38]">
-      <p className="font-semibold">✓ {t("Post created successfully!", "Đã tạo bài viết thành công!")}</p>
-      <p className="mt-2 break-words text-sm">{visiblePublished.title} · {t("Post ID", "Mã bài viết")}: #{visiblePublished.postId} · {t("Published", "Đã công khai")}</p>
-      <Link href={`/view-detail/post-${visiblePublished.postId}`} className="mt-3 mr-5 inline-block text-sm font-semibold underline">{t("View post", "Xem bài viết")}</Link>
+      <p className="font-semibold">{visiblePublished.status === "PUBLISHED" ? "Đã kiểm duyệt và đăng bài." : "Bài chưa qua kiểm duyệt, đã lưu bản nháp."}</p>
+      <p className="mt-2 break-words text-sm">{visiblePublished.title} · Mã bài viết: #{visiblePublished.postId}{visiblePublished.moderationReason ? ` · ${visiblePublished.moderationReason}` : ""}</p>
+      <Link href={visiblePublished.status === "PUBLISHED" ? `/view-detail/post-${visiblePublished.postId}` : "/my-content"} className="mt-3 mr-5 inline-block text-sm font-semibold underline">{visiblePublished.status === "PUBLISHED" ? "Xem bài viết" : "Xem bản nháp"}</Link>
       <button type="button" className="mt-3 text-sm font-semibold underline underline-offset-4" onClick={() => { setTitle(""); setContent(""); setVideoUrl(""); setTouched({}); changed(); focusField(titleRef.current); }}>{t("Create another post", "Tạo bài viết khác")}</button>
     </div>}
     {failure && <div ref={resultRef} role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">

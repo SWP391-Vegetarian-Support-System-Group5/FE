@@ -5,7 +5,7 @@
  * base URL and JWT token are handled automatically.
  */
 
-import { apiGet, apiPut } from "@/lib/api";
+import { apiFetch, apiGet, apiPut } from "@/lib/api";
 
 // ─── Response types ─────────────────────────────────────────────────────────
 
@@ -131,6 +131,20 @@ export async function getUserAllergens() {
 /** Update the current user's allergen selections */
 export function updateUserAllergens(allergenIds: number[]) {
   return apiPut<void>("/api/users/me/allergens", { allergenIds });
+}
+
+/** Validates a new food allergy on the server and immediately saves it to this profile. */
+export async function createCustomAllergen(name: string): Promise<AllergenItem[]> {
+  const response = await apiFetch("/api/users/me/allergens/custom", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  const data = await response.json() as { message?: string; allergens?: BackendCatalogItem[] };
+  if (!response.ok) throw new Error(data.message || "Không thể thêm dị ứng. Vui lòng thử lại.");
+  return (data.allergens ?? []).map(item => ({
+    allergenId: item.allergenId ?? item.id ?? 0,
+    name: item.name,
+  })).filter(item => item.allergenId > 0);
 }
 
 /** Fetch all provinces */

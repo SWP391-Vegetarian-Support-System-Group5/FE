@@ -15,6 +15,8 @@ export interface ManualRecipeDraft {
 }
 
 export interface MyContentItem {
+  postType?: string;
+  moderationReason?: string | null;
   id: string;
   title: string;
   description: string;
