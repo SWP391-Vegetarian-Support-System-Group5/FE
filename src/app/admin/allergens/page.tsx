@@ -26,62 +26,18 @@ interface AdminUser {
 
 interface AllergenUserInfo {
   name: string;
-  time?: string | null;
   avatarUrl?: string | null;
   initials?: string;
   avatarPalette?: string;
-}
-
-function formatRelativeTime(
-  dateInput: string | Date | undefined | null,
-  locale: string,
-  t: (en: string, vi: string) => string
-): string | null {
-  if (!dateInput) return null;
-  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-  if (Number.isNaN(date.getTime())) return null;
-
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  if (diffMs < 0) {
-    return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(date);
-  }
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHours = Math.floor(diffMin / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSec < 60) {
-    return t("Just now", "Vừa xong");
-  }
-  if (diffMin < 60) {
-    return t(`${diffMin}m ago`, `${diffMin} phút trước`);
-  }
-  if (diffHours < 24) {
-    return t(`${diffHours}h ago`, `${diffHours} giờ trước`);
-  }
-  if (diffDays < 7) {
-    return t(`${diffDays}d ago`, `${diffDays} ngày trước`);
-  }
-  return new Intl.DateTimeFormat(locale, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
 }
 
 function getMemberForAllergen(
   item: AdminAllergen,
   members: AdminUser[],
   currentUser: { fullName?: string | null } | null,
-  locale: string,
   t: (en: string, vi: string) => string
 ): AllergenUserInfo {
-  // 1. Kiểm tra trường thời gian thực tế từ data item (nếu backend có trả về)
-  const rawDate = item.createdAt || item.createdDate || item.requestedAt;
-  let formattedTime = rawDate ? formatRelativeTime(rawDate, locale, t) : null;
-
-  // 2. Lấy người dùng thực tế từ API /api/admin/users
+  // Lấy người dùng thực tế từ API /api/admin/users
   if (members && members.length > 0) {
     const member =
       (item.userId ? members.find((m) => m.userId === item.userId) : null) ||
@@ -94,14 +50,8 @@ function getMemberForAllergen(
         ? parts[0].slice(0, 2).toUpperCase()
         : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 
-    // Nếu item không có ngày tạo nhưng thành viên có ngày đăng ký, hiển thị ngày tạo của thành viên
-    if (!formattedTime && member.createdAt) {
-      formattedTime = formatRelativeTime(member.createdAt, locale, t);
-    }
-
     return {
       name: member.fullName || member.email,
-      time: formattedTime, // Sẽ là null nếu cả item lẫn member không có timestamp thật trong data
       avatarUrl: member.avatarUrl || null,
       initials: initials || "VM",
       avatarPalette: "bg-[#E8F5E9] text-[#1E3A2F]",
@@ -118,7 +68,6 @@ function getMemberForAllergen(
 
   return {
     name: fallbackName,
-    time: formattedTime,
     avatarUrl: null,
     initials: initials || "VM",
     avatarPalette: "bg-[#E8F5E9] text-[#1E3A2F]",
@@ -742,7 +691,7 @@ export default function AdminAllergensPage() {
           /* Hiển thị danh sách card từ dữ liệu API thật của bạn */
           displayedItems.map((item) => {
             const meta = getAllergenBadgeAndNotes(item, t);
-            const userObj = getMemberForAllergen(item, members, user, locale, t);
+            const userObj = getMemberForAllergen(item, members, user, t);
             const isApproved = approvedIds.has(item.id);
 
             return (
@@ -843,9 +792,6 @@ export default function AdminAllergensPage() {
                     )}
                     <div className="text-left">
                       <p className="text-xs font-bold text-[#07241A] leading-tight">{userObj.name}</p>
-                      {userObj.time ? (
-                        <p className="text-[11px] font-normal text-[#727974] leading-tight mt-0.5">{userObj.time}</p>
-                      ) : null}
                     </div>
                   </div>
                 </div>
