@@ -66,6 +66,7 @@ test("navigation and footer render Vietnamese without a language switch", () => 
     "next/navigation": { usePathname: () => "/", useRouter: () => ({ push() {} }) },
     "@/context/AuthContext": { useAuth: () => ({ user: null, loading: false, logout() {} }) },
     "@/context/AdminModerationContext": { useAdminModeration: () => ({ flaggedCount: 0 }), BYPASS_ADMIN_ROLE: false },
+    "@/components/NotificationBell": defaultExport(() => null),
   }).default;
   const Footer = load("src/components/Footer.tsx", common).default;
   const html = render(React.createElement(React.Fragment, null, React.createElement(Navbar), React.createElement(Footer)));

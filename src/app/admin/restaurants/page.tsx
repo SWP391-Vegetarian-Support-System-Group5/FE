@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import Image from "next/image";
 import Link from "next/link";
 import ContentIcon from "@/components/content/ContentIcon";
+import ImageFilePicker from "@/components/ImageFilePicker";
+import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatDietTypeName } from "@/lib/diet-type-display";
@@ -24,6 +26,7 @@ const PAGE_SIZE = 6;
 type FormValues = {
   name: string;
   address: string;
+  imageUrl: string;
   dietTypeIds: number[];
   foods: string;
   ingredientIds: number[];
@@ -32,6 +35,7 @@ type FormValues = {
 const emptyForm: FormValues = {
   name: "",
   address: "",
+  imageUrl: "",
   dietTypeIds: [],
   foods: "",
   ingredientIds: [],
@@ -41,6 +45,7 @@ function fromRestaurant(item: AdminRestaurant): FormValues {
   return {
     name: item.name,
     address: item.address,
+    imageUrl: item.imageUrl || "",
     dietTypeIds: item.dietTypeIds,
     foods: item.foods.join(", "),
     ingredientIds: item.ingredientIds,
@@ -51,6 +56,7 @@ function toPayload(form: FormValues): RestaurantPayload {
   return {
     name: form.name.trim(),
     address: form.address.trim(),
+    imageUrl: form.imageUrl.trim() || null,
     dietTypeIds: form.dietTypeIds,
     foods: [...new Set(form.foods.split(",").map((food) => food.trim()).filter(Boolean))],
     ingredientIds: form.ingredientIds,
@@ -71,6 +77,7 @@ const RESTAURANT_IMAGES = [
 ];
 
 function getRestaurantThumbnail(item: AdminRestaurant, index: number): string {
+  if (item.imageUrl) return item.imageUrl;
   const name = item.name.toLowerCase();
   if (name.includes("green") || name.includes("vườn") || name.includes("garden")) return "/images/vegan_green_garden.jpg";
   if (name.includes("loving") || name.includes("leaf") || name.includes("lá")) return "/images/restaurant_loving_leaf.png";
@@ -130,6 +137,7 @@ export default function AdminRestaurantsPage() {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<AdminRestaurant | null>(null);
   const [form, setForm] = useState<FormValues | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -233,6 +241,7 @@ export default function AdminRestaurantsPage() {
   function openForm(item?: AdminRestaurant) {
     setEditing(item ?? null);
     setForm(item ? fromRestaurant(item) : { ...emptyForm });
+    setImageFile(null);
     setIngredientQuery("");
     setError("");
     setNotice("");
@@ -245,11 +254,13 @@ export default function AdminRestaurantsPage() {
       setError(t("Select at least one diet type.", "Hãy chọn ít nhất một loại ăn chay."));
       return;
     }
-    const payload = toPayload(form);
     setBusy(true);
     setError("");
     setNotice("");
     try {
+      const imageUrl = imageFile ? await uploadImage(imageFile, "restaurants") : form.imageUrl.trim() || null;
+      if (imageFile) { setForm({ ...form, imageUrl: imageUrl || "" }); setImageFile(null); }
+      const payload = { ...toPayload(form), imageUrl };
       if (editing) await updateRestaurant(editing.restaurantId, payload);
       else await createRestaurant(payload);
       await load();
@@ -665,6 +676,7 @@ export default function AdminRestaurantsPage() {
                         src={thumbnail}
                         alt={item.name}
                         fill
+                        unoptimized
                         sizes="56px"
                         className="object-cover"
                       />
@@ -918,6 +930,8 @@ export default function AdminRestaurantsPage() {
                     className={inputClass}
                   />
                 </label>
+
+                <ImageFilePicker value={form.imageUrl} file={imageFile} onFileChange={setImageFile} onValueChange={url => setForm({ ...form, imageUrl: url || "" })} disabled={busy} />
 
                 <fieldset className="text-xs font-semibold text-[#07241A]">
                   <legend className="mb-1.5">{t("Types of Vegetarianism", "Các loại hình ăn chay")} *</legend>

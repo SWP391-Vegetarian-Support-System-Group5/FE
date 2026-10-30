@@ -50,6 +50,7 @@ export interface CreateRecipePayload {
   recipeName: string;
   content: string;
   videoUrl: string | null;
+  imageUrl?: string | null;
   prepMinutes: number | null;
   cookMinutes: number | null;
   servings: number | null;
@@ -73,6 +74,7 @@ export interface RecipeResponse {
   categories: import("@/lib/recipe-categories").RecipeCategory[];
   videoUrl?: string | null;
   thumbnailUrl?: string | null;
+  imageUrl?: string | null;
   prepMinutes?: number | null;
   cookMinutes?: number | null;
   categoryIds?: number[];
