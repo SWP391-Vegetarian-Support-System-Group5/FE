@@ -22,6 +22,7 @@ export type Coordinates = {
 export type Restaurant = {
   id: string;
   name: string;
+  imageUrl?: string | null;
   category: string;
   address: string;
   provinceCode: string;

@@ -2,6 +2,8 @@
 
 import UiText, { useUiText } from "@/components/UiText";
 import UploadProgress from "@/components/ui/UploadProgress";
+import ImageFilePicker from "@/components/ImageFilePicker";
+import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 
 import RecipeCategoryPicker from "./RecipeCategoryPicker";
@@ -80,6 +82,8 @@ function RecipeContentView() {
   // Form fields
   const [title, setTitle] = useState("");
   const [recipeName, setRecipeName] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [prepMinutes, setPrepMinutes] = useState<string>("20");
   const [cookMinutes, setCookMinutes] = useState<string>("15");
   const [servings, setServings] = useState<string>("2");
@@ -137,6 +141,7 @@ function RecipeContentView() {
       setCreationMode("manual");
       setTitle(draft.title);
       setRecipeName(draft.recipeName || "");
+      setImageUrl(draft.imageUrl || "");
       setContent(draft.content);
       setPrepMinutes(draft.prepMinutes);
       setCookMinutes(draft.cookMinutes);
@@ -163,6 +168,7 @@ function RecipeContentView() {
       setCreationMode("manual");
       setTitle(recipe.title);
       setRecipeName(recipe.recipeName);
+      setImageUrl(recipe.imageUrl || "");
       setContent(recipe.content);
       setVideoPreviewUrl(recipe.videoUrl || null);
       setPrepMinutes(recipe.prepMinutes?.toString() || "");
@@ -480,6 +486,7 @@ function RecipeContentView() {
 
   // Save Draft action
   const handleSaveDraft = async () => {
+    if (isSubmitting) return;
     setStatusMessage(null);
 
     if (creationMode === "ai") {
@@ -522,31 +529,27 @@ function RecipeContentView() {
       }
     } else {
       // Manual mode: Save to localStorage as BE doesn't have draft endpoint for manual recipes
-      const manualDraft = {
-        title,
-        recipeName,
-        content,
-        prepMinutes,
-        cookMinutes,
-        servings,
-        ingredients,
-        steps,
-        selectedCategoryIds,
-        selectedBmiTypeIds,
-        savedAt: new Date().toISOString(),
-      };
+      setIsSubmitting(true);
       try {
+        const savedImageUrl = imageFile ? await uploadImage(imageFile, "recipes") : imageUrl;
+        if (imageFile) { setImageUrl(savedImageUrl); setImageFile(null); }
+        const manualDraft = {
+          title, recipeName, imageUrl: savedImageUrl, content, prepMinutes, cookMinutes, servings,
+          ingredients, steps, selectedCategoryIds, selectedBmiTypeIds, savedAt: new Date().toISOString(),
+        };
         localStorage.setItem("veggie_manual_recipe_draft", JSON.stringify(manualDraft));
         saveManualContent(contentOwner, manualDraft);
         setStatusMessage({
           type: "success",
           text: "Đã lưu bản nháp công thức vào bộ nhớ trình duyệt!",
         });
-      } catch {
+      } catch (error) {
         setStatusMessage({
           type: "error",
-          text: "Không thể lưu bản nháp vào bộ nhớ trình duyệt.",
+          text: error instanceof Error ? error.message : "Không thể lưu bản nháp.",
         });
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -633,12 +636,15 @@ function RecipeContentView() {
         });
       } else {
         // Manual mode: POST /api/recipes
+        const savedImageUrl = imageFile ? await uploadImage(imageFile, "recipes") : imageUrl.trim() || null;
+        if (imageFile) { setImageUrl(savedImageUrl || ""); setImageFile(null); }
         const payload = {
           ...(isAdmin ? { bmiTypeIds: selectedBmiTypeIds } : {}),
           title: title.trim(),
           recipeName: recipeName.trim(),
           content: content.trim(),
           videoUrl: videoPreviewUrl || null,
+          imageUrl: savedImageUrl,
           prepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
           cookMinutes: cookMinutes ? parseInt(cookMinutes, 10) : null,
           servings: servings ? parseInt(servings, 10) : null,
@@ -850,6 +856,7 @@ function RecipeContentView() {
             {t("Recipe name", "Tên món ăn")} <span className="text-red-500">*</span>
             <input type="text" required maxLength={250} value={recipeName} onChange={(event) => setRecipeName(event.target.value)} placeholder={t("e.g. Tofu in tomato sauce", "Ví dụ: Đậu hũ sốt cà chua")} className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 text-sm font-normal text-[#07241A] outline-none focus:border-[#1E3A2F]" />
           </label>
+          {creationMode === "manual" && <ImageFilePicker value={imageUrl} file={imageFile} onFileChange={setImageFile} onValueChange={url => setImageUrl(url || "")} disabled={isSubmitting} />}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 
             {/* Preparation time */}

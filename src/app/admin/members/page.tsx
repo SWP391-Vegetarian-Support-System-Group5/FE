@@ -11,14 +11,24 @@ interface AdminUser {
   role: string;
   fullName: string;
   isActive: boolean;
+  isEmailVerified?: boolean | null;
   createdAt?: string;
-  joinedDate?: string;
-  avatarUrl?: string | null;
+}
+
+interface AdminUserActivity {
+  userId: number;
+  posts: number;
+  videos: number;
+  comments: number;
+  saved: number;
+  recipes: number;
+  ratings: number;
+  lastActivityAt: string | null;
+  dailyContributions: number[];
 }
 
 const PAGE_SIZE = 10;
 
-// Deterministic joined date formatter matching mockup dates (e.g., "10 Mar 2026")
 function formatJoinedDate(member: AdminUser, locale: string): string {
   if (member.createdAt) {
     const d = new Date(member.createdAt);
@@ -26,24 +36,7 @@ function formatJoinedDate(member: AdminUser, locale: string): string {
       return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(d);
     }
   }
-  // Deterministic realistic joined date based on member.userId
-  const base = new Date(2026, 2, 12); // 12 Mar 2026
-  const dayOffset = Math.max(0, (1074 - member.userId) * 2);
-  const derived = new Date(base.getTime() - dayOffset * 86400000);
-  return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric" }).format(derived);
-}
-
-// Deterministic activity stats for detail profile
-function getMemberActivity(member: AdminUser) {
-  const seed = member.userId;
-  const posts = 4 + (seed % 9);
-  const videos = Math.max(1, Math.floor(posts * 0.6));
-  const reviews = posts - videos;
-  const comments = 15 + (seed % 30);
-  const helpfulPercent = 90 + (seed % 9);
-  const saved = 8 + (seed % 15);
-  const recipes = saved + 2;
-  return { posts, videos, reviews, comments, helpfulPercent, saved, recipes };
+  return "—";
 }
 
 // Avatar color palette for user initials
@@ -71,6 +64,8 @@ export default function AdminMembersPage() {
   const [sortNewest, setSortNewest] = useState(true);
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [activity, setActivity] = useState<AdminUserActivity | null>(null);
+  const [activityError, setActivityError] = useState(false);
   const [showProfile, setShowProfile] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -91,17 +86,7 @@ export default function AdminMembersPage() {
       .then((data) => {
         setMembers(data);
         setError("");
-        // Select Minh Tran or the first member to match mockup frame
-        if (data.length > 0 && selectedId === null) {
-          const defaultSelected =
-            data.find(
-              (m) =>
-                m.fullName.toLowerCase().includes("minh") ||
-                m.email.toLowerCase().includes("minh@")
-            ) || data[0];
-          setSelectedId(defaultSelected.userId);
-          setShowProfile(true);
-        }
+        if (data.length > 0) setSelectedId(current => current ?? data[0].userId);
       })
       .catch(() => {
         if (!controller.signal.aborted) setError("load");
@@ -111,6 +96,15 @@ export default function AdminMembersPage() {
       });
     return () => controller.abort();
   }, [user?.role]);
+
+  useEffect(() => {
+    if (user?.role?.toLowerCase() !== "admin" || selectedId === null) return;
+    const controller = new AbortController();
+    apiGet<AdminUserActivity>(`/api/admin/users/${selectedId}/activity`, { signal: controller.signal })
+      .then(data => { if (!controller.signal.aborted) { setActivity(data); setActivityError(false); } })
+      .catch(() => { if (!controller.signal.aborted) setActivityError(true); });
+    return () => controller.abort();
+  }, [user?.role, selectedId]);
 
   const filtered = useMemo(() => {
     return members
@@ -432,12 +426,9 @@ export default function AdminMembersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EFEEEB]/70">
-                  {visible.map((member, idx) => {
+                  {visible.map((member) => {
                     const isSelected = selectedId === member.userId && showProfile;
                     const palette = AVATAR_PALETTES[member.userId % AVATAR_PALETTES.length];
-                    const isMinh =
-                      member.fullName.toLowerCase().includes("minh") ||
-                      member.email.toLowerCase().startsWith("minh");
                     const joinedFormatted = formatJoinedDate(member, locale);
 
                     return (
@@ -473,25 +464,9 @@ export default function AdminMembersPage() {
                           <div className="flex items-center gap-3">
                             {/* Avatar */}
                             <div className="relative shrink-0">
-                              {isMinh ? (
-                                <img
-                                  src="/images/avatar-demo.png"
-                                  alt={member.fullName}
-                                  className="h-10 w-10 rounded-full border border-black/5 object-cover shadow-2xs"
-                                />
-                              ) : member.avatarUrl ? (
-                                <img
-                                  src={member.avatarUrl}
-                                  alt={member.fullName}
-                                  className="h-10 w-10 rounded-full border border-black/5 object-cover shadow-2xs"
-                                />
-                              ) : (
-                                <div
-                                  className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold shadow-2xs ${palette.bg} ${palette.text}`}
-                                >
-                                  {getInitials(member.fullName)}
-                                </div>
-                              )}
+                              <div className={`flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold shadow-2xs ${palette.bg} ${palette.text}`}>
+                                {getInitials(member.fullName)}
+                              </div>
                             </div>
 
                             {/* Name & Roles */}
@@ -520,10 +495,6 @@ export default function AdminMembersPage() {
                               ) : member.role?.toLowerCase() === "admin" ? (
                                 <p className="text-[11px] font-medium text-[#1E3A2F]">
                                   {t("• Admin", "• Quản trị")}
-                                </p>
-                              ) : isMinh || idx % 2 === 1 ? (
-                                <p className="text-[11px] font-medium text-[#2D5A46]">
-                                  {t("• Contributing Cook", "• Đầu bếp đóng góp")}
                                 </p>
                               ) : null}
                             </div>
@@ -674,45 +645,26 @@ export default function AdminMembersPage() {
 
               {/* Profile Hero Box */}
               {(() => {
-                const isMinh =
-                  selected.fullName.toLowerCase().includes("minh") ||
-                  selected.email.toLowerCase().startsWith("minh");
                 const palette = AVATAR_PALETTES[selected.userId % AVATAR_PALETTES.length];
-                const activity = getMemberActivity(selected);
+                const memberActivity = activity?.userId === selected.userId ? activity : null;
 
                 return (
                   <>
                     <div className="relative rounded-2xl border border-[#E7EFEA] bg-[#F2F6F4] p-5 text-center">
                       {/* Avatar with Verified checkmark */}
                       <div className="relative mx-auto h-20 w-20">
-                        {isMinh ? (
-                          <img
-                            src="/images/avatar-demo.png"
-                            alt={selected.fullName}
-                            className="h-20 w-20 rounded-full border-2 border-white object-cover shadow-sm"
-                          />
-                        ) : selected.avatarUrl ? (
-                          <img
-                            src={selected.avatarUrl}
-                            alt={selected.fullName}
-                            className="h-20 w-20 rounded-full border-2 border-white object-cover shadow-sm"
-                          />
-                        ) : (
-                          <div
-                            className={`flex h-20 w-20 items-center justify-center rounded-full border-2 border-white text-xl font-bold shadow-sm ${palette.bg} ${palette.text}`}
-                          >
-                            {getInitials(selected.fullName)}
-                          </div>
-                        )}
+                        <div className={`flex h-20 w-20 items-center justify-center rounded-full border-2 border-white text-xl font-bold shadow-sm ${palette.bg} ${palette.text}`}>
+                          {getInitials(selected.fullName)}
+                        </div>
                         {/* Verified Badge */}
-                        <span
+                        {selected.isEmailVerified && <span
                           title={t("Verified member", "Thành viên đã xác minh")}
                           className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#16A34A] text-white shadow-xs"
                         >
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
-                        </span>
+                        </span>}
                       </div>
 
                       <h3 className="mt-3 font-serif text-lg font-bold text-[#07241A]">
@@ -746,7 +698,7 @@ export default function AdminMembersPage() {
                           {t("COMMUNITY ACTIVITY", "HOẠT ĐỘNG CỘNG ĐỒNG")}
                         </span>
                         <span className="text-[10px] text-[#A0A5A1]">
-                          {t("Last active 2 hrs ago", "Hoạt động 2 giờ trước")}
+                          {memberActivity?.lastActivityAt ? `${t("Last contribution", "Đóng góp gần nhất")}: ${new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(memberActivity.lastActivityAt))}` : activityError ? "Không tải được hoạt động" : "Chưa có hoạt động"}
                         </span>
                       </div>
 
@@ -755,31 +707,30 @@ export default function AdminMembersPage() {
                         {/* Posts Card */}
                         <div className="rounded-xl border border-[#EFEEEB] bg-[#FAF9F6] p-2.5 text-center">
                           <p className="font-serif text-lg font-bold leading-none text-[#07241A]">
-                            {activity.posts}
+                            {memberActivity?.posts ?? "—"}
                           </p>
                           <p className="mt-1 text-[11px] font-semibold text-[#424844]">
                             {t("Posts", "Bài viết")}
                           </p>
                           <p className="mt-1 text-[10px] text-[#727974]">
-                            {activity.videos} {t("Videos", "Video")}
+                            {memberActivity?.videos ?? "—"} {t("Videos", "Video")}
                           </p>
                           <p className="text-[10px] text-[#727974]">
-                            {activity.reviews} {t("Reviews", "Đánh giá")}
+                            {memberActivity?.recipes ?? "—"} {t("Recipes", "Công thức")}
                           </p>
                         </div>
 
                         {/* Comments Card */}
                         <div className="rounded-xl border border-[#EFEEEB] bg-[#FAF9F6] p-2.5 text-center">
                           <p className="font-serif text-lg font-bold leading-none text-[#07241A]">
-                            {activity.comments}
+                            {memberActivity?.comments ?? "—"}
                           </p>
                           <p className="mt-1 text-[11px] font-semibold text-[#424844]">
                             {t("Comments", "Bình luận")}
                           </p>
                           <div className="mt-1 flex items-center justify-center gap-1 text-[10px] text-[#727974]">
-                            <span>👍</span>
                             <span>
-                              {activity.helpfulPercent}% {t("Helpful", "Hữu ích")}
+                              {memberActivity?.ratings ?? "—"} đánh giá đã gửi
                             </span>
                           </div>
                         </div>
@@ -787,13 +738,13 @@ export default function AdminMembersPage() {
                         {/* Saved Card */}
                         <div className="rounded-xl border border-[#EFEEEB] bg-[#FAF9F6] p-2.5 text-center">
                           <p className="font-serif text-lg font-bold leading-none text-[#07241A]">
-                            {activity.saved}
+                            {memberActivity?.saved ?? "—"}
                           </p>
                           <p className="mt-1 text-[11px] font-semibold text-[#424844]">
                             {t("Saved", "Đã lưu")}
                           </p>
                           <p className="mt-1 text-[10px] text-[#727974]">
-                            {activity.recipes} {t("Recipes", "Công thức")}
+                            {memberActivity?.recipes ?? "—"} {t("Recipes", "Công thức")}
                           </p>
                         </div>
                       </div>
@@ -805,32 +756,11 @@ export default function AdminMembersPage() {
                         <span className="font-bold text-[#07241A]">
                           {t("30-Day Contribution Cadence", "Tần suất đóng góp 30 ngày")}
                         </span>
-                        <span className="font-semibold text-emerald-600">
-                          +18% {t("vs prev", "so với trước")}
-                        </span>
+                        <span className="font-semibold text-emerald-600">{memberActivity?.dailyContributions.reduce((total, count) => total + count, 0) ?? "—"} đóng góp</span>
                       </div>
 
-                      {/* Smooth Sparkline */}
-                      <div className="mt-2 h-14 w-full">
-                        <svg viewBox="0 0 240 60" className="h-full w-full overflow-visible">
-                          <defs>
-                            <linearGradient id="cadenceGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#10B981" stopOpacity="0.35" />
-                              <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
-                            </linearGradient>
-                          </defs>
-                          <path
-                            d="M 0,55 C 30,52 60,45 90,43 C 120,41 150,30 180,24 C 210,18 230,12 240,10 L 240,60 L 0,60 Z"
-                            fill="url(#cadenceGradient)"
-                          />
-                          <path
-                            d="M 0,55 C 30,52 60,45 90,43 C 120,41 150,30 180,24 C 210,18 230,12 240,10"
-                            fill="none"
-                            stroke="#1E3A2F"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
+                      <div className="mt-2 flex h-14 items-end gap-1" aria-label="Số bài viết và bình luận mỗi ngày trong 30 ngày">
+                        {memberActivity?.dailyContributions.map((count, index) => <div key={index} title={`${count} đóng góp`} className="min-w-0 flex-1 rounded-t bg-[#2D5A46]" style={{ height: `${Math.max(4, count / Math.max(1, ...memberActivity.dailyContributions) * 100)}%` }} />) ?? <p className="text-xs text-[#727974]">Đang tải dữ liệu hoạt động...</p>}
                       </div>
                     </div>
 

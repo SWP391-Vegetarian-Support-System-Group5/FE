@@ -4,6 +4,9 @@ import { Fragment, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import UiText, { useUiText } from "@/components/UiText";
+import ImageFilePicker from "@/components/ImageFilePicker";
+import { uploadImage } from "@/lib/image-upload";
+import { useAuth } from "@/context/AuthContext";
 import { getIngredientCategories, getIngredients, saveIngredientCategory, type IngredientItem, type RecipeResponse } from "@/lib/recipe-api";
 import { localizeIngredient, localizeIngredientCategory, localizeRecipeTitle } from "@/lib/localized-content";
 import { apiFetch, apiGet } from "@/lib/api";
@@ -59,6 +62,8 @@ export default function AdminCategoriesPage() {
   const [formSlug, setFormSlug] = useState("");
   const [formType, setFormType] = useState<"Recipe Category" | "Ingredient Group">("Recipe Category");
   const [formDescription, setFormDescription] = useState("");
+  const [formImageUrl, setFormImageUrl] = useState("");
+  const [formImageFile, setFormImageFile] = useState<File | null>(null);
   const [formItemCount, setFormItemCount] = useState(0);
   const [formBadgeType, setFormBadgeType] = useState<CategoryData["badgeType"]>("flag-vn");
   const [formStatus, setFormStatus] = useState<"Active" | "Hidden">("Active");
@@ -155,6 +160,8 @@ export default function AdminCategoriesPage() {
     setFormSlug("");
     setFormType(activeTab === "ingredients" ? "Ingredient Group" : "Recipe Category");
     setFormDescription("");
+    setFormImageUrl("");
+    setFormImageFile(null);
     setFormItemCount(0);
     setFormBadgeType("flag-vn");
     setFormStatus("Active");
@@ -170,6 +177,8 @@ export default function AdminCategoriesPage() {
     setFormSlug(cat.slug);
     setFormType(cat.type);
     setFormDescription(cat.description);
+    setFormImageUrl(cat.imageUrl || "");
+    setFormImageFile(null);
     setFormItemCount(cat.itemCount);
     setFormBadgeType(cat.badgeType);
     setFormStatus(cat.status);
@@ -193,10 +202,12 @@ export default function AdminCategoriesPage() {
         await loadCatalog(); setIsModalOpen(false); showToast(ui("Saved successfully."));
         return;
       }
+      const imageUrl = formImageFile ? await uploadImage(formImageFile, "categories") : formImageUrl || null;
+      if (formImageFile) { setFormImageUrl(imageUrl || ""); setFormImageFile(null); }
       const response = await apiFetch(`/api/recipe-categories${editingCategory ? `/${editingCategory.id}` : ""}`, {
         method: editingCategory ? "PUT" : "POST", body: JSON.stringify({
           name: formName.trim(), slug: formSlug, type: formCategoryType,
-          description: formDescription || null, imageUrl: editingCategory?.imageUrl || null, isActive: formStatus === "Active",
+          description: formDescription || null, imageUrl, isActive: formStatus === "Active",
         }),
       });
       if (!response.ok) { const body = await response.json(); throw new Error(body.message || ui("Could not save category.")); }
@@ -1012,6 +1023,7 @@ export default function AdminCategoriesPage() {
               </div>}
 
               {/* Description */}
+              {formType === "Recipe Category" && <ImageFilePicker value={formImageUrl} file={formImageFile} onFileChange={setFormImageFile} onValueChange={url => setFormImageUrl(url || "")} disabled={saving} />}
               {formType === "Recipe Category" && <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                   <UiText text="Mô tả và điểm nổi bật" />

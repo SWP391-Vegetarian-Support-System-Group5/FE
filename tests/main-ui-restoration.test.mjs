@@ -39,6 +39,8 @@ test("main category page renders all three tabs, rather than redirecting away", 
     "@/lib/recipe-categories": { CATEGORY_TYPES: ["CUISINE"], categoryTypeLabels: { CUISINE: ["Cuisine", "Ẩm thực"] } },
     "@/lib/localized-content": { localizeIngredient: value => value, localizeIngredientCategory: (_code, name) => name, localizeRecipeTitle: value => value },
     "@/components/recipe/CategoryRecipeAssignments": defaultExport(() => null),
+    "@/components/ImageFilePicker": defaultExport(() => null),
+    "@/lib/image-upload": { uploadImage: async () => "https://res.cloudinary.com/test/image/upload/example.png" },
     "@/lib/bmi-api": {},
   });
   const html = renderToStaticMarkup(React.createElement(Component));

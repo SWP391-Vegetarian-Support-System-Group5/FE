@@ -4,6 +4,7 @@ export interface AdminRestaurant {
   restaurantId: number;
   name: string;
   address: string;
+  imageUrl: string | null;
   latitude: number | null;
   longitude: number | null;
   dietTypeIds: number[];
@@ -12,7 +13,7 @@ export interface AdminRestaurant {
   ingredientNames: string[];
 }
 
-export type RestaurantPayload = Pick<AdminRestaurant, "name" | "address" | "dietTypeIds" | "foods" | "ingredientIds">;
+export type RestaurantPayload = Pick<AdminRestaurant, "name" | "address" | "imageUrl" | "dietTypeIds" | "foods" | "ingredientIds">;
 
 export interface DietTypeOption {
   id: number;

@@ -56,7 +56,7 @@ export function useMealPlanner() {
         if (profileResult.status === "fulfilled") setProfile(profileResult.value);
         if (dietTypes.status === "fulfilled") setDiets(dietTypes.value);
         if (bookmarks.status === "fulfilled") setSavedIds(bookmarks.value.map(post => post.postId));
-        if ([plans, profileResult, dietTypes, bookmarks].some(result => result.status === "rejected")) setError("Could not load meal planner.");
+        if ([plans, profileResult, dietTypes].some(result => result.status === "rejected")) setError("Không thể tải thông tin thực đơn hoặc hồ sơ của bạn.");
         if (plans.status === "fulfilled") {
           setPlan(plans.value[0] || null);
           await hydrateRecipes(plans.value[0] || null);
