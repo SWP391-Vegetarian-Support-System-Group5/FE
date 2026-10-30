@@ -164,7 +164,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                 <Link href={link.href} aria-current={isLinkActive(link.href) ? "page" : undefined}
                   aria-haspopup="true"
                   className={`block whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-semibold transition 2xl:px-4 2xl:text-[15px] ${isLinkActive(link.href) ? "bg-[#1E3A2F] text-white shadow-sm" : "text-[#424844] hover:bg-[#D9E6DC]/40 hover:text-[#07241A]"}`}>
-                  {link.label} <span aria-hidden="true">⌄</span>
+                  {link.label}
                 </Link>
                 <div className="vm-popover invisible absolute left-0 top-full z-50 w-[min(720px,calc(100vw-2rem))] rounded-2xl border border-[#EFEEEB] bg-white p-5 opacity-0 shadow-xl transition duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                   <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
