@@ -133,7 +133,22 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs">★ {post.averageRating.toFixed(1)} / 5</span>
           <button type="button" aria-label={bookmarks?.includes(post.postId) ? "Bỏ lưu bài" : "Lưu bài"} aria-pressed={bookmarks?.includes(post.postId) || false} disabled={pending.includes(post.postId) || authLoading || (!!user && !!getStoredToken() && bookmarks === null)} onClick={() => toggleBookmark(post.postId)} className="vm-button absolute right-3 top-3 rounded-full bg-white/90 px-3 py-2 text-sm disabled:opacity-40">{pending.includes(post.postId) ? "…" : bookmarks?.includes(post.postId) ? "🔖" : "♡"}</button>
         </div>
-        <div className={gallery ? "px-4 py-6 text-center" : "p-5"}>{!gallery && <p className="text-xs text-[#727974]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</p>}<Link href={`/view-detail/post-${post.postId}`}><h3 className={`line-clamp-2 font-serif font-semibold ${gallery ? "text-2xl" : "mt-2 text-xl"}`}>{localizeRecipeTitle(post.title, "vi")}</h3></Link>{!gallery && <><p className="mt-2 line-clamp-2 text-sm text-[#59635C]">{localizeText(post.content, "vi")}</p>{post.compatibleDietTypes?.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs"><span className="text-[#59635C]">Phù hợp:</span>{post.compatibleDietTypes.map(type => <span key={type.id} className="rounded-md bg-[#E8F0E5] px-2 py-1 text-[#254B38]">{formatDietTypeName(type.name, "vi")}</span>)}</div>}<p className="mt-4 border-t border-[#EFEEEB] pt-3 text-xs">{post.authorName}</p></>}</div>
+        <div className={gallery ? "px-4 py-5 text-center" : "p-5"}>
+          {!gallery && <p className="text-xs text-[#727974]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</p>}
+          <Link href={`/view-detail/post-${post.postId}`}>
+            <h3 className={`line-clamp-2 font-serif font-semibold ${gallery ? "text-2xl" : "mt-2 text-xl"}`}>{localizeRecipeTitle(post.title, "vi")}</h3>
+          </Link>
+          {!gallery && <p className="mt-2 line-clamp-2 text-sm text-[#59635C]">{localizeText(post.content, "vi")}</p>}
+          {post.postType === "RECIPE" && (
+            <div className={`mt-3 flex flex-wrap items-center gap-1.5 text-xs ${gallery ? "justify-center" : ""}`}>
+              <span className="text-[#59635C]">Phù hợp:</span>
+              {post.compatibleDietTypes?.length > 0
+                ? post.compatibleDietTypes.map(type => <span key={type.id} className="rounded-md bg-[#E8F0E5] px-2 py-1 text-[#254B38]">{formatDietTypeName(type.name, "vi")}</span>)
+                : <span className="text-[#B45309]">Chưa xác minh từ nguyên liệu</span>}
+            </div>
+          )}
+          <p className={`mt-4 border-t border-[#EFEEEB] pt-3 text-xs font-medium text-[#59635C] ${gallery ? "text-center" : ""}`}>Đăng bởi {post.authorName}</p>
+        </div>
       </article>)}
     </div>}
   </section>;
