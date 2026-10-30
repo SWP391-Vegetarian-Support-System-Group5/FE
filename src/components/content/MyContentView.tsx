@@ -12,6 +12,7 @@ import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount }
 import ContentDialog from "./ContentDialog";
 import FeedImage from "@/components/ui/FeedImage";
 import CardSkeleton from "@/components/ui/CardSkeleton";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import ContentIcon, { type ContentIconName } from "./ContentIcon";
 
 type KindFilter = "all" | "recipe" | "video";
@@ -102,6 +103,7 @@ export default function MyContentView() {
   const [storageError, setStorageError] = useState(false);
   const [publishingDraft, setPublishingDraft] = useState(false);
   const [publishError, setPublishError] = useState("");
+  const [pendingPublish, setPendingPublish] = useState<{ kind: "video"; draft: VideoRecipeDraftResponse } | { kind: "manual"; item: MyContentItem } | null>(null);
   const hydratedRecipeIds = useRef(new Set<number>());
   const latestServerRequest = useRef(0);
 
@@ -222,7 +224,6 @@ export default function MyContentView() {
 
   async function publishDraft(draft: VideoRecipeDraftResponse) {
     if (draft.status !== "READY" || publishingDraft) return;
-    if (!window.confirm(t("Publish this reviewed draft now?", "Bạn đã kiểm tra nội dung và muốn đăng bản nháp này ngay?"))) return;
     setPublishingDraft(true);
     setPublishError("");
     try {
@@ -234,13 +235,13 @@ export default function MyContentView() {
       setPublishError(error instanceof Error ? error.message : t("Could not publish the draft.", "Không đăng được bản nháp."));
     } finally {
       setPublishingDraft(false);
+      setPendingPublish(null);
     }
   }
 
   async function publishManualDraft(item: MyContentItem) {
     const draft = item.draft;
     if (!draft || publishingDraft) return;
-    if (!window.confirm(t("Publish this reviewed draft now?", "Bạn đã kiểm tra nội dung và muốn đăng bản nháp này ngay?"))) return;
     setPublishingDraft(true);
     setPublishError("");
     try {
@@ -259,6 +260,7 @@ export default function MyContentView() {
       setPublishError(error instanceof Error ? error.message : t("Could not publish the draft.", "Không đăng được bản nháp."));
     } finally {
       setPublishingDraft(false);
+      setPendingPublish(null);
     }
   }
 
@@ -440,7 +442,7 @@ export default function MyContentView() {
         {publishError && <p role="alert" className="text-sm text-red-700">{publishError}</p>}
         <div className="flex flex-wrap gap-2 border-t border-[#E5E7DF] pt-4">
           <Link href={`/create-content?draft=video-${action.item.videoDraft.videoRecipeDraftId}`} className={buttonClass}>{t("Edit draft", "Chỉnh sửa bản nháp")}</Link>
-          {action.item.videoDraft.status === "READY" && <button type="button" disabled={publishingDraft} onClick={() => void publishDraft(action.item.videoDraft!)} className="rounded-xl border border-[#1E3A2F] px-5 py-3 text-sm font-semibold text-[#1E3A2F] disabled:opacity-50">{publishingDraft ? t("Publishing...", "Đang đăng...") : t("Publish now", "Đăng bài")}</button>}
+          {action.item.videoDraft.status === "READY" && <button type="button" disabled={publishingDraft} onClick={() => setPendingPublish({ kind: "video", draft: action.item.videoDraft! })} className="rounded-xl border border-[#1E3A2F] px-5 py-3 text-sm font-semibold text-[#1E3A2F] disabled:opacity-50">{publishingDraft ? t("Publishing...", "Đang đăng...") : t("Publish now", "Đăng bài")}</button>}
         </div>
       </div></ContentDialog>}
       {action?.type === "preview" && action.item.draft && !sampleMode && <ContentDialog title={t("Draft preview", "Bản nháp bài viết")} onClose={() => setAction(null)}><div className="space-y-4 p-6">
@@ -452,7 +454,7 @@ export default function MyContentView() {
         {publishError && <p role="alert" className="text-sm text-red-700">{publishError}</p>}
         <div className="flex flex-wrap gap-2 border-t border-[#E5E7DF] pt-4">
           <Link href="/create-content?draft=manual" className={buttonClass}>{t("Edit draft", "Chỉnh sửa bản nháp")}</Link>
-          <button type="button" disabled={publishingDraft || !action.item.draft.title.trim() || !action.item.draft.recipeName?.trim() || !action.item.draft.ingredients.some((ingredient) => ingredient.ingredientName.trim()) || !action.item.draft.steps.some((step) => step.instruction.trim())} onClick={() => void publishManualDraft(action.item)} className="rounded-xl border border-[#1E3A2F] px-5 py-3 text-sm font-semibold text-[#1E3A2F] disabled:opacity-50">{publishingDraft ? t("Publishing...", "Đang đăng...") : t("Publish now", "Đăng bài")}</button>
+          <button type="button" disabled={publishingDraft || !action.item.draft.title.trim() || !action.item.draft.recipeName?.trim() || !action.item.draft.ingredients.some((ingredient) => ingredient.ingredientName.trim()) || !action.item.draft.steps.some((step) => step.instruction.trim())} onClick={() => setPendingPublish({ kind: "manual", item: action.item })} className="rounded-xl border border-[#1E3A2F] px-5 py-3 text-sm font-semibold text-[#1E3A2F] disabled:opacity-50">{publishingDraft ? t("Publishing...", "Đang đăng...") : t("Publish now", "Đăng bài")}</button>
         </div>
       </div></ContentDialog>}
       {action?.type === "preview" && !action.item.videoDraft && (!action.item.draft || sampleMode) && <ContentDialog title={t("Story preview", "Xem trước bài viết")} onClose={() => setAction(null)}><div className="p-6"><span className="text-xs font-semibold text-[#658266]">{action.item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")} · {action.item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><h3 className="mt-3 font-serif text-3xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#647068]">{displayText(action.item, language).description}</p>{action.item.recipe?.videoUrl && /^https?:\/\//i.test(action.item.recipe.videoUrl) && <video controls preload="metadata" poster={itemThumbnail(action.item)} src={action.item.recipe.videoUrl} className="mt-5 w-full rounded-xl" />}{(action.item.recipe || action.item.draft) && <><dl className="mt-5 border-b border-[#EFEEEB] pb-4"><dt className="text-xs font-semibold text-[#647068]">{t("Recipe name", "Tên món ăn")}</dt><dd className="mt-1 break-words text-lg font-semibold">{localizeRecipeTitle(action.item.recipe?.recipeName || action.item.draft?.recipeName, language) || t("Not provided", "Chưa có tên món ăn")}</dd></dl><h4 className="mt-6 font-serif text-xl">{t("Ingredients", "Nguyên liệu")}</h4><ul className="mt-3 space-y-2 text-sm text-[#647068]">{(action.item.recipe?.ingredients || action.item.draft?.ingredients || []).map((ingredient, index) => <li key={index}>• {localizeAmount(ingredient.amount, language)} {localizeIngredient(ingredient.ingredientName, language)}</li>)}</ul><h4 className="mt-6 font-serif text-xl">{t("Cooking steps", "Các bước nấu")}</h4><ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#647068]">{(action.item.recipe?.steps || action.item.draft?.steps || []).map((step, index) => <li key={index}>{localizeText(step.instruction, language)}</li>)}</ol></>}{action.item.status === "draft" && !sampleMode && <div className="mt-5 space-y-3"><p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{action.item.moderationReason || "Bài đang được giữ ở bản nháp. Chỉnh sửa rồi gửi kiểm duyệt lại."}</p>{publishError && <p role="alert" className="text-sm text-red-700">{publishError}</p>}<div className="flex gap-3">{action.item.postType === "RECIPE" ? <Link className={buttonClass} href={`/create-content?draft=${action.item.id}`}>Chỉnh sửa bản nháp</Link> : <button type="button" className={buttonClass} onClick={() => setAction({ type: "edit", item: action.item })}>Chỉnh sửa bản nháp</button>}<button type="button" disabled={publishingDraft} onClick={() => void publishServerDraft(action.item)} className="rounded-xl border px-5 py-3 text-sm font-semibold disabled:opacity-50">{publishingDraft ? "Đang kiểm duyệt..." : "Gửi duyệt và đăng"}</button></div></div>}{sampleMode && <p className="mt-6 rounded-xl bg-[#ECF0E5] p-3 text-xs leading-6 text-[#647068]">{t("This is a sample story for the interface preview. Video playback and full recipe details are available for your own published content.", "Đây là bài mẫu để xem trước giao diện. Video và chi tiết công thức sẽ có trong nội dung thật của bạn.")}</p>}<div className="mt-6 flex justify-end"><button type="button" onClick={() => setAction(null)} className={buttonClass}>{t("Done", "Đóng")}</button></div></div></ContentDialog>}
@@ -472,6 +474,7 @@ export default function MyContentView() {
           <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setAction(null)} className="rounded-xl border border-[#E5E7DF] px-5 py-3 text-sm font-semibold hover:bg-[#E8EDE4]">{t("Keep it", "Giữ lại")}</button><button type="button" onClick={() => void deleteItem(action.item)} className="inline-flex items-center gap-2 rounded-xl bg-[#A24635] px-5 py-3 text-sm font-semibold text-white hover:bg-[#883727]"><ContentIcon name="trash" width="16" height="16" />{t("Delete", "Xóa")}</button></div>
         </div>
       </ContentDialog>}
+      <ConfirmDialog open={pendingPublish !== null} title={t("Publish this draft?", "Đăng bản nháp này?")} description={t("The content will be checked again before it becomes visible to the community.", "Nội dung sẽ được kiểm duyệt lại trước khi hiển thị với cộng đồng.")} confirmLabel={t("Publish", "Đăng bài")} busy={publishingDraft} onClose={() => setPendingPublish(null)} onConfirm={() => { if (pendingPublish?.kind === "video") void publishDraft(pendingPublish.draft); else if (pendingPublish?.kind === "manual") void publishManualDraft(pendingPublish.item); }} />
     </div>
   );
 }

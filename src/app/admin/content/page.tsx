@@ -6,6 +6,9 @@ import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { getMediaUrl } from "@/lib/api";
 import { localizeRecipeTitle } from "@/lib/localized-content";
+import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
+import { categoryName } from "@/lib/recipe-categories";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
   deleteAdminComment,
   deleteAdminPost,
@@ -48,6 +51,11 @@ export default function AdminContentPage() {
   const [showModerationStream, setShowModerationStream] = useState(true);
   const [commentFilter, setCommentFilter] = useState<"All" | "Flagged" | "Hidden">("All");
   const [selectedContentId, setSelectedContentId] = useState<number | null>(null);
+  const [detailPost, setDetailPost] = useState<AdminPost | null>(null);
+  const [detailRecipe, setDetailRecipe] = useState<RecipeResponse | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const [pendingRemoval, setPendingRemoval] = useState<{ kind: "post"; post: AdminPost } | { kind: "comment"; comment: AdminComment } | null>(null);
   const [page, setPage] = useState(1);
   const [threadMuted, setThreadMuted] = useState(false);
 
@@ -160,7 +168,6 @@ export default function AdminContentPage() {
   }
 
   async function handleRemoveComment(comment: AdminComment) {
-    if (!window.confirm(t("Remove this comment?", "Xóa bình luận này?"))) return;
     setBusyCommentId(comment.commentId);
     try {
       await deleteAdminComment(comment.commentId);
@@ -170,20 +177,40 @@ export default function AdminContentPage() {
       notify("Could not remove the comment.", "Không thể xóa bình luận.", true);
     } finally {
       setBusyCommentId(null);
+      setPendingRemoval(null);
     }
   }
 
   async function handleRemovePost(post: AdminPost) {
-    if (!window.confirm(t("Remove this post?", "Xóa bài viết này?"))) return;
     setBusyPostId(post.postId);
     try {
       await deleteAdminPost(post.postId);
+      setDetailPost((current) => current?.postId === post.postId ? null : current);
+      setDetailRecipe((current) => current?.postId === post.postId ? null : current);
       await loadContent();
       notify("Post removed.", "Đã xóa bài viết.");
     } catch {
       notify("Could not remove the post.", "Không thể xóa bài viết.", true);
     } finally {
       setBusyPostId(null);
+      setPendingRemoval(null);
+    }
+  }
+
+  async function openContentDetail(post: AdminPost) {
+    setSelectedContentId(post.postId);
+    setDetailPost(post);
+    setDetailRecipe(null);
+    setDetailError("");
+    const isRecipe = post.postType === "RECIPE" || post.postType === "VIDEO";
+    if (!isRecipe) return;
+    setLoadingDetail(true);
+    try {
+      setDetailRecipe(await getRecipeById(post.postId));
+    } catch {
+      setDetailError(t("Could not load recipe details.", "Không thể tải đầy đủ thông tin công thức."));
+    } finally {
+      setLoadingDetail(false);
     }
   }
 
@@ -521,13 +548,13 @@ export default function AdminContentPage() {
                         <tr
                           key={item.postId}
                           onClick={() => {
-                            setSelectedContentId(item.postId);
+                             void openContentDetail(item);
                             if (!showModerationStream) setShowModerationStream(true);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setSelectedContentId(item.postId);
+                               void openContentDetail(item);
                               if (!showModerationStream) setShowModerationStream(true);
                             }
                           }}
@@ -630,7 +657,7 @@ export default function AdminContentPage() {
                                   disabled={busyPostId === item.postId}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    void handleRemovePost(item);
+                                    setPendingRemoval({ kind: "post", post: item });
                                   }}
                                   title={t("Remove post", "Xóa bài viết")}
                                   aria-label={t(`Remove ${item.title}`, `Xóa ${item.title}`)}
@@ -863,7 +890,7 @@ export default function AdminContentPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => void handleRemoveComment(c)}
+                              onClick={() => setPendingRemoval({ kind: "comment", comment: c })}
                               disabled={busyCommentId === c.commentId}
                               className="flex items-center gap-1 text-[11px] font-medium text-red-600 hover:text-red-700 transition"
                             >
@@ -905,6 +932,91 @@ export default function AdminContentPage() {
           </aside>
         )}
       </div>
+
+      {detailPost && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#07241A]/45 p-4 backdrop-blur-[2px]"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setDetailPost(null);
+          }}
+        >
+          <section role="dialog" aria-modal="true" aria-labelledby="recipe-detail-title" className="max-h-[calc(100vh-2rem)] w-full max-w-4xl overflow-y-auto rounded-3xl border border-[#E5E7DF] bg-[#FBF9F6] shadow-2xl">
+            <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#E5E7DF] bg-[#FBF9F6]/95 px-6 py-5 backdrop-blur">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B746D]">{t("Content details", "Chi tiết nội dung")}</p>
+                <h2 id="recipe-detail-title" className="mt-1 font-serif text-2xl font-bold text-[#07241A]">{localizeRecipeTitle(detailPost.title, locale.startsWith("vi") ? "vi" : "en")}</h2>
+                <p className="mt-1 text-sm text-[#627068]">{t("Posted by", "Đăng bởi")} {detailPost.authorName}</p>
+              </div>
+              <button type="button" onClick={() => setDetailPost(null)} aria-label={t("Close", "Đóng")} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EEF1EC] text-lg text-[#425047] transition hover:bg-[#D9E6DC]">×</button>
+            </header>
+
+            <div className="space-y-6 p-6">
+              {loadingDetail ? (
+                <p role="status" className="py-12 text-center text-sm text-[#627068]">{t("Loading recipe details...", "Đang tải đầy đủ thông tin công thức…")}</p>
+              ) : detailError ? (
+                <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{detailError}</p>
+              ) : detailRecipe ? (
+                <>
+                  <div className="grid gap-5 md:grid-cols-[220px_1fr]">
+                    <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#E8F0E5]">
+                      {detailRecipe.imageUrl || detailRecipe.thumbnailUrl ? <Image src={getMediaUrl(detailRecipe.imageUrl || detailRecipe.thumbnailUrl || "")} alt={detailRecipe.recipeName || detailRecipe.title} fill className="object-cover" unoptimized /> : <div className="flex h-full items-center justify-center text-5xl">🍲</div>}
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-xl font-bold text-[#07241A]">{detailRecipe.recipeName || detailRecipe.title}</h3>
+                      <p className="mt-2 leading-7 text-[#4D5951]">{detailRecipe.content || t("No description provided.", "Chưa có mô tả.")}</p>
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                        {detailRecipe.categories.map((category) => <span key={category.id} className="rounded-full bg-[#E8F0E5] px-3 py-1.5 font-semibold text-[#254B38]">{categoryName(category, locale.startsWith("vi") ? "vi" : "en")}</span>)}
+                        {detailRecipe.bmiTypes?.map((bmi) => <span key={bmi.id} className="rounded-full bg-[#FDF2E8] px-3 py-1.5 font-semibold text-[#9A3412]">{bmi.name}</span>)}
+                      </div>
+                      <p className="mt-4 text-sm text-[#627068]">{detailRecipe.prepMinutes ? `${t("Preparation", "Chuẩn bị")}: ${detailRecipe.prepMinutes} ${t("minutes", "phút")}` : ""}{detailRecipe.cookMinutes ? ` · ${t("Cooking", "Nấu")}: ${detailRecipe.cookMinutes} ${t("minutes", "phút")}` : ""}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <section className="rounded-2xl border border-[#E5E7DF] bg-white p-5">
+                      <h3 className="font-serif text-lg font-bold text-[#07241A]">{t("Ingredients", "Nguyên liệu")}</h3>
+                      <ul className="mt-3 space-y-2 text-sm text-[#46534B]">
+                        {detailRecipe.ingredients.map((ingredient, index) => <li key={`${ingredient.ingredientName}-${index}`} className="flex gap-2"><span className="text-[#1E3A2F]">•</span><span>{[ingredient.amount, ingredient.ingredientName].filter(Boolean).join(" ")}</span></li>)}
+                      </ul>
+                    </section>
+                    <section className="rounded-2xl border border-[#E5E7DF] bg-white p-5">
+                      <h3 className="font-serif text-lg font-bold text-[#07241A]">{t("Cooking steps", "Các bước nấu")}</h3>
+                      <ol className="mt-3 space-y-3 text-sm leading-6 text-[#46534B]">
+                        {detailRecipe.steps.map((step) => <li key={step.stepNumber} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E8F0E5] text-xs font-bold text-[#1E3A2F]">{step.stepNumber}</span><span>{step.instruction}</span></li>)}
+                      </ol>
+                    </section>
+                  </div>
+                </>
+              ) : (
+                <section className="rounded-2xl border border-[#E5E7DF] bg-white p-5">
+                  <h3 className="font-serif text-lg font-bold text-[#07241A]">{detailPost.title}</h3>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[#46534B]">{detailPost.content || t("No content provided.", "Chưa có nội dung.")}</p>
+                </section>
+              )}
+            </div>
+
+            <footer className="sticky bottom-0 flex flex-wrap justify-end gap-3 border-t border-[#E5E7DF] bg-[#FBF9F6]/95 px-6 py-4 backdrop-blur">
+              {detailRecipe && <Link href={`/admin/content/create?draft=recipe-${detailRecipe.postId}`} className="rounded-xl bg-[#1E3A2F] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#152820]">{t("Edit recipe", "Chỉnh sửa công thức")}</Link>}
+              <button type="button" onClick={() => setDetailPost(null)} className="rounded-xl border border-[#D8DDD6] bg-white px-4 py-2.5 text-sm font-semibold text-[#424844] transition hover:bg-[#F1F3EE]">{t("Close", "Đóng")}</button>
+            </footer>
+          </section>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={pendingRemoval !== null}
+        title={pendingRemoval?.kind === "comment" ? t("Remove comment?", "Xóa bình luận?") : t("Remove post?", "Xóa bài viết?")}
+        description={pendingRemoval?.kind === "comment" ? t("This comment will be removed and the author will be notified.", "Bình luận sẽ bị gỡ và người viết sẽ nhận được thông báo.") : t("This post will be removed from public view and the author will be notified.", "Bài viết sẽ bị gỡ khỏi phần công khai và tác giả sẽ nhận được thông báo.")}
+        confirmLabel={t("Remove", "Xóa")}
+        busy={pendingRemoval?.kind === "comment" ? busyCommentId === pendingRemoval.comment.commentId : pendingRemoval?.kind === "post" ? busyPostId === pendingRemoval.post.postId : false}
+        onClose={() => setPendingRemoval(null)}
+        onConfirm={() => {
+          if (!pendingRemoval) return;
+          if (pendingRemoval.kind === "comment") void handleRemoveComment(pendingRemoval.comment);
+          else void handleRemovePost(pendingRemoval.post);
+        }}
+      />
     </div>
   );
 }
