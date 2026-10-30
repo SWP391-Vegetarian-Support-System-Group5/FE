@@ -10,7 +10,7 @@ export const dynamicParams = true;
 
 export async function generateMetadata({ params }: Props) {
   const slug = (await params).slug;
-  if (/^(?:post-)?[1-9]\d*$/.test(slug)) return { title: "Cộng đồng | VeggieMate" };
+  if (/^(?:post-)?[1-9]\d*$/.test(slug)) return { title: "Công thức | VeggieMate" };
   const recipe = getDetailRecipe(slug);
   return { title: recipe ? recipe.title[1] : "Không tìm thấy công thức" };
 }

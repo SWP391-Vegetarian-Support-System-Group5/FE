@@ -67,11 +67,12 @@ test("navigation and footer render Vietnamese without a language switch", () => 
     "@/context/AuthContext": { useAuth: () => ({ user: null, loading: false, logout() {} }) },
     "@/context/AdminModerationContext": { useAdminModeration: () => ({ flaggedCount: 0 }), BYPASS_ADMIN_ROLE: false },
     "@/components/NotificationBell": defaultExport(() => null),
+    "@/lib/recipe-categories": { getRecipeCategories: async () => [], categoryName: category => category.name },
   }).default;
   const Footer = load("src/components/Footer.tsx", common).default;
   const html = render(React.createElement(React.Fragment, null, React.createElement(Navbar), React.createElement(Footer)));
   assert.match(html, /Trang chủ/);
-  assert.match(html, /Cộng đồng/);
+  assert.match(html, /Công thức/);
   assert.match(html, /Đăng nhập/);
   assert.doesNotMatch(html, /navbar-languages|Select language|English|Tiếng Việt \(VI\)|>EN<|>VI<|Home|Community/);
 });
