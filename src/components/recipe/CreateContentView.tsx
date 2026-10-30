@@ -2,6 +2,7 @@
 
 import UiText, { useUiText } from "@/components/UiText";
 import UploadProgress from "@/components/ui/UploadProgress";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import ImageFilePicker from "@/components/ImageFilePicker";
 import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
@@ -122,6 +123,7 @@ function RecipeContentView() {
     text: string;
   } | null>(null);
   const [publishedResult, setPublishedResult] = useState<RecipeResponse | null>(null);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -162,7 +164,7 @@ function RecipeContentView() {
     const id = Number(match[1]);
     getRecipeById(id).then(recipe => {
       if (cancelled) return;
-      if (recipe.status !== "DRAFT") throw new Error("Bài viết này không còn là bản nháp.");
+       if (recipe.status !== "DRAFT" && !isAdmin) throw new Error("Bài viết này không còn là bản nháp.");
       restoredDraftRef.current = true;
       setServerRecipeDraftId(id);
       setCreationMode("manual");
@@ -178,10 +180,10 @@ function RecipeContentView() {
       setSteps(recipe.steps);
       setSelectedCategoryIds(recipe.categories.map(category => category.id));
       setSelectedBmiTypeIds(recipe.bmiTypes?.map(type => type.id) || []);
-      setStatusMessage({ type: "info", text: recipe.moderationReason || "Đã mở bản nháp trên máy chủ. Chỉnh sửa rồi gửi kiểm duyệt lại." });
+       setStatusMessage({ type: "info", text: recipe.moderationReason || (isAdmin ? "Đã mở công thức để quản trị viên chỉnh sửa." : "Đã mở bản nháp trên máy chủ. Chỉnh sửa rồi gửi kiểm duyệt lại.") });
     }).catch(error => { if (!cancelled) setStatusMessage({ type: "error", text: error instanceof Error ? error.message : "Không mở được bản nháp." }); });
     return () => { cancelled = true; };
-  }, [authLoading]);
+  }, [authLoading, isAdmin]);
 
   // Load master data on mount
   useEffect(() => {
@@ -1310,11 +1312,7 @@ function RecipeContentView() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
           <button
             type="button"
-            onClick={() => {
-              if (confirm(ui("Bạn có chắc chắn muốn hủy các thay đổi?"))) {
-                router.push("/");
-              }
-            }}
+            onClick={() => setShowCancelConfirmation(true)}
             className="text-xs font-semibold text-[#727974] hover:text-[#07241A] transition text-left sm:text-center"
           ><UiText text={"✕ Hủy thay đổi"} /></button>
 
@@ -1336,6 +1334,14 @@ function RecipeContentView() {
             </button>
           </div>
         </div>
+      <ConfirmDialog
+        open={showCancelConfirmation}
+        title={ui("Hủy các thay đổi?")}
+        description={ui("Các nội dung chưa lưu sẽ bị mất. Bạn có muốn rời khỏi trang tạo bài viết?")}
+        confirmLabel={ui("Rời khỏi trang")}
+        onClose={() => setShowCancelConfirmation(false)}
+        onConfirm={() => router.push(isAdmin ? "/admin/content" : "/")}
+      />
       </div>
     </div>
   );

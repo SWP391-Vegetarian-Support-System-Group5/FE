@@ -6,6 +6,7 @@ import ContentIcon from "@/components/content/ContentIcon";
 import ImageFilePicker from "@/components/ImageFilePicker";
 import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { formatDietTypeName } from "@/lib/diet-type-display";
 import { getIngredients, type IngredientItem } from "@/lib/recipe-api";
 import { getAddressSuggestions, type AddressSuggestion } from "@/lib/profile-api";
@@ -120,6 +121,7 @@ export default function AdminRestaurantsPage() {
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<AdminRestaurant | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState<"saved" | "deleted" | "">("");
   const [query, setQuery] = useState("");
@@ -324,7 +326,7 @@ export default function AdminRestaurantsPage() {
   }
 
   async function remove(item: AdminRestaurant) {
-    if (busy || !window.confirm(t(`Delete "${item.name}"?`, `Xóa "${item.name}"?`))) return;
+    if (busy) return;
     setBusy(true);
     setError("");
     setNotice("");
@@ -336,6 +338,7 @@ export default function AdminRestaurantsPage() {
       setError(failure instanceof Error ? failure.message : t("Could not delete restaurant.", "Không thể xóa nhà hàng."));
     } finally {
       setBusy(false);
+      setPendingDelete(null);
     }
   }
 
@@ -739,7 +742,7 @@ export default function AdminRestaurantsPage() {
                       <button
                         type="button"
                         disabled={busy}
-                        onClick={() => void remove(item)}
+                        onClick={() => setPendingDelete(item)}
                         title={t("Delete restaurant", "Xóa nhà hàng")}
                         aria-label={t("Delete restaurant", "Xóa nhà hàng")}
                         className="rounded-lg p-1.5 text-[#727974] hover:bg-red-50 hover:text-red-600 transition disabled:opacity-40"
@@ -1025,6 +1028,7 @@ export default function AdminRestaurantsPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog open={pendingDelete !== null} title={t("Delete restaurant?", "Xóa nhà hàng?")} description={pendingDelete ? t(`Remove "${pendingDelete.name}" from the restaurant directory?`, `Xóa "${pendingDelete.name}" khỏi danh sách nhà hàng?`) : ""} confirmLabel={t("Delete", "Xóa")} busy={busy} onClose={() => setPendingDelete(null)} onConfirm={() => { if (pendingDelete) void remove(pendingDelete); }} />
     </div>
   );
 }

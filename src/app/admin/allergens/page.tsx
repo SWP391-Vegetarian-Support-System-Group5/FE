@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { apiGet } from "@/lib/api";
 import {
   createAllergen,
@@ -153,6 +154,7 @@ export default function AdminAllergensPage() {
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<AdminAllergen | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState<"saved" | "deleted" | "approved" | "batch_approved" | "">("");
   const [query, setQuery] = useState("");
@@ -276,7 +278,7 @@ export default function AdminAllergensPage() {
 
   // Hàm xóa - Giữ nguyên cấu trúc
   async function remove(item: AdminAllergen) {
-    if (busy || !window.confirm(t(`Delete "${item.name}"?`, `Xóa "${item.name}"?`))) return;
+    if (busy) return;
     setBusy(true);
     setError("");
     setNotice("");
@@ -292,6 +294,7 @@ export default function AdminAllergensPage() {
       );
     } finally {
       setBusy(false);
+      setPendingDelete(null);
     }
   }
 
@@ -753,7 +756,7 @@ export default function AdminAllergensPage() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => void remove(item)}
+                          onClick={() => setPendingDelete(item)}
                           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#B91C1C] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#991B1B] transition active:scale-95 disabled:opacity-50"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -812,7 +815,7 @@ export default function AdminAllergensPage() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => void remove(item)}
+                          onClick={() => setPendingDelete(item)}
                           className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-red-200 bg-red-50/60 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 transition active:scale-95 disabled:opacity-50"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -937,6 +940,7 @@ export default function AdminAllergensPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog open={pendingDelete !== null} title={t("Delete allergen?", "Xóa dị ứng?")} description={pendingDelete ? t(`Remove "${pendingDelete.name}" from the system?`, `Xóa "${pendingDelete.name}" khỏi hệ thống?`) : ""} confirmLabel={t("Delete", "Xóa")} busy={busy} onClose={() => setPendingDelete(null)} onConfirm={() => { if (pendingDelete) void remove(pendingDelete); }} />
     </div>
   );
 }
