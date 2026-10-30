@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { getMediaUrl } from "@/lib/api";
 import { localizeRecipeTitle } from "@/lib/localized-content";
@@ -36,7 +35,6 @@ const AUTHOR_PALETTES = [
 
 export default function AdminContentPage() {
   const { locale, t } = useLanguage();
-  const { user } = useAuth();
   const [feedback, setFeedback] = useState<{ en: string; vi: string; error?: boolean } | null>(null);
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [comments, setComments] = useState<AdminComment[]>([]);
@@ -46,7 +44,6 @@ export default function AdminContentPage() {
   const [busyPostId, setBusyPostId] = useState<number | null>(null);
   const [typeFilter, setTypeFilter] = useState<"All" | "Video & Recipe" | "Post">("All");
   const [searchContentQuery, setSearchContentQuery] = useState("");
-  const [adminSearch, setAdminSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showModerationStream, setShowModerationStream] = useState(true);
   const [commentFilter, setCommentFilter] = useState<"All" | "Flagged" | "Hidden">("All");
@@ -227,7 +224,7 @@ export default function AdminContentPage() {
       {feedback && (
         <div
           role="status"
-          className={`fixed top-6 right-6 z-50 flex items-center gap-2 rounded-2xl ${
+          className={`fixed top-20 right-6 z-50 flex items-center gap-2 rounded-2xl ${
             feedback.error ? "bg-red-700" : "bg-[#07241A]"
           } px-4 py-3 text-xs font-semibold text-white shadow-xl animate-fade-in`}
         >
@@ -238,70 +235,6 @@ export default function AdminContentPage() {
         </div>
       )}
 
-      {/* Top Header Bar */}
-      <header className="flex flex-col gap-4 border-b border-[#EFEEEB] pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-serif text-xl font-bold tracking-tight text-[#07241A] hover:opacity-80 transition"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#1E3A2F] text-white">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12A10 10 0 0 1 12 2Z" />
-                <path d="M7 14c2-4 5-6 10-6" />
-                <path d="M12 8c0 4 2 6 5 6" />
-              </svg>
-            </span>
-            <span>VeggieMate</span>
-          </Link>
-          <span className="text-sm text-[#A0A5A1]">/</span>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-3 py-1 text-xs font-semibold text-[#424844] shadow-2xs">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2D5A46" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span>{t("Admin Area", "Khu vực quản trị")}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          {/* Search Admin input */}
-          <div className="relative">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8F948F" strokeWidth="2" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              value={adminSearch}
-              onChange={(e) => setAdminSearch(e.target.value)}
-              placeholder={t("Search admin...", "Tìm kiếm quản trị...")}
-              aria-label={t("Search admin", "Tìm kiếm quản trị")}
-              className="w-44 rounded-full border border-[#EFEEEB] bg-white pl-9 pr-3 py-1.5 text-xs text-[#07241A] placeholder-[#8F948F] focus:border-[#1E3A2F] focus:outline-none sm:w-56"
-            />
-          </div>
-
-          {/* Language Indicator */}
-          <div className="inline-flex items-center gap-1 rounded-full border border-[#EFEEEB] bg-white px-2.5 py-1 text-xs font-medium text-[#424844]">
-            <span>{locale.startsWith("vi") ? "VI" : "EN"}</span>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </div>
-
-          {/* Supervisor Profile */}
-          <div className="flex items-center gap-2.5">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[#1E3A2F] text-xs font-bold text-white shadow-xs">
-              {user?.fullName ? initials(user.fullName) : "AD"}
-              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-white bg-emerald-500" />
-            </div>
-            <div className="hidden text-left sm:block">
-              <p className="text-xs font-bold leading-tight text-[#07241A]">
-                {user?.fullName || t("Admin", "Quản trị viên")}
-              </p>
-              <p className="text-[10px] text-[#727974]">{t("Supervisor", "Quản trị viên")}</p>
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* Page Title & Stats Badge Section */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
