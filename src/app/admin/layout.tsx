@@ -15,14 +15,11 @@ export default function AdminLayout({
 }) {
   const { user, loading, logout } = useAuth();
   const { flaggedCount } = useAdminModeration();
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [langMenuOpen, setLangMenuOpen] = useState(false);
-
-  const langMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus when clicking outside
@@ -30,9 +27,6 @@ export default function AdminLayout({
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node | null;
       if (!target) return;
-      if (langMenuRef.current && !langMenuRef.current.contains(target)) {
-        setLangMenuOpen(false);
-      }
       if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setUserMenuOpen(false);
       }
@@ -188,88 +182,8 @@ export default function AdminLayout({
             </span>
           </div>
 
-          {/* Các nút hành động bên phải: Ngôn ngữ, Chuông thông báo, Divider, Profile */}
+          {/* Các nút hành động bên phải: Chuông thông báo, Divider, Profile */}
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Bộ chọn ngôn ngữ (EN / VI) có thể click và chuyển đổi */}
-            <div ref={langMenuRef} className="relative">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLangMenuOpen((prev) => !prev);
-                }}
-                title={t("Switch language (EN/VI)", "Chuyển đổi ngôn ngữ (EN/VI)")}
-                aria-label={t("Switch language", "Chuyển đổi ngôn ngữ")}
-                aria-expanded={langMenuOpen}
-                className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#59635C] hover:bg-[#F2EFE9] hover:text-[#07241A] transition active:scale-95 select-none"
-              >
-                <span className="font-bold tracking-wide">{language.toUpperCase()}</span>
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  className={`transition-transform duration-150 ${langMenuOpen ? "rotate-180" : ""}`}
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
-
-              {/* Menu chọn ngôn ngữ */}
-              {langMenuOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-[#EFEEEB] bg-white p-1.5 shadow-xl z-50 animate-fade-in"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="px-2.5 py-1.5 text-[11px] font-semibold text-[#727974] border-b border-[#F5F4F0] mb-1">
-                    {t("Select Language", "Chọn ngôn ngữ")}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLanguage("en");
-                      setLangMenuOpen(false);
-                    }}
-                    className={`cursor-pointer flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                      language === "en" ? "bg-[#EAF5EE] text-[#1E7E51]" : "text-[#424844] hover:bg-[#F7F6F3]"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm">🇬🇧</span>
-                      <span>English (EN)</span>
-                    </span>
-                    {language === "en" && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLanguage("vi");
-                      setLangMenuOpen(false);
-                    }}
-                    className={`cursor-pointer flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                      language === "vi" ? "bg-[#EAF5EE] text-[#1E7E51]" : "text-[#424844] hover:bg-[#F7F6F3]"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-sm">🇻🇳</span>
-                      <span>Tiếng Việt (VI)</span>
-                    </span>
-                    {language === "vi" && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* Nút Chuông thông báo (kèm chấm thông báo cam) */}
             <Link
               href="/admin/flagged"

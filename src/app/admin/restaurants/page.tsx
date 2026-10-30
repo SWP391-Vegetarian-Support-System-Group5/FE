@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import ContentIcon from "@/components/content/ContentIcon";
 import ImageFilePicker from "@/components/ImageFilePicker";
@@ -8,6 +8,7 @@ import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDietTypeName } from "@/lib/diet-type-display";
 import { getIngredients, type IngredientItem } from "@/lib/recipe-api";
+import { getAddressSuggestions, type AddressSuggestion } from "@/lib/profile-api";
 import {
   createRestaurant,
   deleteRestaurant,
@@ -128,6 +129,12 @@ export default function AdminRestaurantsPage() {
   const [editing, setEditing] = useState<AdminRestaurant | null>(null);
   const [form, setForm] = useState<FormValues | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [addressSearchError, setAddressSearchError] = useState("");
+  const addressSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addressSearchRequest = useRef(0);
+  const addressSuggestionsRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -233,8 +240,61 @@ export default function AdminRestaurantsPage() {
     setForm(item ? fromRestaurant(item) : { ...emptyForm });
     setImageFile(null);
     setIngredientQuery("");
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+    setAddressSearchError("");
     setError("");
     setNotice("");
+  }
+
+  useEffect(() => () => {
+    if (addressSearchTimer.current) clearTimeout(addressSearchTimer.current);
+  }, []);
+
+  useEffect(() => {
+    function closeSuggestions(event: MouseEvent) {
+      if (addressSuggestionsRef.current && !addressSuggestionsRef.current.contains(event.target as Node)) {
+        setShowAddressSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", closeSuggestions);
+    return () => document.removeEventListener("mousedown", closeSuggestions);
+  }, []);
+
+  function searchAddress(query: string) {
+    if (!form) return;
+    setForm({ ...form, address: query });
+    setAddressSearchError("");
+    const requestId = ++addressSearchRequest.current;
+    if (addressSearchTimer.current) clearTimeout(addressSearchTimer.current);
+    if (query.trim().length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+    addressSearchTimer.current = setTimeout(async () => {
+      try {
+        const suggestions = await getAddressSuggestions(query.trim());
+        if (requestId !== addressSearchRequest.current) return;
+        setAddressSuggestions(suggestions);
+        setShowAddressSuggestions(suggestions.length > 0);
+        if (suggestions.length === 0) setAddressSearchError("Không tìm thấy gợi ý. Hãy nhập đầy đủ số nhà, đường, phường/xã và thành phố.");
+      } catch {
+        if (requestId !== addressSearchRequest.current) return;
+        setAddressSuggestions([]);
+        setShowAddressSuggestions(false);
+        setAddressSearchError("Chưa tải được gợi ý địa chỉ. Bạn có thể thử lại sau.");
+      }
+    }, 350);
+  }
+
+  function selectAddress(suggestion: AddressSuggestion) {
+    if (!form) return;
+    addressSearchRequest.current += 1;
+    setForm({ ...form, address: suggestion.label });
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+    setAddressSearchError("");
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -776,8 +836,8 @@ export default function AdminRestaurantsPage() {
                 </h2>
                 <p className="mt-1 text-xs text-[#727974]">
                   {t(
-                    "Fill in coordinates, vegetarian categories, and specialty foods.",
-                    "Điền tọa độ, loại hình ăn chay và các món ăn đặc trưng."
+                    "Search for a real address, then select a suggested location.",
+                    "Nhập địa chỉ thật rồi chọn một địa chỉ gợi ý để hệ thống tự lưu tọa độ."
                   )}
                 </p>
               </div>
@@ -813,20 +873,45 @@ export default function AdminRestaurantsPage() {
                   />
                 </label>
 
-                <label className="block text-xs font-semibold text-[#07241A]">
+                <div className="block text-xs font-semibold text-[#07241A]">
                   {t("Full Address", "Địa chỉ chi tiết")} *
-                  <input
-                    required
-                    maxLength={300}
-                    value={form.address}
-                    onChange={(event) => setForm({ ...form, address: event.target.value })}
-                    placeholder={t(
-                      "Street number, street, ward, district, city",
-                      "Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
+                  <div ref={addressSuggestionsRef} className="relative">
+                    <input
+                      required
+                      maxLength={300}
+                      autoComplete="off"
+                      value={form.address}
+                      onChange={(event) => searchAddress(event.target.value)}
+                      onFocus={() => {
+                        if (addressSuggestions.length > 0) setShowAddressSuggestions(true);
+                      }}
+                      placeholder={t(
+                        "Start typing a real address...",
+                        "Nhập số nhà, tên đường, phường/xã, quận/huyện..."
+                      )}
+                      className={inputClass}
+                    />
+                    {showAddressSuggestions && (
+                      <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-56 overflow-y-auto rounded-xl border border-[#D9E6DC] bg-white py-1 shadow-xl">
+                        {addressSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.id}
+                            type="button"
+                            onClick={() => selectAddress(suggestion)}
+                            className="flex w-full items-start gap-2 px-3.5 py-2.5 text-left text-xs text-[#424844] transition hover:bg-[#F1F6F1]"
+                          >
+                            <span className="mt-0.5 text-[#1E3A2F]">⌖</span>
+                            <span>{suggestion.label}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
-                    className={inputClass}
-                  />
-                </label>
+                  </div>
+                  <p className="mt-1.5 font-normal text-[11px] text-[#727974]">
+                    {t("Choose a suggestion so VeggieMate can save the map coordinates automatically.", "Chọn một gợi ý để VeggieMate tự lưu tọa độ bản đồ; không cần nhập vĩ độ, kinh độ.")}
+                  </p>
+                  {addressSearchError && <p className="mt-1.5 font-normal text-[11px] text-[#B45309]">{addressSearchError}</p>}
+                </div>
 
                 <ImageFilePicker value={form.imageUrl} file={imageFile} onFileChange={setImageFile} onValueChange={url => setForm({ ...form, imageUrl: url || "" })} disabled={busy} />
 

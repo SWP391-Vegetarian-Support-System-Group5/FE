@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import UiText, { useUiText } from "@/components/UiText";
 import ImageFilePicker from "@/components/ImageFilePicker";
 import { uploadImage } from "@/lib/image-upload";
-import { useAuth } from "@/context/AuthContext";
 import { getIngredientCategories, getIngredients, saveIngredientCategory, type IngredientItem, type RecipeResponse } from "@/lib/recipe-api";
 import { localizeIngredient, localizeIngredientCategory, localizeRecipeTitle } from "@/lib/localized-content";
 import { apiFetch, apiGet } from "@/lib/api";

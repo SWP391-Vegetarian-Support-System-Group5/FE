@@ -41,7 +41,7 @@ export default function Footer() {
           {/* Community column */}
           <div>
             <h4 className="text-sm font-semibold tracking-wide text-[#07241A]">
-              {t("Community", "Cộng đồng")}
+              Công thức
             </h4>
             <ul className="mt-4 space-y-2.5 text-xs text-[#424844]">
               <li>

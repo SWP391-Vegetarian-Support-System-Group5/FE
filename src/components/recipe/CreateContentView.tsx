@@ -77,7 +77,7 @@ function RecipeContentView() {
   const [ingredientCategories, setIngredientCategories] = useState<IngredientCategoryItem[]>([]);
   const [ingredientCatalog, setIngredientCatalog] = useState<IngredientItem[]>([]);
   const [allergens, setAllergens] = useState<AllergenItem[]>([]);
-  const [, setIsLoadingMasterData] = useState(true);
+  const [isLoadingMasterData, setIsLoadingMasterData] = useState(true);
 
   // Form fields
   const [title, setTitle] = useState("");
@@ -211,6 +211,18 @@ function RecipeContentView() {
     fetchMaster();
     return () => { cancelled = true; };
   }, [authLoading, user?.uid, t]);
+
+  useEffect(() => {
+    if (authLoading || !user?.uid) return;
+    let active = true;
+    const refreshCategories = () => {
+      getRecipeCategories().then(categories => {
+        if (active) setRecipeCategories(categories);
+      }).catch(() => { /* The last loaded list remains available. */ });
+    };
+    window.addEventListener("focus", refreshCategories);
+    return () => { active = false; window.removeEventListener("focus", refreshCategories); };
+  }, [authLoading, user?.uid]);
 
   const pollInFlightRef = useRef(false);
   // Poll draft status
@@ -898,7 +910,7 @@ function RecipeContentView() {
             </div>}
           </div>
 
-          <RecipeCategoryPicker categories={recipeCategories} selected={selectedCategoryIds} onChange={setSelectedCategoryIds} />
+          <RecipeCategoryPicker categories={recipeCategories} selected={selectedCategoryIds} onChange={setSelectedCategoryIds} loading={isLoadingMasterData} />
           {isAdmin && <div className="mt-5"><BmiTypePicker selected={selectedBmiTypeIds} onChange={setSelectedBmiTypeIds} disabled={isSubmitting} /></div>}
 
           {/* Story & flavor profile */}

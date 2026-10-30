@@ -42,7 +42,7 @@ export default function RecipeCategoriesPage() {
     {error && <p role="alert" className="text-red-700">{error}</p>}
     <form onSubmit={save} className="grid gap-4 border-b pb-6 sm:grid-cols-2">
       <label>{t("Name", "Tên")}<input required maxLength={150} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="block w-full rounded border p-2" /></label>
-      <label>Đường dẫn rút gọn<input required disabled={editing !== null && form.type === "DIETARY_TYPE"} pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={150} value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} className="block w-full rounded border p-2 disabled:opacity-60" /></label>
+      <label>Đường dẫn rút gọn<input required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={150} value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} className="block w-full rounded border p-2" /></label>
       <label>{t("Type", "Nhóm")}<select disabled={editing !== null} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="block w-full rounded border p-2">{CATEGORY_TYPES.map(value => <option key={value} value={value}>{t(...categoryTypeLabels[value])}</option>)}</select></label>
       <ImageFilePicker value={form.imageUrl} file={imageFile} onFileChange={setImageFile} onValueChange={url => setForm({ ...form, imageUrl: url || "" })} disabled={saving} />
       <label className="sm:col-span-2">{t("Description", "Mô tả")}<textarea maxLength={1000} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="block w-full rounded border p-2" /></label>

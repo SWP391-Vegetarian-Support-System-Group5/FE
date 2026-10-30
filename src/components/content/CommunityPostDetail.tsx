@@ -132,7 +132,7 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
   }
 
   return <main className="min-h-[60vh] bg-[#FBF9F6] text-[#07241A]"><article className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-12">
-    <nav className="text-xs text-[#727974]"><Link href="/">Trang chủ</Link> / <Link href="/community">Cộng đồng</Link></nav>
+    <nav className="text-xs text-[#727974]"><Link href="/">Trang chủ</Link> / <Link href="/community">Công thức</Link></nav>
     {error && <div role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} <Link href="/login" className="underline">Đăng nhập</Link><button className="ml-4 underline" onClick={() => window.location.reload()}>Tải lại</button></div>}
     {notice && <p role="status" className="mt-4 text-sm text-[#254B38]">{notice}</p>}
     {initialLoading ? <p role="status" className="py-12">Đang tải bài viết…</p> : removed ? <p className="py-12">Bài viết đã được xóa. <Link href="/community" className="underline">Về cộng đồng</Link></p> : post && <>
