@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import CreateContentView from "@/components/recipe/CreateContentView";
+import CreateContentPageShell from "@/components/recipe/CreateContentPageShell";
 
 export const metadata: Metadata = {
   title: "Tạo bài viết | VeggieMate",
@@ -10,13 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function CreateContentPage() {
-  return (
-    <div className="min-h-screen bg-[#FBF9F6] flex flex-col">
-      <Navbar />
-      <main className="flex-1">
-        <CreateContentView />
-      </main>
-      <Footer />
-    </div>
-  );
+  return <CreateContentPageShell />;
 }

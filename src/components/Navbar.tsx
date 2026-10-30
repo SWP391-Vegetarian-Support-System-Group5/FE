@@ -111,13 +111,21 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     router.push("/");
   };
 
-  const navLinks = [
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+
+  const memberNavLinks = [
     { label: t("Home", "Trang chủ"), href: "/" },
     { label: "Công thức", href: "/community" },
     { label: t("Vegan Places", "Địa điểm chay"), href: "/vegan-places" },
     { label: t("Meal Planner", "Thực đơn"), href: "/meal-planner" },
     { label: t("AI Chatbox", "Trợ lý AI"), href: "/ai-chatbox" },
   ].filter(link => user || !["/vegan-places", "/meal-planner"].includes(link.href));
+
+  // Administrators work in the administration area. Do not expose the member
+  // navigation or member-only shortcuts when an admin opens a shared page.
+  const navLinks = isAdmin
+    ? [{ label: "Khu vực quản trị", href: "/admin" }]
+    : memberNavLinks;
 
   const isLinkActive = (href: string) => {
     if (href === "/" && pathname === "/") return true;
@@ -271,7 +279,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   </div>
                   <div className="py-1">
                     {/* Admin Dashboard & Members: Hiển thị khi role là admin */}
-                    {user?.role?.toLowerCase() === "admin" && (
+                    {isAdmin && (
                       <>
                         <Link
                           href="/admin"
@@ -370,6 +378,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                         </Link>
                       </>
                     )}
+                    {!isAdmin && <>
                     <Link
                       href="/my-content"
                       onClick={() => setShowProfileMenu(false)}
@@ -411,6 +420,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                       </svg>
                       <span>{t("Bookmarks", "Đã lưu")}</span>
                     </Link>
+                    </>}
                     <button
                       type="button"
                       onClick={handleSignOut}
@@ -500,7 +510,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
           {user ? (
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
-              {user?.role?.toLowerCase() === "admin" && (
+              {isAdmin && (
                 <div className="mb-2 pb-2 border-b border-[#EFEEEB] space-y-1">
                   <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Quản trị</div>
                   <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#1E3A2F] bg-[#D9E6DC]/40">
@@ -531,6 +541,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   </Link>
                 </div>
               )}
+              {!isAdmin && <>
               <Link href="/my-content" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
                 {t("My Content", "Bài viết của tôi")}
               </Link>
@@ -555,6 +566,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               >
                 {t("Bookmarks", "Đã lưu")}
               </Link>
+              </>}
               <button
                 type="button"
                 onClick={handleSignOut}
