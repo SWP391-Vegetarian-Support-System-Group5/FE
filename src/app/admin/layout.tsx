@@ -152,17 +152,17 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased">
+    <div className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased" style={{ colorScheme: "light", backgroundColor: "#FBF9F6", color: "#07241A" }}>
       {/* 1. TOP NAVBAR CỐ ĐỊNH - KHÔNG CUỘN THEO TRANG */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex h-16 border-b border-[#EFEEEB] bg-white">
+      <header className="fixed top-0 left-0 right-0 z-50 flex h-16 border-b border-[#EFEEEB] bg-white" style={{ backgroundColor: "#ffffff", color: "#07241A" }}>
         {/* Khối bên trái: ADMIN v1.4 (rộng w-60 khớp sidebar) */}
-        <div className="flex h-full w-60 shrink-0 items-center justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-6">
+        <div className="flex h-full w-60 shrink-0 items-center justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-6" style={{ backgroundColor: "#FBF9F6" }}>
           <span className="text-xs font-bold tracking-widest text-[#727974]">ADMIN</span>
           <span className="text-[11px] font-medium text-[#A0A5A1]">v1.4</span>
         </div>
 
         {/* Khối bên phải: Main Admin Navbar (nền trắng) */}
-        <div className="flex h-full flex-1 items-center justify-between bg-white px-6 sm:px-8">
+        <div className="flex h-full flex-1 items-center justify-between bg-white px-6 sm:px-8" style={{ backgroundColor: "#ffffff" }}>
           {/* Logo VeggieMate & Huy hiệu Admin Area */}
           <div className="flex items-center gap-3">
             <Link
@@ -264,7 +264,7 @@ export default function AdminLayout({
       </header>
 
       {/* 2. SIDEBAR CỐ ĐỊNH BÊN TRÁI - DƯỚI THANH TOP BAR */}
-      <aside className="fixed top-16 left-0 bottom-0 z-30 flex w-60 flex-col justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-4 py-6 overflow-y-auto">
+      <aside className="fixed top-16 left-0 bottom-0 z-30 flex w-60 flex-col justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-4 py-6 overflow-y-auto" style={{ backgroundColor: "#FBF9F6", color: "#07241A" }}>
         <nav className="space-y-1.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/admin" && pathname?.startsWith(item.href));

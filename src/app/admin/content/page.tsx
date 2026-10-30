@@ -312,7 +312,7 @@ export default function AdminContentPage() {
         <div className="flex items-center gap-2.5">
 
           <Link
-            href="/create-content"
+            href="/admin/content/create"
             className="inline-flex items-center gap-1.5 rounded-2xl bg-[#1E3A2F] px-4 py-2.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#152820]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
