@@ -53,15 +53,6 @@ export default function HeroRecipeCarousel() {
           sizes="(max-width: 1024px) 100vw, 50vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
-        {current && (
-          <p className="absolute bottom-5 left-5 right-20 line-clamp-1 text-sm font-semibold text-white drop-shadow-sm">
-            {current.title}
-          </p>
-        )}
-      </div>
-
-      <div className="absolute bottom-4 right-4 rounded-full bg-[#07241A]/55 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
-        {recipes.length > 0 ? `${safeIndex + 1} / ${recipes.length}` : t("Recipe covers", "Ảnh công thức")}
       </div>
     </div>
   );
