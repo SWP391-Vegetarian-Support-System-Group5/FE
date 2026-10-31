@@ -283,8 +283,8 @@ export default function MealPlannerView() {
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
       {!loading && days.length > 0 && <p role="status" className="mt-4 border-l-2 border-[#4A7659] bg-[#EDF4ED] px-4 py-3 text-sm text-[#1E3A2F]">
         {replacementLimitReached
-          ? "Bạn đã hết 5 lượt đổi món cho thực đơn này. Các nút Thay món tạm khóa; vui lòng thử lại sau."
-          : "Giới hạn đổi món: tối đa 5 lần cho mỗi thực đơn trong 7 ngày."}
+          ? "Bạn đã hết 5 lượt đổi món cho thực đơn này. Các nút Thay món tạm khóa và sẽ được mở lại vào đầu tuần mới."
+          : "Giới hạn đổi món: tối đa 5 lần cho mỗi thực đơn trong tuần; lượt được làm mới vào đầu tuần mới."}
       </p>}
       {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
       <label className="mt-4 block text-sm">{ui("Start date")} <input type="text" inputMode="numeric" placeholder="dd/mm/yy" maxLength={10} value={startDate} onChange={e => setStartDate(e.target.value)} className="ml-3 w-36 rounded-lg border p-2" /></label>
