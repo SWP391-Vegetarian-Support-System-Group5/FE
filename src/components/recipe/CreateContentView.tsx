@@ -646,7 +646,7 @@ function RecipeContentView() {
         if (published.status === "PUBLISHED") try { rememberPublishedContent(contentOwner, published, "video"); } catch { /* Publishing already succeeded. */ }
         setStatusMessage({
           type: published.status === "PUBLISHED" ? "success" : "info",
-          text: published.status === "PUBLISHED" ? "Bài viết đã được AI duyệt và đăng." : published.moderationReason || "Bài chưa qua kiểm duyệt và vẫn ở bản nháp.",
+          text: published.status === "PUBLISHED" ? (isAdmin ? "Công thức đã được lưu và đăng bởi quản trị viên." : "Bài viết đã được AI duyệt và đăng.") : published.moderationReason || "Bài chưa qua kiểm duyệt và vẫn ở bản nháp.",
         });
       } else {
         // Manual mode: POST /api/recipes
@@ -679,7 +679,7 @@ function RecipeContentView() {
 
         setStatusMessage({
           type: res.status === "PUBLISHED" ? "success" : "info",
-          text: res.status === "PUBLISHED" ? "Bài viết đã được AI duyệt và đăng." : res.moderationReason || "Bài chưa qua kiểm duyệt và đã được lưu bản nháp.",
+          text: res.status === "PUBLISHED" ? (isAdmin ? "Công thức đã được lưu và đăng bởi quản trị viên." : "Bài viết đã được AI duyệt và đăng.") : res.moderationReason || "Bài chưa qua kiểm duyệt và đã được lưu bản nháp.",
         });
       }
     } catch (err: unknown) {
@@ -735,9 +735,9 @@ function RecipeContentView() {
             </div>
             {publishedResult && statusMessage.type !== "error" && (
               <Link
-                href="/my-content"
+                href={isAdmin ? "/admin/content" : "/my-content"}
                 className="underline font-bold hover:text-black ml-4"
-              ><UiText text={publishedResult?.status === "PUBLISHED" ? "Xem bài viết" : "Xem bản nháp"} /></Link>
+              ><UiText text={isAdmin ? "Quay lại nội dung" : publishedResult?.status === "PUBLISHED" ? "Xem bài viết" : "Xem bản nháp"} /></Link>
             )}
           </div>
         </div>

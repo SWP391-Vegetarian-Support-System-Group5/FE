@@ -110,3 +110,11 @@
   .vm-card:hover { translate: none; }
   .vm-feed-image, .vm-button:active { scale: 1 !important; }
 }
+@keyframes hero-recipe-slide {
+  from { opacity: 0; transform: translateX(8%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.hero-recipe-slide {
+  animation: hero-recipe-slide 650ms ease-out;
+}

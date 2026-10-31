@@ -185,6 +185,15 @@ export function useMealPlanner() {
     setNewPantryItem("");
   }
   const currentDiet = diets.find(diet => diet.dietTypeId === profile?.dietTypeId);
+  // The profile is the source of truth for the card, even before the user creates a meal plan.
+  // A saved plan may contain an old/null BMI from before the profile was completed.
+  const profileBmi = useMemo(() => {
+    if (!profile || !profile.heightCm || !profile.weightKg || profile.heightCm <= 0 || profile.weightKg <= 0) return null;
+    const heightInMeters = profile.heightCm / 100;
+    const value = Math.round((profile.weightKg / (heightInMeters * heightInMeters)) * 100) / 100;
+    const category = value < 18.5 ? "Underweight" : value < 25 ? "Normal" : "Obese";
+    return { value, category };
+  }, [profile]);
   return {
     days, allergens: selectedAllergens.map(item => item.name), newAllergen,
     setNewAllergen: (value: string) => { setNewAllergen(value); setAllergenError(null); }, showAddAllergen, setShowAddAllergen,
@@ -195,8 +204,10 @@ export function useMealPlanner() {
     toastMessage, isRegenerating, replacementLimitReached, handleRemoveAllergen, handleAddAllergen,
     handleRemovePantry: (name: string) => setPantryIngredients(items => items.filter(item => item !== name)),
     handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal,
-    profileName: profile?.fullName || t("You", "Bạn"), bmi: plan?.bmi ?? null,
-    bmiCategory: localizeText(plan?.bmiCategory, language), dietName: formatDietTypeName(currentDiet?.name, language), savedCount: savedIds.length,
+    profileName: profile?.fullName || t("You", "Bạn"),
+    bmi: profileBmi?.value ?? plan?.bmi ?? null,
+    bmiCategory: localizeText(profileBmi?.category ?? plan?.bmiCategory, language),
+    dietName: formatDietTypeName(currentDiet?.name, language), savedCount: savedIds.length,
     loading, error: localizeText(error, language), startDate, setStartDate,
   };
 }

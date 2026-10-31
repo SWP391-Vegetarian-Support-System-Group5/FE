@@ -166,7 +166,7 @@ export default function AdminLayout({
           {/* Logo VeggieMate & Huy hiệu Admin Area */}
           <div className="flex items-center gap-3">
             <Link
-              href="/"
+              href="/admin"
               className="flex items-center gap-2 font-serif text-lg sm:text-xl font-bold tracking-tight text-[#07241A] hover:opacity-85 transition"
             >
               <span className="text-[#0F2F24]">
