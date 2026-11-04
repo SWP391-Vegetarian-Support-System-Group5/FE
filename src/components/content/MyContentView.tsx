@@ -35,7 +35,7 @@ function displayText(item: MyContentItem, language: string) {
 }
 
 function itemThumbnail(item: MyContentItem) {
-  return item.image || item.recipe?.thumbnailUrl || getVideoThumbnailUrl(item.recipe?.videoUrl);
+  return item.recipe?.imageUrl || item.image || item.recipe?.thumbnailUrl || getVideoThumbnailUrl(item.recipe?.videoUrl);
 }
 
 function recipeIdFromItem(item: MyContentItem) {
@@ -54,7 +54,7 @@ function postToContentItem(post: PostResponse): MyContentItem {
     status: post.status === "PUBLISHED" ? "published" : "draft",
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
-    image: post.thumbnailUrl || getVideoThumbnailUrl(post.videoUrl),
+    image: (post.imageUrl ?? post.thumbnailUrl) || getVideoThumbnailUrl(post.videoUrl),
     recipe,
   };
 }
@@ -127,7 +127,7 @@ export default function MyContentView() {
             title: recipe.title || item.title,
             description: recipe.content || item.description,
             recipe,
-            image: recipe.thumbnailUrl || item.image || getVideoThumbnailUrl(recipe.videoUrl),
+            image: (recipe.imageUrl ?? recipe.thumbnailUrl) || item.image || getVideoThumbnailUrl(recipe.videoUrl),
             minutes: (recipe.prepMinutes || 0) + (recipe.cookMinutes || 0) || item.minutes,
           };
         } catch {
@@ -171,7 +171,7 @@ export default function MyContentView() {
       try {
         const recipe = await getRecipeById(recipeId);
         if (cancelled) return;
-        const image = recipe.thumbnailUrl || getVideoThumbnailUrl(recipe.videoUrl);
+        const image = (recipe.imageUrl ?? recipe.thumbnailUrl) || getVideoThumbnailUrl(recipe.videoUrl);
         saveContentItem(owner, {
           ...item,
           title: recipe.title || item.title,

@@ -72,8 +72,8 @@ export function clearStoredGuestSession(): void {
  * If logged in, Authorization header is automatically attached by apiFetch.
  * If guest, response contains guestAccessToken which is saved.
  */
-export async function createChatSession(): Promise<ChatSessionSummary> {
-  if (!getStoredToken()) {
+export async function createChatSession(options?: { fresh?: boolean }): Promise<ChatSessionSummary> {
+  if (!getStoredToken() && !options?.fresh) {
     const stored = getStoredGuestSession();
     if (stored) {
       const session = await getChatSessionById(stored.chatSessionId, stored.guestAccessToken);

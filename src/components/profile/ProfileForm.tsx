@@ -4,6 +4,9 @@ import UiText, { useUiText } from "@/components/UiText";
 
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import ImageManager from "@/components/ui/ImageManager";
+import { uploadAvatar, deleteAvatar } from "@/lib/image-api";
+import { setSessionUser } from "@/lib/auth-session";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
@@ -31,7 +34,8 @@ import {
   type AddressSuggestion,
   type UpdateProfilePayload,
 } from "@/lib/profile-api";
-import { getStoredToken } from "@/lib/auth";
+import { getMediaUrl } from "@/lib/api";
+import { getStoredToken, getStoredUser } from "@/lib/auth";
 import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
 import { saveLivingLocation } from "@/lib/living-location";
 import { useLanguage } from "@/context/LanguageContext";
@@ -126,9 +130,20 @@ function ProfileFields() {
   const allergenDropdownRef = useRef<HTMLDivElement>(null);
   const addressSuggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Avatar preview (local blob only — backend has no avatar field)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { user: avatarOwner } = useAuth();
+  const avatarToken = getStoredToken();
+  function applyAvatar(url: string | null) {
+    setAvatarUrl(url);
+    const current = getStoredUser();
+    if (current && avatarToken && getStoredToken() === avatarToken && current.userId === avatarOwner?.userId) {
+      setSessionUser({ ...current, avatarUrl: url });
+    }
+  }
+  async function refreshAvatar() {
+    const profile = await getProfile();
+    applyAvatar(profile.avatarUrl ?? null);
+  }
 
   // ── Load data on mount ────────────────────────────────────────────────────
   useEffect(() => {
@@ -166,6 +181,7 @@ function ProfileFields() {
           dietTypeId: profile.dietTypeId ?? null,
         };
 
+        setAvatarUrl(profile.avatarUrl ?? null);
         setDraft(d);
         setSavedDraft({ ...d });
         if (profile.latitude != null && profile.longitude != null) {
@@ -333,30 +349,11 @@ function ProfileFields() {
     setSelectedAllergenIds((prev) => prev.filter((x) => x !== id));
   }, []);
 
-  // ── Avatar (local only) ──────────────────────────────────────────────────
-  const handlePhotoChange = () => fileInputRef.current?.click();
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      setToastMessage("Please select a valid image file (JPG, PNG, GIF, WEBP).");
-      return;
-    }
-    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
-    setAvatarPreview(URL.createObjectURL(file));
-    e.target.value = "";
-  };
-
   // ── Cancel ───────────────────────────────────────────────────────────────
   const handleCancel = () => {
     setDraft({ ...savedDraft });
     setSelectedAllergenIds([...savedAllergenIds]);
     setErrors({});
-    if (avatarPreview) {
-      URL.revokeObjectURL(avatarPreview);
-      setAvatarPreview(null);
-    }
     setToastMessage(null);
   };
 
@@ -453,15 +450,6 @@ function ProfileFields() {
         </div>
       )}
 
-      {/* Hidden file input for avatar */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/gif,image/webp"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-
       {/* ═══ 1. PAGE INTRODUCTION ═══ */}
       <section className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5">
@@ -477,10 +465,10 @@ function ProfileFields() {
         <div className="flex items-center gap-5">
           {/* Avatar */}
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-[#EFEEEB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-            {avatarPreview ? (
+            {avatarUrl ? (
               <Image
-                src={avatarPreview}
-                alt={draft.fullName || "Avatar"}
+                src={getMediaUrl(avatarUrl)}
+                alt={draft.fullName || "Ảnh đại diện"}
                 fill
                 className="object-cover"
                 unoptimized
@@ -510,26 +498,8 @@ function ProfileFields() {
           </div>
         </div>
 
-        {/* Change Photo button */}
-        <button
-          type="button"
-          onClick={handlePhotoChange}
-          className="flex items-center gap-2 rounded-xl bg-[#F5F3F0] px-3.5 py-2 text-xs font-semibold tracking-[0.02em] text-[#1B1C1A] transition hover:bg-[#EFEEEB]"
-          title={ui("Avatar upload is not supported by the backend yet")}
-        >
-          <svg
-            width="13"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#727974"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-            <circle cx="12" cy="13" r="4" />
-          </svg><UiText text={"Đổi ảnh"} /></button>
+        <ImageManager imageUrl={avatarUrl} onUpload={uploadAvatar} onDelete={deleteAvatar}
+          onApplied={result => applyAvatar(result.imageUrl)} onRefresh={refreshAvatar} disabled={saving} />
       </section>
 
       {/* ═══ 3. PERSONAL INFORMATION CARD ═══ */}

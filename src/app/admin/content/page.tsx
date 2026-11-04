@@ -447,8 +447,8 @@ export default function AdminContentPage() {
                           <td className="py-3.5 pr-4">
                             <div className="flex items-center gap-3">
                               <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-[#EFEEEB]">
-                                {item.thumbnailUrl ? <Image
-                                  src={getMediaUrl(item.thumbnailUrl)}
+                                {(item.imageUrl ?? item.thumbnailUrl) ? <Image
+                                  src={getMediaUrl((item.imageUrl ?? item.thumbnailUrl))}
                                   alt={item.title}
                                   fill
                                   className="object-cover"

@@ -1,10 +1,13 @@
 "use client";
 
+import ImageFilePicker from "@/components/ui/ImageFilePicker";
+import ImageManager from "@/components/ui/ImageManager";
+import { uploadPostImage, deletePostImage, imageError, ImageRequestError } from "@/lib/image-api";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { getStoredToken } from "@/lib/auth";
-import { createPost, PostApiError, type PostResponse, type PostType } from "@/lib/post-api";
+import { getPost, createPost, PostApiError, type PostResponse, type PostType } from "@/lib/post-api";
 import { validatePostFields, type PostField, type PostFieldError } from "@/lib/content-validation";
 import { focusField } from "@/lib/focus-field";
 import { useAuth } from "@/context/AuthContext";
@@ -24,6 +27,31 @@ export default function PostComposer({ postType }: { postType: PostType }) {
   const [published, setPublished] = useState<PostResponse | null>(null);
   const [failure, setFailure] = useState<{ status: number; detail: string } | null>(null);
   const requestPending = useRef(false);
+  const createdPost = useRef<PostResponse | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFailure, setImageFailure] = useState("");
+  const [imageConflict, setImageConflict] = useState(false);
+  async function refreshImage() {
+    if (!createdPost.current) return;
+    const post = await getPost(createdPost.current.postId);
+    createdPost.current = post; setPublished(post); setImageConflict(false);
+  }
+  async function saveImage(post: PostResponse) {
+    if (!imageFile) return;
+    setImageFailure("");
+    try {
+      const result = await uploadPostImage(post.postId, imageFile);
+      const updated = { ...post, imageUrl: result.imageUrl };
+      createdPost.current = updated; setPublished(updated); setImageFile(null);
+      try { await refreshImage(); } catch { setImageFailure("Ảnh đã lưu nhưng chưa tải lại được dữ liệu. Không cần tải ảnh lên lại."); }
+    } catch (failure) { setImageConflict(failure instanceof ImageRequestError && failure.status === 409); setImageFailure(`Bài #${post.postId} đã tạo, chỉ ảnh chưa được lưu. ${imageError(failure)}`); }
+  }
+  async function retryImage() {
+    if (requestPending.current || imageConflict || !createdPost.current || !imageFile) return;
+    requestPending.current = true; setSubmitting(true);
+    try { await saveImage(createdPost.current); }
+    finally { requestPending.current = false; setSubmitting(false); }
+  }
   const resultRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLTextAreaElement>(null);
@@ -41,7 +69,7 @@ export default function PostComposer({ postType }: { postType: PostType }) {
   const visiblePublished = published?.postType === postType ? published : null;
   useEffect(() => { if (published || failure) resultRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" }); }, [published, failure]);
 
-  const changed = () => { setPublished(null); setFailure(null); };
+  const changed = () => { if (!createdPost.current) setPublished(null); setFailure(null); };
   const inputClass = "mt-2 w-full rounded-xl border border-[#E5E7DF] bg-[#FBF9F6] px-4 py-3 text-sm font-normal outline-none focus:border-[#254B38]";
   const errorText = failure?.status === 401
     ? t("Your session has expired or you are not signed in. Sign in to publish.", "Bạn chưa đăng nhập hoặc phiên đã hết hạn. Đăng nhập để đăng bài.")
@@ -66,7 +94,14 @@ export default function PostComposer({ postType }: { postType: PostType }) {
       <p className="font-semibold">✓ {t("Post created successfully!", "Đã tạo bài viết thành công!")}</p>
       <p className="mt-2 break-words text-sm">{visiblePublished.title} · {t("Post ID", "Mã bài viết")}: #{visiblePublished.postId} · {t("Published", "Đã công khai")}</p>
       <Link href={`/view-detail/post-${visiblePublished.postId}`} className="mt-3 mr-5 inline-block text-sm font-semibold underline">{t("View post", "Xem bài viết")}</Link>
-      <button type="button" className="mt-3 text-sm font-semibold underline underline-offset-4" onClick={() => { setTitle(""); setContent(""); setVideoUrl(""); setTouched({}); changed(); focusField(titleRef.current); }}>{t("Create another post", "Tạo bài viết khác")}</button>
+      <button type="button" disabled={submitting} className="mt-3 text-sm font-semibold underline underline-offset-4" onClick={() => { setTitle(""); setContent(""); setVideoUrl(""); setTouched({}); createdPost.current = null; setPublished(null); setImageFile(null); setImageFailure(""); changed(); focusField(titleRef.current); }}>{t("Create another post", "Tạo bài viết khác")}</button>
+    </div>}
+    {visiblePublished && <div className="mt-4 flex flex-wrap items-center gap-3">
+      <ImageManager imageUrl={visiblePublished.imageUrl ?? visiblePublished.thumbnailUrl} disabled={submitting} requiresRefresh={imageConflict}
+        onUpload={file => uploadPostImage(visiblePublished.postId, file)} onDelete={() => deletePostImage(visiblePublished.postId)}
+        onApplied={result => { const updated = { ...visiblePublished, imageUrl: result.imageUrl }; createdPost.current = updated; setPublished(updated); setImageFile(null); setImageFailure(""); }} onRefresh={refreshImage} />
+      {imageFailure && <p role="alert" className="text-sm text-red-700">{imageFailure}</p>}
+      {imageFailure && imageFile && <button type="button" disabled={submitting || imageConflict} onClick={() => void retryImage()} className="vm-button text-sm underline disabled:opacity-40">Thử tải ảnh lại</button>}
     </div>}
     {failure && <div ref={resultRef} role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
       <p>{errorText}</p>
@@ -75,7 +110,7 @@ export default function PostComposer({ postType }: { postType: PostType }) {
     </div>}
     <form noValidate className="mt-7 rounded-3xl border border-[#E5E7DF] bg-white p-6 sm:p-8" onSubmit={async event => {
       event.preventDefault();
-      if (requestPending.current || visiblePublished) return;
+      if (requestPending.current || createdPost.current) return;
       setFailure(null);
       setTouched({ title: true, content: true, videoUrl: true });
       if (Object.keys(fieldErrors).length) {
@@ -87,9 +122,11 @@ export default function PostComposer({ postType }: { postType: PostType }) {
       setSubmitting(true);
       try {
         const post = await createPost({ title: title.trim(), content: content.trim(), postType, videoUrl: videoUrl.trim() || null });
+        createdPost.current = post;
         setPublished(post);
         setDraft(emptyDraft);
         setTouched({});
+        await saveImage(post);
       } catch (error) {
         setFailure(error instanceof PostApiError ? { status: error.status, detail: error.message } : { status: 0, detail: "" });
       } finally { requestPending.current = false; setSubmitting(false); }
@@ -110,6 +147,7 @@ export default function PostComposer({ postType }: { postType: PostType }) {
           {showError("videoUrl") && <span id="post-video-error" className="vm-feedback mt-2 block text-xs font-normal text-red-700">{messages[fieldErrors.videoUrl!]}</span>}
           <span className="mt-2 block text-xs font-normal text-[#727974]">{t("Paste an HTTP or HTTPS video link. This form does not upload a video file.", "Dán đường dẫn video HTTP hoặc HTTPS. Form này không tải tệp video lên.")}</span>
         </label>}
+        {!visiblePublished && <ImageFilePicker file={imageFile} onChange={setImageFile} disabled={submitting} />}
         <div className="flex justify-end border-t border-[#E5E7DF] pt-5"><button type="submit" disabled={submitting || !!visiblePublished} className="rounded-full bg-[#254B38] px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{submitting ? t("Publishing…", "Đang đăng…") : visiblePublished ? t("Published", "Đã đăng") : t("Publish post", "Đăng bài viết")}</button></div>
       </fieldset>
     </form>

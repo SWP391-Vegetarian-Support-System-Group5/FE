@@ -9,6 +9,7 @@ export interface PostResponse {
   content: string;
   postType: string;
   videoUrl: string | null;
+  imageUrl?: string | null;
   thumbnailUrl: string | null;
   status: string;
   averageRating: number;
@@ -55,11 +56,11 @@ export function listPosts(params: { postType?: string; limit?: number; keyword?:
 }
 
 export function getPost(postId: number) {
-  return apiGet<PostResponse>(`/api/posts/${postId}`);
+  return apiGet<PostResponse>(`/api/posts/${postId}`, { cache: "no-store" });
 }
 
 export function getMyPosts() {
-  return apiGet<PostResponse[]>("/api/users/me/posts");
+  return apiGet<PostResponse[]>("/api/users/me/posts", { cache: "no-store" });
 }
 
 export function getPostComments(postId: number) {
@@ -115,6 +116,7 @@ export function postToRecipe(post: PostResponse): RecipeResponse {
     steps: [],
     compatibleDietTypeIds: [],
     videoUrl: post.videoUrl,
+    imageUrl: post.imageUrl,
     thumbnailUrl: post.thumbnailUrl,
     prepMinutes: null,
     cookMinutes: null,

@@ -42,6 +42,34 @@ const SAMPLE_PROMPTS = [
   "Các món chay giàu canxi và sắt cho người mới bắt đầu",
 ];
 
+function AIMessageText({ content }: { content: string }) {
+  // Some AI responses escape Markdown stars. Normalize only those escapes,
+  // leaving the stored answer and other backslashes intact. Never parse HTML.
+  const text = content.replace(/\\+\*/g, "*");
+  return <p className="whitespace-pre-wrap wrap-break-word">{text.split(/(\*\*[\s\S]+?\*\*)/g).map((part, index) =>
+    part.startsWith("**") && part.endsWith("**") && part.length > 4
+      ? <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>
+      : part
+  )}</p>;
+}
+
+function PromptSuggestions({ disabled, onSelect }: { disabled: boolean; onSelect: (prompt: string) => void }) {
+  const ui = useUiText();
+  return (
+    <div className="w-full space-y-2 pt-2">
+      <p className="text-xs font-semibold tracking-wider text-[#727974]"><UiText text="Gợi ý câu hỏi:" /></p>
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+        {SAMPLE_PROMPTS.map(prompt => (
+          <button key={prompt} type="button" disabled={disabled} onClick={() => onSelect(ui(prompt))}
+            className="rounded-xl border border-[#EFEEEB] bg-white p-3 text-left text-xs font-medium text-[#07241A] shadow-xs transition-colors duration-200 hover:border-[#1E3A2F] hover:bg-[#F5F3F0] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none">
+            {ui(prompt)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AIChatboxView() {
   const { user, loading } = useAuth();
   return <AIChatConversation key={loading ? "restoring" : user?.uid || "guest"} />;
@@ -186,6 +214,7 @@ function AIChatConversation() {
 
   // Select a session from the sidebar
   const handleSelectSession = async (sessionId: number) => {
+    if (isThinking || isLoadingSession) return;
     if (sessionId === activeSessionId) {
       setIsMobileSidebarOpen(false);
       return;
@@ -210,17 +239,18 @@ function AIChatConversation() {
 
   // Click "New Chat" button
   const handleNewChat = async () => {
+    if (isThinking || isLoadingSession) return;
     setIsLoadingSession(true);
     setError(null);
-    setSignupRequired(false);
     setIsMobileSidebarOpen(false);
 
     try {
-      const newSession = await createChatSession();
+      const newSession = await createChatSession({ fresh: true });
       setActiveSessionId(newSession.chatSessionId);
       setGuestToken(newSession.guestAccessToken || null);
       setMessages(newSession.messages || []);
-      const remaining = Math.max(0, 5 - newSession.messages.filter(message => message.sender === "USER").length);
+      setInputValue("");
+      const remaining = Math.max(0, 5 - (newSession.messages || []).filter(message => message.sender === "USER").length);
       setRemainingGuestMessages(newSession.userId === null ? remaining : null);
       setSignupRequired(newSession.userId === null && remaining === 0);
 
@@ -243,7 +273,7 @@ function AIChatConversation() {
   // Send message
   const handleSendMessage = async (customContent?: string) => {
     const content = (customContent || inputValue).trim();
-    if (!content || isThinking) return;
+    if (!content || isThinking || isLoadingSession || authLoading || signupRequired) return;
 
     if (content.length > 1000) {
       setError("Nội dung tin nhắn tối đa 1000 ký tự.");
@@ -370,7 +400,7 @@ function AIChatConversation() {
             <button
               type="button"
               onClick={handleNewChat}
-              disabled={isLoadingSession}
+              disabled={isLoadingSession || isThinking || authLoading}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#07241A] px-4 py-2.5 text-sm font-semibold tracking-wide text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-60 cursor-pointer"
             >
               <svg
@@ -573,7 +603,7 @@ function AIChatConversation() {
                 type="button"
                 onClick={handleNewChat}
                 title={ui("Tạo hội thoại mới")}
-                disabled={isLoadingSession}
+                disabled={isLoadingSession || isThinking || authLoading}
                 className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E4E2DF] bg-white text-[#07241A] transition hover:bg-[#F5F3F0] cursor-pointer"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -605,21 +635,7 @@ function AIChatConversation() {
                 </div>
 
                 {/* Prompt suggestions chips */}
-                <div className="w-full space-y-2 pt-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[#727974]"><UiText text={"Gợi ý câu hỏi:"} /></p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {SAMPLE_PROMPTS.map((prompt, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleSendMessage(ui(prompt))}
-                        className="rounded-xl bg-white border border-[#EFEEEB] p-3 text-left text-xs font-medium text-[#07241A] shadow-xs hover:border-[#1E3A2F] hover:bg-[#F5F3F0] transition cursor-pointer"
-                      >
-                        &quot;{ui(prompt)}&quot;
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <PromptSuggestions disabled={isThinking || isLoadingSession || authLoading || signupRequired} onSelect={handleSendMessage} />
               </div>
             ) : (
               /* Message list */
@@ -652,7 +668,7 @@ function AIChatConversation() {
                     </div>
                     <div className="flex flex-col items-start max-w-[88%] sm:max-w-[78%] space-y-2">
                       <div className="rounded-[2px_16px_16px_16px] bg-[#F5F3F0] border border-[#EFEEEB] px-5 py-4 text-sm leading-relaxed text-[#1B1C1A] shadow-xs space-y-3">
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <AIMessageText content={msg.content} />
 
                         {/* Related Recipes if present */}
                         {msg.relatedRecipes && msg.relatedRecipes.length > 0 && (
@@ -703,6 +719,10 @@ function AIChatConversation() {
                   </div>
                 );
               })
+            )}
+
+            {!isLoggedIn && messages.length > 0 && !signupRequired && !isLoadingSession && (
+              <PromptSuggestions disabled={isThinking || authLoading} onSelect={handleSendMessage} />
             )}
 
             {/* Thinking status */}
@@ -766,7 +786,7 @@ function AIChatConversation() {
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  disabled={isThinking || signupRequired}
+                  disabled={isThinking || isLoadingSession || authLoading || signupRequired}
                   maxLength={1000}
                   placeholder={
                     signupRequired
@@ -786,7 +806,7 @@ function AIChatConversation() {
                 {/* Send Button */}
                 <button
                   type="submit"
-                  disabled={isThinking || !inputValue.trim() || signupRequired}
+                  disabled={isThinking || isLoadingSession || authLoading || !inputValue.trim() || signupRequired}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#07241A] text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   aria-label={ui("Send message")}
                 >
