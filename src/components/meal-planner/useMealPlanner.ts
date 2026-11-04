@@ -7,7 +7,7 @@ import { getStoredToken } from "@/lib/auth";
 import { useMealImagePolling, hasPendingImages } from "./useMealImagePolling";
 import type { ImageMutationResponse } from "@/lib/image-api";
 import { getMediaUrl } from "@/lib/api";
-import { generateMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
+import { generateMealPlan, getMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
 import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
 import { getBookmarks } from "@/lib/post-api";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
