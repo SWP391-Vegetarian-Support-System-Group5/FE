@@ -15,8 +15,11 @@ export interface BackendUserProfile {
   email: string;
   fullName: string;
   sex: "MALE" | "FEMALE" | null;
+  birthYear: number | null;
   heightCm: number | null;
   weightKg: number | null;
+  activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE" | "VERY_ACTIVE" | null;
+  goalWeightKg: number | null;
   dietTypeId: number | null;
   latitude: number | null;
   longitude: number | null;
@@ -27,8 +30,11 @@ export interface BackendUserProfile {
 export interface UpdateProfilePayload {
   fullName: string;
   sex: "MALE" | "FEMALE" | null;
+  birthYear: number | null;
   heightCm: number | null;
   weightKg: number | null;
+  activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE" | "VERY_ACTIVE" | null;
+  goalWeightKg: number | null;
   dietTypeId: number | null;
   latitude: number | null;
   longitude: number | null;

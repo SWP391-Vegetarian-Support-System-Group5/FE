@@ -967,7 +967,6 @@ export default function AdminContentPage() {
                       <p className="mt-2 leading-7 text-[#4D5951]">{detailRecipe.content || t("No description provided.", "Chưa có mô tả.")}</p>
                       <div className="mt-4 flex flex-wrap gap-2 text-xs">
                         {detailRecipe.categories.map((category) => <span key={category.id} className="rounded-full bg-[#E8F0E5] px-3 py-1.5 font-semibold text-[#254B38]">{categoryName(category, locale.startsWith("vi") ? "vi" : "en")}</span>)}
-                        {detailRecipe.bmiTypes?.map((bmi) => <span key={bmi.id} className="rounded-full bg-[#FDF2E8] px-3 py-1.5 font-semibold text-[#9A3412]">{bmi.name}</span>)}
                       </div>
                       <p className="mt-4 text-sm text-[#627068]">{detailRecipe.prepMinutes ? `${t("Preparation", "Chuẩn bị")}: ${detailRecipe.prepMinutes} ${t("minutes", "phút")}` : ""}{detailRecipe.cookMinutes ? ` · ${t("Cooking", "Nấu")}: ${detailRecipe.cookMinutes} ${t("minutes", "phút")}` : ""}</p>
                     </div>

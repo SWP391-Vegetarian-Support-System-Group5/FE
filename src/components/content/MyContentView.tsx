@@ -250,7 +250,6 @@ export default function MyContentView() {
         prepMinutes: Number(draft.prepMinutes) || null, cookMinutes: Number(draft.cookMinutes) || null,
         servings: Number(draft.servings) || null, ingredients: draft.ingredients, steps: draft.steps,
         categoryIds: draft.selectedCategoryIds || [],
-        ...(user?.role === "ADMIN" ? { bmiTypeIds: draft.selectedBmiTypeIds || [] } : {}),
       });
       removeManualContent(owner);
       setAction(null);
@@ -278,7 +277,6 @@ export default function MyContentView() {
           cookMinutes: recipe.cookMinutes || null, servings: recipe.servings || null,
           ingredients: recipe.ingredients, steps: recipe.steps,
           categoryIds: recipe.categories.map(category => category.id),
-          ...(user?.role === "ADMIN" ? { bmiTypeIds: recipe.bmiTypes?.map(type => type.id) || [] } : {}),
         });
         setNotice({ en: result.status === "PUBLISHED" ? "Post published." : "Saved as draft.", vi: result.status === "PUBLISHED" ? "Bài đã được AI duyệt và đăng." : result.moderationReason || "Bài vẫn ở bản nháp. Hãy chỉnh sửa và thử lại." });
       } else {

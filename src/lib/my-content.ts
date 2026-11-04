@@ -8,10 +8,10 @@ export interface ManualRecipeDraft {
   prepMinutes: string;
   cookMinutes: string;
   servings: string;
+  caloriesPerServing?: string;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
   selectedCategoryIds?: number[];
-  selectedBmiTypeIds?: number[];
   savedAt: string;
 }
 

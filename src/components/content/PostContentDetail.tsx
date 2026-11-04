@@ -139,6 +139,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
             <span>{t("by", "bởi")} <strong className="font-medium text-[#07241A]">{post.authorName}</strong></span>
             <span>{publishedDate}</span>
             {totalMinutes > 0 && <span className="flex items-center gap-1.5"><ContentIcon name="clock" />{totalMinutes} {t("mins", "phút")}</span>}
+            {recipe?.caloriesPerServing != null && <span>~ {Math.round(recipe.caloriesPerServing)} kcal/{t("serving", "khẩu phần")}</span>}
           </div>
         </header>
 
