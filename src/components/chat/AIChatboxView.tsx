@@ -43,14 +43,25 @@ const SAMPLE_PROMPTS = [
 ];
 
 function AIMessageText({ content }: { content: string }) {
-  // Some AI responses escape Markdown stars. Normalize only those escapes,
+  // Some AI responses escape Markdown markers. Normalize only those escapes,
   // leaving the stored answer and other backslashes intact. Never parse HTML.
-  const text = content.replace(/\\+\*/g, "*");
-  return <p className="whitespace-pre-wrap wrap-break-word">{text.split(/(\*\*[\s\S]+?\*\*)/g).map((part, index) =>
+  const text = content.replace(/\\+([*#])/g, "$1").replace(/\r\n?/g, "\n");
+  const inlineText = (value: string, heading = false) => value.split(/(\*\*[\s\S]+?\*\*)/g).map((part, index) =>
     part.startsWith("**") && part.endsWith("**") && part.length > 4
-      ? <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>
+      ? <strong key={index} className={heading ? "font-medium" : "font-bold"}>{part.slice(2, -2)}</strong>
       : part
-  )}</p>;
+  );
+
+  return <div className="min-w-0 wrap-break-word">{text.split(/(^[ \t]{0,3}#{3,4}[ \t]+[^\n]*(?:\n|$))/m).map((block, index) => {
+    const heading = block.match(/^[ \t]{0,3}(#{3,4})[ \t]+([^\n]+)(?:\n|$)$/);
+    if (heading) {
+      const Heading = heading[1].length === 3 ? "h3" : "h4";
+      const title = heading[2].replace(/[ \t]+#+[ \t]*$/, "").trim();
+      return <Heading key={index} className="mt-4 mb-2 text-sm font-medium leading-relaxed text-[#254B38] first:mt-0">{inlineText(title, true)}</Heading>;
+    }
+    const paragraph = block.replace(/^\n+|\n+$/g, "");
+    return paragraph ? <p key={index} className="whitespace-pre-wrap">{inlineText(paragraph)}</p> : null;
+  })}</div>;
 }
 
 function PromptSuggestions({ disabled, onSelect }: { disabled: boolean; onSelect: (prompt: string) => void }) {
