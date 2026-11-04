@@ -7,7 +7,7 @@ import { getStoredToken } from "@/lib/auth";
 import { useMealImagePolling, hasPendingImages } from "./useMealImagePolling";
 import type { ImageMutationResponse } from "@/lib/image-api";
 import { getMediaUrl } from "@/lib/api";
-import { generateMealPlan, getMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
+import { deleteMealPlan, generateMealPlan, getMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
 import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
 import { getBookmarks } from "@/lib/post-api";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
@@ -148,14 +148,28 @@ export function useMealPlanner() {
       setShowGoalMenu(false);
     });
   }
-  async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"]) {
+  async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"], recipeId?: number) {
     if (!plan) return;
     const meal = plan.meals.find(item => item.mealPlanMealId === Number(mealId));
     if (!meal || meal.dayNumber !== _day + 1 || meal.mealType !== _slot) return;
     await run(async () => {
-      const next = await replaceMeal(plan.mealPlanId, Number(mealId));
+      const next = await replaceMeal(plan.mealPlanId, Number(mealId), recipeId);
       setPlan(next); await hydrateRecipes(next);
     });
+  }
+  async function handleDeletePlan() {
+    if (!plan) return false;
+    let deleted = false;
+    await run(async () => {
+      await deleteMealPlan(plan.mealPlanId);
+      setPlan(null);
+      setRecipeData({});
+      setSelectedMealForView(null);
+      setReplacementLimitReached(false);
+      setToastMessage(t("Meal plan deleted.", "Đã xóa thực đơn."));
+      deleted = true;
+    });
+    return deleted;
   }
   async function viewMeal(meal: MealItem) {
     if (!meal.recipeId) return;
@@ -285,7 +299,7 @@ export function useMealPlanner() {
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
     toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen,
     handleRemovePantry: (name: string) => setPantryIngredients(items => items.filter(item => item !== name)),
-    handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal,
+    handleAddPantry, handleReplaceMeal, handleDeletePlan, handleRegenerate, viewMeal,
     profileName: profile?.fullName || t("You", "Bạn"),
     bmi: profileBmi?.value ?? plan?.bmi ?? null,
     bmiCategory: localizeText(profileBmi?.category ?? plan?.bmiCategory, language),

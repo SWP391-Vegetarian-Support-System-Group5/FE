@@ -31,7 +31,7 @@ export default function CuratedVeganPlaces() {
   const { places: nearby, loading, message } = useNearbyPlaces();
   const places: VeganPlace[] = nearby.map(place => ({
     id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude,
-    image: getMediaUrl(place.imageUrl || "/images/hero_slide.png"),
+    image: place.imageUrl ? getMediaUrl(place.imageUrl) : "/images/hero_slide.png",
     isPlaceholder: !place.imageUrl,
     dietTag: displayPlaceCategory(place.category, t), district: place.areaCode === "all" ? t("Nearby", "Gần đây") : place.areaCode,
     description: place.address, specialtyTag: "VeggieMate",

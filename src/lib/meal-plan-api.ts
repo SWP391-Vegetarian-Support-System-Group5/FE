@@ -20,6 +20,15 @@ export interface MealPlanMealResponse {
   caloriesPerServing: number | null;
 }
 
+export interface MealPlanRecipeOptionResponse {
+  recipeId: number;
+  recipeName: string;
+  imageUrl: string | null;
+  caloriesPerServing: number;
+  prepMinutes: number | null;
+  cookMinutes: number | null;
+}
+
 export interface MealPlanResponse {
   mealPlanId: number;
   startDate: string;
@@ -67,12 +76,22 @@ export async function regenerateMealPlan(id: number, payload: GenerateMealPlanPa
   return (await res.json()) as MealPlanResponse;
 }
 
-export async function replaceMeal(planId: number, mealId: number) {
+export async function getMealReplacementOptions(planId: number, mealId: number, query = "") {
+  return apiGet<MealPlanRecipeOptionResponse[]>(`/api/meal-plans/${planId}/meals/${mealId}/replacement-options?query=${encodeURIComponent(query)}`, { cache: "no-store" });
+}
+
+export async function replaceMeal(planId: number, mealId: number, recipeId?: number) {
   const res = await apiFetch(`/api/meal-plans/${planId}/meals/${mealId}/replace`, {
     method: "PUT",
+    body: JSON.stringify(recipeId ?? null),
   });
   if (!res.ok) throw new MealPlanRequestError(await readApiError(res, "Không thể đổi món."), res.status);
   return (await res.json()) as MealPlanResponse;
+}
+
+export async function deleteMealPlan(planId: number) {
+  const res = await apiFetch(`/api/meal-plans/${planId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(await readApiError(res, "Không thể xóa thực đơn."));
 }
 
 async function readApiError(res: Response, fallback: string) {

@@ -10,8 +10,8 @@ import { uploadMealImage, deleteMealImage, generateMealImage } from "@/lib/image
 import { useMealPlanner } from "./useMealPlanner";
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
-import type { MealPlanNutritionGoal } from "@/lib/meal-plan-api";
+import { useEffect, useState } from "react";
+import { getMealReplacementOptions, type MealPlanNutritionGoal, type MealPlanRecipeOptionResponse } from "@/lib/meal-plan-api";
 
 export interface MealItem {
   id: string;
@@ -223,6 +223,11 @@ export default function MealPlannerView() {
   const { t } = useLanguage();
   const [adjustment, setAdjustment] = useState(500);
   const [selectedGoal, setSelectedGoal] = useState<MealPlanNutritionGoal>("MAINTAIN");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [mealPicker, setMealPicker] = useState<{ dayIndex: number; meal: MealItem } | null>(null);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerOptions, setPickerOptions] = useState<MealPlanRecipeOptionResponse[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
   const {
     imagePollingNotice, imagesPending, reloadMealImages,
     planId, applyMealImage, refreshMealImages, setImageBusy,
@@ -230,7 +235,7 @@ export default function MealPlannerView() {
     availableAllergens, allergenStatus, allergenError, retryAllergens,
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
     toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
-    handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal, profileName, bmi, bmiCategory,
+    handleAddPantry, handleReplaceMeal, handleDeletePlan, handleRegenerate, viewMeal, profileName, bmi, bmiCategory,
     dietName, savedCount, loading, error, startDate, setStartDate, tdee, targetCalories, nutritionGoal, calorieAdjustment, inferredNutritionGoal,
     goalWeightKg, estimatedWeeksToGoal, showGoalMenu, setShowGoalMenu,
   } = useMealPlanner();
@@ -239,6 +244,23 @@ export default function MealPlannerView() {
     setAdjustment(calorieAdjustment ?? 500);
     setShowGoalMenu(true);
   };
+  const openMealPicker = (dayIndex: number, meal: MealItem) => {
+    setPickerQuery("");
+    setPickerOptions([]);
+    setMealPicker({ dayIndex, meal });
+  };
+  useEffect(() => {
+    if (!mealPicker || !planId) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setPickerLoading(true);
+      void getMealReplacementOptions(planId, Number(mealPicker.meal.id), pickerQuery)
+        .then(options => { if (active) setPickerOptions(options); })
+        .catch(() => { if (active) setPickerOptions([]); })
+        .finally(() => { if (active) setPickerLoading(false); });
+    }, pickerQuery ? 250 : 0);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [mealPicker, planId, pickerQuery]);
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Toast */}
@@ -277,6 +299,17 @@ export default function MealPlannerView() {
             <span>✨</span>
             <span>{isRegenerating ? t("Generating…", "Đang tạo…") : days.length ? "Tạo thực đơn mới" : t("Generate My 7-Day Plan", "Tạo thực đơn 7 ngày")}</span>
           </button>
+
+          {planId && <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isRegenerating || loading}
+            title="Xóa thực đơn hiện tại"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#F1D9D1] bg-white text-[#A24635] shadow-xs transition hover:bg-[#FFF6F4] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v5M14 11v5" /></svg>
+            <span className="sr-only">Xóa thực đơn</span>
+          </button>}
 
           <button
             type="button"
@@ -534,6 +567,12 @@ export default function MealPlannerView() {
                       ><UiText text={"Xem công thức"} /></button>
                       <button
                         type="button"
+                        disabled={isRegenerating}
+                        onClick={() => openMealPicker(dIdx, meal)}
+                        className="rounded-xl border border-[#D9E6DC] bg-[#EDF4ED] px-3 py-1.5 text-xs font-semibold text-[#173C2D] transition hover:bg-[#E1EEE1] disabled:cursor-not-allowed disabled:opacity-50"
+                      >Chọn món</button>
+                      <button
+                        type="button"
                         disabled={isRegenerating} onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
                         title={t("Replace meal", "Thay món")}
                         className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition disabled:cursor-not-allowed disabled:opacity-50"
@@ -564,6 +603,30 @@ export default function MealPlannerView() {
           </div>
           {selectedGoal !== "MAINTAIN" && <label className="mt-5 block text-sm font-semibold text-[#07241A]">{selectedGoal === "LOSE" ? "Mức calories thâm hụt" : "Mức calories dư"}: {adjustment} kcal/ngày<input type="range" min="500" max="1000" step="50" value={adjustment} onChange={(event) => setAdjustment(Number(event.target.value))} className="mt-3 w-full accent-[#1E3A2F]" /></label>}
           <div className="mt-6 flex items-center justify-end gap-3 border-t border-[#EFEEEB] pt-5"><button type="button" onClick={() => setShowGoalMenu(false)} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0]">Hủy</button><button type="button" disabled={isRegenerating} onClick={() => void handleRegenerate(selectedGoal, selectedGoal === "MAINTAIN" ? null : adjustment)} className="rounded-xl bg-[#173C2D] px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#234A38] disabled:cursor-not-allowed disabled:opacity-50">{isRegenerating ? "Đang tạo…" : "Tạo thực đơn"}</button></div>
+        </div>
+      </div>}
+
+      {mealPicker && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => !isRegenerating && setMealPicker(null)}>
+        <div role="dialog" aria-modal="true" aria-labelledby="meal-picker-title" className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="border-b border-[#EFEEEB] px-6 py-5">
+            <div className="flex items-start justify-between gap-4"><div><h2 id="meal-picker-title" className="font-serif text-2xl font-bold text-[#07241A]">Chọn món thay thế</h2><p className="mt-1 text-xs leading-5 text-[#647068]">Chỉ hiển thị món phù hợp với kiểu ăn chay, dị ứng và nguyên liệu hiện có của bạn.</p></div><button type="button" onClick={() => setMealPicker(null)} className="rounded-lg p-2 text-[#727974] hover:bg-[#F5F3F0]" aria-label="Đóng">×</button></div>
+            <input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} placeholder="Tìm món muốn ăn..." className="mt-4 h-11 w-full rounded-xl border border-[#D9E6DC] bg-[#FBF9F6] px-4 text-sm outline-none transition focus:border-[#1E3A2F] focus:ring-2 focus:ring-[#1E3A2F]/10" />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            {pickerLoading ? <p className="p-4 text-sm text-[#647068]">Đang tìm món phù hợp...</p> : pickerOptions.length === 0 ? <p className="p-4 text-sm text-[#647068]">Không tìm thấy món phù hợp với từ khóa này.</p> : <div className="space-y-2">{pickerOptions.map(option => <button key={option.recipeId} type="button" disabled={isRegenerating} onClick={() => void handleReplaceMeal(mealPicker.dayIndex, mealPicker.meal.id, mealPicker.meal.slot, option.recipeId).then(() => setMealPicker(null))} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#E5E7DF] p-4 text-left transition hover:border-[#9AB59A] hover:bg-[#F6FAF5] disabled:opacity-50"><span><strong className="block text-sm text-[#07241A]">{option.recipeName}</strong><span className="mt-1 block text-xs text-[#727974]">{[option.prepMinutes && option.cookMinutes ? `${option.prepMinutes + option.cookMinutes} phút` : option.prepMinutes ? `${option.prepMinutes} phút` : "", `~ ${Math.round(option.caloriesPerServing)} kcal/khẩu phần`].filter(Boolean).join(" · ")}</span></span><span className="shrink-0 rounded-lg bg-[#173C2D] px-3 py-2 text-xs font-semibold text-white">Chọn</span></button>)}</div>}
+          </div>
+          <div className="border-t border-[#EFEEEB] px-6 py-4 text-right"><button type="button" onClick={() => setMealPicker(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0]">Hủy</button></div>
+        </div>
+      </div>}
+
+      {showDeleteConfirm && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => !isRegenerating && setShowDeleteConfirm(false)}>
+        <div role="dialog" aria-modal="true" aria-labelledby="delete-meal-plan-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <h2 id="delete-meal-plan-title" className="font-serif text-2xl font-bold text-[#07241A]">Xóa thực đơn này?</h2>
+          <p className="mt-3 text-sm leading-6 text-[#424844]">Toàn bộ 21 bữa trong thực đơn hiện tại sẽ bị xóa. Thao tác này không ảnh hưởng công thức, hồ sơ, dị ứng hoặc món đã lưu của bạn.</p>
+          <div className="mt-6 flex justify-end gap-3 border-t border-[#EFEEEB] pt-5">
+            <button type="button" disabled={isRegenerating} onClick={() => setShowDeleteConfirm(false)} className="rounded-xl border border-[#E5E7DF] px-4 py-2.5 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0] disabled:opacity-50">Giữ lại</button>
+            <button type="button" disabled={isRegenerating} onClick={() => void handleDeletePlan().then(() => setShowDeleteConfirm(false))} className="rounded-xl bg-[#A24635] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#883727] disabled:cursor-not-allowed disabled:opacity-50">{isRegenerating ? "Đang xóa…" : "Xóa thực đơn"}</button>
+          </div>
         </div>
       </div>}
 
