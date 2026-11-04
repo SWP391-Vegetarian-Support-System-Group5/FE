@@ -62,7 +62,8 @@ export default function LoginForm() {
       clearError();
       const signedInUser = await signInWithGoogle();
       if (signedInUser) {
-        router.replace("/");
+        router.replace(signedInUser.user.role.toLowerCase() === "admin" ? "/admin" : "/");
+        if (signedInUser.user.role.toLowerCase() !== "admin") void captureLocationAfterLogin(signedInUser.token).catch(() => {});
       }
     } catch (err: unknown) {
       const msg =

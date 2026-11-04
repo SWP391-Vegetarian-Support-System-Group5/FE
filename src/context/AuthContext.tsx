@@ -8,22 +8,26 @@ import React, {
   useCallback,
   useMemo,
   useSyncExternalStore,
+  useRef,
 } from "react";
 import {
-  User as FirebaseUser,
-  onAuthStateChanged,
   signInWithPopup,
   signOut as firebaseSignOut,
   AuthError,
   setPersistence,
   inMemoryPersistence,
 } from "firebase/auth";
+import { getProfile } from "@/lib/profile-api";
+import { getMediaUrl } from "@/lib/api";
+import { setSessionUser } from "@/lib/auth-session";
 import { subscribeSession } from "@/lib/auth-session";
 import { auth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import {
   BackendUser,
   LoginResponse,
   loginWithApi,
+  loginWithGoogleApi,
+  ApiError,
   logoutWithApi,
   getStoredToken,
   getStoredUser,
@@ -46,7 +50,7 @@ export interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   error: string | null;
-  signInWithGoogle: () => Promise<FirebaseUser | null>;
+  signInWithGoogle: () => Promise<LoginResponse | null>;
   loginWithCredentials: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => Promise<void>;
   getIdToken: (forceRefresh?: boolean) => Promise<string | null>;
@@ -87,35 +91,42 @@ function mapFirebaseAuthError(error: unknown): string {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const googleLoginPending = useRef(false);
   const backendUser = useSyncExternalStore(subscribeSession, getStoredUser, () => null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isSubscribed = true;
-    let unsubscribe = () => {};
     async function initialize() {
       try {
         if (isFirebaseConfigured()) {
           await firebaseSignOut(auth);
           await setPersistence(auth, inMemoryPersistence);
-          if (!isSubscribed) return;
-          unsubscribe = onAuthStateChanged(auth, (current) => {
-            if (isSubscribed) setFirebaseUser(current);
-          });
         }
       } finally {
         if (isSubscribed) setLoading(false);
       }
     }
-    void initialize().catch(() => { if (isSubscribed) setFirebaseUser(null); });
+    void initialize().catch(() => { /* Google sign-in reports configuration errors on demand. */ });
 
     return () => {
       isSubscribed = false;
-      unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!backendUser?.userId) return;
+    const token = getStoredToken();
+    let active = true;
+    getProfile().then(profile => {
+      const current = getStoredUser();
+      if (active && token && getStoredToken() === token && current?.userId === profile.userId && current.avatarUrl === backendUser.avatarUrl && current.avatarUrl !== profile.avatarUrl) {
+        setSessionUser({ ...current, avatarUrl: profile.avatarUrl ?? null });
+      }
+    }).catch(() => { /* Keep the signed-in user when profile refresh is unavailable. */ });
+    return () => { active = false; };
+  }, [backendUser?.userId, backendUser?.avatarUrl]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -136,7 +147,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const signInWithGoogle = useCallback(async (): Promise<FirebaseUser | null> => {
+  const signInWithGoogle = useCallback(async (): Promise<LoginResponse | null> => {
+    if (googleLoginPending.current) return null;
     setError(null);
 
     if (!isFirebaseConfigured()) {
@@ -146,20 +158,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(msg);
     }
 
+    googleLoginPending.current = true;
+    let firebaseAuthenticated = false;
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      setFirebaseUser(result.user);
-      return result.user;
+      firebaseAuthenticated = true;
+      const idToken = await result.user.getIdToken();
+      return await loginWithGoogleApi(idToken);
     } catch (err: unknown) {
-      const friendlyMessage = mapFirebaseAuthError(err);
+      if (firebaseAuthenticated) await firebaseSignOut(auth).catch(() => {});
+      const friendlyMessage = err instanceof ApiError
+        ? err.message
+        : firebaseAuthenticated
+          ? err instanceof TypeError
+            ? "Không kết nối được BE để lưu tài khoản Google. Vui lòng kiểm tra máy chủ và kết nối mạng."
+            : err instanceof Error ? err.message : "Không thể đồng bộ tài khoản Google với máy chủ."
+          : mapFirebaseAuthError(err);
       setError(friendlyMessage);
-      throw err;
+      throw new Error(friendlyMessage);
+    } finally {
+      googleLoginPending.current = false;
     }
   }, []);
 
   const logout = useCallback(async (): Promise<void> => {
     setError(null);
-    setFirebaseUser(null);
     try {
       // If we have a backend session, call backend logout API
       await logoutWithApi();
@@ -173,21 +196,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (auth.currentUser) {
         await firebaseSignOut(auth);
       }
-      setFirebaseUser(null);
     } catch {
-      setFirebaseUser(null);
+      // The application session has already been cleared.
     }
   }, []);
 
-  const getIdToken = useCallback(
-    async (forceRefresh: boolean = false): Promise<string | null> => {
-      if (firebaseUser) {
-        return firebaseUser.getIdToken(forceRefresh);
-      }
-      return getStoredToken();
-    },
-    [firebaseUser]
-  );
+  const getIdToken = useCallback(async (): Promise<string | null> => getStoredToken(), []);
 
   const user: AppUser | null = useMemo(() => {
     if (backendUser) {
@@ -197,24 +211,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: backendUser.email,
         displayName: backendUser.fullName || backendUser.email,
         fullName: backendUser.fullName,
-        photoURL: null,
+        photoURL: backendUser.avatarUrl ? getMediaUrl(backendUser.avatarUrl) : null,
         role: backendUser.role,
         backendUser,
         getIdToken: async () => getStoredToken(),
       };
     }
-    if (firebaseUser) {
-      return {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        fullName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL,
-        getIdToken: firebaseUser.getIdToken.bind(firebaseUser),
-      };
-    }
     return null;
-  }, [backendUser, firebaseUser]);
+  }, [backendUser]);
 
   const contextValue = useMemo(
     () => ({

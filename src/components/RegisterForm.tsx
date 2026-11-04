@@ -33,7 +33,7 @@ export default function RegisterForm() {
       clearError();
       const signedInUser = await signInWithGoogle();
       if (signedInUser) {
-        router.push("/");
+        router.replace(signedInUser.user.role.toLowerCase() === "admin" ? "/admin" : "/");
       }
     } catch (err: unknown) {
       const msg =

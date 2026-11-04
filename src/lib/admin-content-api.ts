@@ -7,6 +7,7 @@ export interface AdminPost {
   postType: string;
   authorName: string;
   status: string;
+  imageUrl?: string | null;
   thumbnailUrl: string | null;
   commentCount: number;
 }

@@ -19,6 +19,7 @@ export interface PostResponse {
   postType: PostType;
   videoUrl: string | null;
   status: string;
+  imageUrl?: string | null;
   moderationReason?: string | null;
   thumbnailUrl: string | null;
   averageRating: number;
