@@ -45,7 +45,6 @@ export interface RecipeStepPayload {
 }
 
 export interface CreateRecipePayload {
-  bmiTypeIds?: number[];
   title: string;
   recipeName: string;
   content: string;
@@ -54,6 +53,7 @@ export interface CreateRecipePayload {
   prepMinutes: number | null;
   cookMinutes: number | null;
   servings: number | null;
+  caloriesPerServing?: number | null;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
   categoryIds: number[];
@@ -61,13 +61,13 @@ export interface CreateRecipePayload {
 
 export interface RecipeResponse {
   moderationReason?: string | null;
-  bmiTypes?: import("@/lib/bmi-api").BmiType[];
   postId: number;
   title: string;
   recipeName: string;
   content: string;
   status: "PUBLISHED" | string;
   servings: number | null;
+  caloriesPerServing?: number | null;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
   compatibleDietTypeIds: number[];
@@ -98,6 +98,7 @@ export interface VideoRecipeDraftResponse {
   description: string | null;
   transcript: string | null;
   estimatedPrepMinutes: number | null;
+  caloriesPerServing?: number | null;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
   errorMessage: string | null;
@@ -111,14 +112,21 @@ export interface UpdateVideoRecipeDraftPayload {
   description: string;
   transcript: string | null;
   estimatedPrepMinutes: number | null;
+  caloriesPerServing?: number | null;
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
 }
 
 export interface PublishVideoRecipeDraftPayload {
-  bmiTypeIds?: number[];
   recipeName: string;
   categoryIds: number[];
+}
+
+export async function setRecipeCategories(recipeId: number, categoryIds: number[]) {
+  const response = await apiFetch(`/api/admin/recipes/${recipeId}/categories`, {
+    method: "PUT", body: JSON.stringify({ categoryIds }),
+  });
+  if (!response.ok) throw new Error(`CATEGORY_UPDATE_${response.status}`);
 }
 
 // ── Master data endpoints ──────────────────────────────────────────────────

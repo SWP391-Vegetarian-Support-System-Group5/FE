@@ -7,6 +7,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyOtpWithApi, resendOtpWithApi, ApiError } from "@/lib/auth";
+import { setSession } from "@/lib/auth-session";
 
 import { useHydrated } from "@/hooks/useHydrated";
 
@@ -136,18 +137,19 @@ function VerifyOtpFields({ email }: { email: string }) {
 
     try {
       setIsVerifying(true);
-      await verifyOtpWithApi(email, code);
+      const verified = await verifyOtpWithApi(email, code);
+      if (!verified.token || !verified.user) throw new Error("Không thể tạo phiên đăng nhập sau khi xác thực OTP.");
+      setSession(verified.token, verified.user);
 
-      // Successfully verified. Per requirement: DO NOT save token or log in.
-      // Clear pending verification state
+      // Verification now creates a session, then routes the new user through onboarding.
+      // Clear only the pending verification state.
       if (typeof window !== "undefined") {
         sessionStorage.removeItem("veggiemate_pending_email");
         sessionStorage.removeItem("veggiemate_otp_expires_at");
         sessionStorage.removeItem("veggiemate_otp_resend_cooldown");
       }
 
-      // Redirect to login with verified notice and prefilled email
-      router.push(`/login?verified=true&email=${encodeURIComponent(email)}`);
+      router.replace("/onboarding");
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         const msg = err.message.toLowerCase();

@@ -4,16 +4,13 @@ import { Fragment, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import UiText, { useUiText } from "@/components/UiText";
-import ImageFilePicker from "@/components/ImageFilePicker";
-import { uploadImage } from "@/lib/image-upload";
 import { getIngredientCategories, getIngredients, saveIngredientCategory, type IngredientItem, type RecipeResponse } from "@/lib/recipe-api";
 import { localizeIngredient, localizeIngredientCategory, localizeRecipeTitle } from "@/lib/localized-content";
 import { apiFetch, apiGet } from "@/lib/api";
-import { CATEGORY_TYPES, categoryName, categoryTypeLabels, getRecipeCategories } from "@/lib/recipe-categories";
+import { categoryName, getRecipeCategories } from "@/lib/recipe-categories";
 
 import type { CategoryData, DishItem } from "@/lib/admin-category-design";
 import CategoryRecipeAssignments from "@/components/recipe/CategoryRecipeAssignments";
-import { getAdminRecipeBmiTypes, getBmiTypes, type AdminRecipeBmi, type BmiType } from "@/lib/bmi-api";
 
 function categorySlug(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D")
@@ -43,8 +40,7 @@ export default function AdminCategoriesPage() {
   const [allIngredients, setAllIngredients] = useState<IngredientItem[]>([]);
 
   const [dishes, setDishes] = useState<DishItem[]>([]);
-  const [adminRecipes, setAdminRecipes] = useState<AdminRecipeBmi[]>([]);
-  const [bmiTypes, setBmiTypes] = useState<BmiType[]>([]);
+  const [adminRecipes, setAdminRecipes] = useState<RecipeResponse[]>([]);
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -76,18 +72,15 @@ export default function AdminCategoriesPage() {
   };
 
   async function loadCatalog() {
-    const [categories, groups, ingredients, recipes, allRecipes, types] = await Promise.all([
+    const [categories, groups, ingredients, recipes] = await Promise.all([
       getRecipeCategories(true), getIngredientCategories(), getIngredients(),
       apiGet<RecipeResponse[]>("/api/recipes/search"),
-      getAdminRecipeBmiTypes(), getBmiTypes(),
     ]);
-    setAdminRecipes(allRecipes);
+    setAdminRecipes(recipes);
     setAllIngredients(ingredients);
-    setBmiTypes(types);
     setRecipeCategories(categories.map(c => ({
-      id: c.id, name: c.name, nameVi: categoryName(c, "vi"), slug: c.slug,
-      type: "Recipe Category", categoryType: c.type, imageUrl: c.imageUrl,
-      description: c.description || "", itemCount: allRecipes.filter(r => r.categoryIds?.includes(c.id)).length,
+      id: c.id, name: c.name, nameVi: categoryName(c, "vi"), slug: String(c.id),
+      type: "Recipe Category", description: "", itemCount: recipes.filter(r => r.categories.some(category => category.id === c.id)).length,
       status: c.isActive ? "Active" : "Hidden", badgeType: "custom",
       updatedAt: new Date(c.createdAt).toLocaleDateString(),
     })));
@@ -99,8 +92,8 @@ export default function AdminCategoriesPage() {
     const groupById = new Map(groups.map(group => [group.id, group.code]));
     setDishes(recipes.map(r => ({
       id: r.postId, title: r.recipeName, titleVi: localizeRecipeTitle(r.recipeName, "vi"),
-      recipeCategorySlug: r.categories[0]?.slug || "",
-      recipeCategorySlugs: r.categories.map(c => c.slug),
+      recipeCategorySlug: r.categories[0] ? String(r.categories[0].id) : "",
+      recipeCategorySlugs: r.categories.map(c => String(c.id)),
       ingredientGroupSlug: groupById.get(r.ingredients[0]?.ingredientCategoryId ?? -1) || r.ingredients[0]?.dietaryGroup || "",
       ingredientGroupSlugs: [...new Set(r.ingredients.map(i => groupById.get(i.ingredientCategoryId ?? -1) || i.dietaryGroup))],
       prepTime: r.prepMinutes != null ? String(r.prepMinutes) : "",
@@ -168,7 +161,7 @@ export default function AdminCategoriesPage() {
   };
 
   const handleOpenEditModal = (cat: CategoryData) => {
-    setFormCategoryType(cat.categoryType || "CUISINE");
+    setFormCategoryType("RECIPE");
     setFormDietaryGroup(cat.categoryType || "PLANT");
     setEditingCategory(cat);
     setFormName(cat.name);
@@ -185,10 +178,7 @@ export default function AdminCategoriesPage() {
   };
 
   async function persistCategory(cat: CategoryData, isActive: boolean) {
-    const response = await apiFetch(`/api/recipe-categories/${cat.id}`, {
-      method: "PUT", body: JSON.stringify({ name: cat.name, slug: cat.slug, type: cat.categoryType,
-        description: cat.description || null, imageUrl: cat.imageUrl || null, isActive }),
-    });
+    const response = await apiFetch(`/api/recipe-categories/${cat.id}`, { method: "PUT", body: JSON.stringify({ name: cat.name, isActive }) });
     if (!response.ok) throw new Error(ui("Could not save category."));
   }
   const handleSaveCategory = async (e: React.FormEvent) => {
@@ -201,12 +191,9 @@ export default function AdminCategoriesPage() {
         await loadCatalog(); setIsModalOpen(false); showToast(ui("Saved successfully."));
         return;
       }
-      const imageUrl = formImageFile ? await uploadImage(formImageFile, "categories") : formImageUrl || null;
-      if (formImageFile) { setFormImageUrl(imageUrl || ""); setFormImageFile(null); }
       const response = await apiFetch(`/api/recipe-categories${editingCategory ? `/${editingCategory.id}` : ""}`, {
         method: editingCategory ? "PUT" : "POST", body: JSON.stringify({
-          name: formName.trim(), slug: formSlug, type: formCategoryType,
-          description: formDescription || null, imageUrl, isActive: formStatus === "Active",
+          name: formName.trim(), isActive: formStatus === "Active",
         }),
       });
       if (!response.ok) { const body = await response.json(); throw new Error(body.message || ui("Could not save category.")); }
@@ -775,14 +762,14 @@ export default function AdminCategoriesPage() {
                           {renderBadgeIcon(cat.badgeType, cat.name)}
                           <div>
                             <button type="button" onClick={() => setExpandedCategoryId(current => current === cat.id ? null : cat.id)} aria-expanded={expandedCategoryId === cat.id} className="text-left font-bold text-[#07241A] text-sm leading-snug hover:underline">{cat.nameVi}</button>
-                            <div className="font-mono text-[11px] text-[#727974] leading-tight">{cat.slug}</div>
+                            {activeTab === "ingredients" && <div className="font-mono text-[11px] text-[#727974] leading-tight">{cat.slug}</div>}
                           </div>
                         </div>
                       </td>
 
                       {/* DESCRIPTION & HIGHLIGHTS COLUMN */}
                       <td className="px-4 py-4 max-w-md">
-                        <p className="text-xs text-[#4E5651] leading-relaxed">{cat.description}</p>
+                        {activeTab === "ingredients" ? <p className="text-xs text-[#4E5651] leading-relaxed">{cat.description}</p> : <p className="text-xs text-[#4E5651] leading-relaxed">Danh mục công thức</p>}
                       </td>
 
                       {/* ASSOCIATED ITEMS COLUMN */}
@@ -842,7 +829,7 @@ export default function AdminCategoriesPage() {
                         </div>
                       </td>
                     </tr>
-                    {expandedCategoryId === cat.id && activeTab === "recipes" && <tr><td colSpan={5} className="p-0"><CategoryRecipeAssignments categoryId={cat.id} categoryName={cat.nameVi || cat.name} recipes={adminRecipes} types={bmiTypes} onChanged={loadCatalog} onBmiSaved={(recipeId, ids) => setAdminRecipes(current => current.map(recipe => recipe.postId === recipeId ? { ...recipe, bmiTypes: bmiTypes.filter(type => ids.includes(type.id)) } : recipe))} /></td></tr>}
+                    {expandedCategoryId === cat.id && activeTab === "recipes" && <tr><td colSpan={5} className="p-0"><CategoryRecipeAssignments categoryId={cat.id} categoryName={cat.nameVi || cat.name} recipes={adminRecipes} onChanged={loadCatalog} /></td></tr>}
                     {expandedCategoryId === cat.id && activeTab === "ingredients" && <tr><td colSpan={5} className="bg-[#FAF9F5] px-6 py-5"><h3 className="font-serif text-lg font-semibold text-[#07241A]">{cat.nameVi} ({cat.itemCount})</h3><div className="mt-3 max-h-80 overflow-y-auto">{allIngredients.filter(ingredient => ingredient.ingredientCategoryId === cat.id).length === 0 ? <p className="py-3 text-sm text-[#727974]">{ui("No ingredients in this category yet.")}</p> : <div className="grid gap-x-8 sm:grid-cols-2">{allIngredients.filter(ingredient => ingredient.ingredientCategoryId === cat.id).map(ingredient => <div key={ingredient.id} className="flex items-center justify-between border-b border-[#E6E3DA] py-2 text-sm"><span>{localizeIngredient(ingredient.name, "vi")}</span><span className="text-xs text-[#727974]">#{ingredient.id}</span></div>)}</div>}</div><Link href="/admin/ingredients" className="mt-4 inline-block text-sm font-semibold text-[#1E3A2F] underline">{ui("Manage ingredients")}</Link></td></tr>}
                     </Fragment>
                   ))
@@ -878,7 +865,7 @@ export default function AdminCategoriesPage() {
               <fieldset disabled={saving} className="contents">
               {formType === "Recipe Category" ? <label className="block text-xs font-semibold">{ui("Type")}
                 <select disabled={editingCategory !== null} value={formCategoryType} onChange={e => setFormCategoryType(e.target.value)} className="mt-2 block w-full rounded-xl border p-2">
-                  {CATEGORY_TYPES.map(type => <option key={type} value={type}>{ui(categoryTypeLabels[type][0])}</option>)}
+                  <option value="RECIPE">Danh mục công thức</option>
                 </select>
               </label> : <label className="block text-xs font-semibold">{ui("Dietary group")}
                 <select value={formDietaryGroup} onChange={e => setFormDietaryGroup(e.target.value)} disabled={editingCategory !== null && ["PLANT", "DAIRY", "EGG", "HONEY", "UNVERIFIED"].includes(editingCategory.slug)} className="mt-2 block w-full rounded-xl border p-2">
@@ -940,21 +927,10 @@ export default function AdminCategoriesPage() {
                   />
                 </div>
 
-                {formType === "Recipe Category" && <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                    Tên hiển thị
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ví dụ: Ẩm thực chay Việt Nam"
-                    readOnly value={formNameVi}
-                    className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
-                  />
-                </div>}
               </div>
 
               {/* Slug & Associated Count */}
-              <div className="grid grid-cols-3 gap-3">
+              {formType === "Ingredient Group" && <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                     {formType === "Ingredient Group" ? ui("Category code") : ui("URL Slug")} *
@@ -982,10 +958,10 @@ export default function AdminCategoriesPage() {
                     className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold outline-none focus:border-[#1E3A2F] focus:bg-white"
                   />
                 </div>
-              </div>
+              </div>}
 
               {/* Badge Style Selector */}
-              {formType === "Recipe Category" && <div>
+              {formType === "Ingredient Group" && <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                   <UiText text="Kiểu biểu tượng" />
                 </label>
@@ -1022,7 +998,6 @@ export default function AdminCategoriesPage() {
               </div>}
 
               {/* Description */}
-              {formType === "Recipe Category" && <ImageFilePicker value={formImageUrl} file={formImageFile} onFileChange={setFormImageFile} onValueChange={url => setFormImageUrl(url || "")} disabled={saving} />}
               {formType === "Recipe Category" && <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                   <UiText text="Mô tả và điểm nổi bật" />

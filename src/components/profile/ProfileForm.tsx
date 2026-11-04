@@ -54,8 +54,11 @@ interface ProfileDraft {
   fullName: string;
   email: string;
   sex: "MALE" | "FEMALE" | null;
+  birthYear: string;
   heightCm: string; // kept as string for controlled input
   weightKg: string;
+  activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE" | "VERY_ACTIVE" | null;
+  goalWeightKg: string;
   dietTypeId: number | null;
 }
 
@@ -100,8 +103,11 @@ function ProfileFields() {
     fullName: "",
     email: "",
     sex: null,
+    birthYear: "",
     heightCm: "",
     weightKg: "",
+    activityLevel: null,
+    goalWeightKg: "",
     dietTypeId: null,
   });
   const [savedDraft, setSavedDraft] = useState<ProfileDraft>({ ...draft });
@@ -180,8 +186,11 @@ function ProfileFields() {
           fullName: profile.fullName ?? "",
           email: profile.email ?? "",
           sex: profile.sex ?? null,
+          birthYear: profile.birthYear != null ? String(profile.birthYear) : "",
           heightCm: profile.heightCm != null ? String(profile.heightCm) : "",
           weightKg: profile.weightKg != null ? String(profile.weightKg) : "",
+          activityLevel: profile.activityLevel ?? null,
+          goalWeightKg: profile.goalWeightKg != null ? String(profile.goalWeightKg) : "",
           dietTypeId: profile.dietTypeId ?? null,
         };
 
@@ -396,8 +405,11 @@ function ProfileFields() {
       const payload: UpdateProfilePayload = {
         fullName: draft.fullName,
         sex: draft.sex,
+        birthYear: draft.birthYear ? Number(draft.birthYear) : null,
         heightCm: draft.heightCm ? parseFloat(draft.heightCm) : null,
         weightKg: draft.weightKg ? parseFloat(draft.weightKg) : null,
+        activityLevel: draft.activityLevel,
+        goalWeightKg: draft.goalWeightKg ? parseFloat(draft.goalWeightKg) : null,
         dietTypeId: draft.dietTypeId,
         latitude: selectedCoords?.lat ?? null,
         longitude: selectedCoords?.lng ?? null,
@@ -412,6 +424,7 @@ function ProfileFields() {
         fullName: updatedProfile.fullName ?? "",
         email: updatedProfile.email ?? "",
         sex: updatedProfile.sex ?? null,
+        birthYear: updatedProfile.birthYear != null ? String(updatedProfile.birthYear) : "",
         heightCm:
           updatedProfile.heightCm != null
             ? String(updatedProfile.heightCm)
@@ -420,6 +433,8 @@ function ProfileFields() {
           updatedProfile.weightKg != null
             ? String(updatedProfile.weightKg)
             : "",
+        activityLevel: updatedProfile.activityLevel ?? null,
+        goalWeightKg: updatedProfile.goalWeightKg != null ? String(updatedProfile.goalWeightKg) : "",
         dietTypeId: updatedProfile.dietTypeId ?? null,
       };
 
@@ -726,6 +741,23 @@ function ProfileFields() {
               <span className="text-xs text-[#99462A]">{<UiText text={errors.weightKg} />}</span>
             )}
           </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.02em] text-[#424844]">
+            Năm sinh
+            <input type="number" inputMode="numeric" min="1900" max={new Date().getFullYear() - 18} value={draft.birthYear} onChange={(event) => updateField("birthYear", event.target.value)} placeholder="Ví dụ: 2004" className="rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20" />
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.02em] text-[#424844]">
+            Mức vận động
+            <select value={draft.activityLevel ?? ""} onChange={(event) => updateField("activityLevel", (event.target.value || null) as ProfileDraft["activityLevel"])} className="rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20">
+              <option value="">Chọn mức vận động</option><option value="SEDENTARY">Ít vận động</option><option value="LIGHT">Nhẹ (1–3 ngày/tuần)</option><option value="MODERATE">Vừa (3–5 ngày/tuần)</option><option value="ACTIVE">Cao (6–7 ngày/tuần)</option><option value="VERY_ACTIVE">Rất cao</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.02em] text-[#424844]">
+            Cân nặng mục tiêu
+            <div className="relative"><input type="text" inputMode="decimal" value={draft.goalWeightKg} onChange={(event) => updateField("goalWeightKg", event.target.value)} placeholder="Ví dụ: 60" className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 pr-10 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20" /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#727974]">kg</span></div>
+          </label>
         </div>
 
         {/* Row 2: Vegetarian Diet Type (full-width dropdown from API) */}

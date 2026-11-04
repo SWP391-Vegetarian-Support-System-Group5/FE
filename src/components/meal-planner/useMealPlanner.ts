@@ -7,7 +7,7 @@ import { getStoredToken } from "@/lib/auth";
 import { useMealImagePolling, hasPendingImages } from "./useMealImagePolling";
 import type { ImageMutationResponse } from "@/lib/image-api";
 import { getMediaUrl } from "@/lib/api";
-import { generateMealPlan, getMealPlans, getMealPlan, regenerateMealPlan, replaceMeal, type MealPlanResponse } from "@/lib/meal-plan-api";
+import { generateMealPlan, getMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
 import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
 import { getBookmarks } from "@/lib/post-api";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
@@ -41,6 +41,8 @@ export function useMealPlanner() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRegenerating, setWorking] = useState(false);
+  const [replacementLimitReached, setReplacementLimitReached] = useState(false);
+  const [showGoalMenu, setShowGoalMenu] = useState(false);
   const [startDate, setStartDate] = useState(() => initialMealPlanDate());
   const lock = useRef(false);
 
@@ -112,7 +114,7 @@ export function useMealPlanner() {
       const item: MealItem = {
         id: String(meal.mealPlanMealId), recipeId: meal.recipeId, mealPlanMealId: meal.mealPlanMealId,
         slot: meal.mealType as MealItem["slot"], timeLabel: meal.mealType,
-        durationCalories: minutes ? `${minutes} ${t("mins", "phút")}` : "",
+        durationCalories: [minutes ? `${minutes} ${t("mins", "phút")}` : "", recipe?.caloriesPerServing ? `~ ${Math.round(recipe.caloriesPerServing)} kcal` : meal.caloriesPerServing ? `~ ${Math.round(meal.caloriesPerServing)} kcal` : ""].filter(Boolean).join(" · "),
         title: localizeRecipeTitle(recipe?.recipeName || meal.recipeName, language),
         description: localizeText(recipe?.content, language), image: getMediaUrl(meal.imageUrl ?? recipe?.imageUrl ?? recipe?.thumbnailUrl),
         imageIsGenerated: meal.imageIsGenerated ?? false,
@@ -136,13 +138,14 @@ export function useMealPlanner() {
     catch (failure) { setError(failure instanceof Error ? failure.message : "Could not update meal plan."); }
     finally { lock.current = false; setWorking(false); }
   }
-  async function handleRegenerate() {
+  async function handleRegenerate(nutritionGoal?: MealPlanNutritionGoal, calorieAdjustment: number | null = null) {
     await run(async () => {
       const parsedDate = parseMealPlanDate(startDate);
       if (!parsedDate) throw new Error(t("Enter a valid start date as dd/mm/yy (2000-2099).", "Nhập ngày bắt đầu hợp lệ theo dd/mm/yy (năm 2000–2099)."));
-      const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", ") || null };
+      const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", ") || null, nutritionGoal, calorieAdjustment };
       const next = plan ? await regenerateMealPlan(plan.mealPlanId, payload) : await generateMealPlan(payload);
-      setPlan(next); setPlanOwner(user?.uid); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
+      setPlan(next); setReplacementLimitReached(false); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
+      setShowGoalMenu(false);
     });
   }
   async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"]) {
@@ -242,6 +245,35 @@ export function useMealPlanner() {
     const category = value < 18.5 ? "Underweight" : value < 25 ? "Normal" : "Obese";
     return { value, category };
   }, [profile]);
+  const inferredNutritionGoal = useMemo<MealPlanNutritionGoal>(() => {
+    if (!profile?.weightKg || !profile.goalWeightKg) return "MAINTAIN";
+    if (profile.goalWeightKg < profile.weightKg) return "LOSE";
+    if (profile.goalWeightKg > profile.weightKg) return "GAIN";
+    return "MAINTAIN";
+  }, [profile?.goalWeightKg, profile?.weightKg]);
+  const profileTdee = useMemo(() => {
+    if (!profile?.weightKg || !profile.heightCm || !profile.sex || !profile.birthYear || !profile.activityLevel) return null;
+    const today = new Date();
+    const age = today.getFullYear() - profile.birthYear;
+    if (age < 18 || age > 120) return null;
+    const factor = { SEDENTARY: 1.2, LIGHT: 1.375, MODERATE: 1.55, ACTIVE: 1.725, VERY_ACTIVE: 1.9 }[profile.activityLevel];
+    const bmr = 10 * profile.weightKg + 6.25 * profile.heightCm - 5 * age + (profile.sex === "MALE" ? 5 : -161);
+    return Math.round(bmr * factor);
+  }, [profile]);
+  // An older plan may have been generated before the user saved a goal weight.
+  // The profile goal is therefore the source of truth for the summary card.
+  const profileHasDirection = inferredNutritionGoal !== "MAINTAIN";
+  const planMatchesProfileDirection = plan?.nutritionGoal === inferredNutritionGoal;
+  const displayGoal = profileHasDirection ? inferredNutritionGoal : plan?.nutritionGoal ?? "MAINTAIN";
+  const displayAdjustment = profileHasDirection
+    ? (planMatchesProfileDirection ? plan?.calorieAdjustment ?? 500 : 500)
+    : plan?.calorieAdjustment ?? null;
+  const displayTdee = plan?.tdee ?? profileTdee;
+  const displayTargetCalories = plan?.targetCaloriesPerDay ?? (displayTdee == null ? null : displayGoal === "LOSE" ? displayTdee - (displayAdjustment ?? 500) : displayGoal === "GAIN" ? displayTdee + (displayAdjustment ?? 500) : displayTdee);
+  const inferredWeeksToGoal = useMemo(() => {
+    if (!profile?.weightKg || !profile.goalWeightKg || !displayAdjustment || inferredNutritionGoal === "MAINTAIN") return null;
+    return Math.round((Math.abs(profile.goalWeightKg - profile.weightKg) * 7700 / (displayAdjustment * 7)) * 10) / 10;
+  }, [profile?.goalWeightKg, profile?.weightKg, displayAdjustment, inferredNutritionGoal]);
   return {
     imagePollingNotice, imagesPending: hasPendingImages(plan), reloadMealImages: () => run(refreshMealImages),
     planId: plan?.mealPlanId, applyMealImage, refreshMealImages, setImageBusy,
@@ -258,6 +290,9 @@ export function useMealPlanner() {
     bmi: profileBmi?.value ?? plan?.bmi ?? null,
     bmiCategory: localizeText(profileBmi?.category ?? plan?.bmiCategory, language),
     dietName: formatDietTypeName(currentDiet?.name, language), savedCount: savedIds.length,
+    tdee: displayTdee, targetCalories: displayTargetCalories, nutritionGoal: displayGoal, calorieAdjustment: displayAdjustment,
+    inferredNutritionGoal, goalWeightKg: profile?.goalWeightKg ?? plan?.goalWeightKg ?? null, estimatedWeeksToGoal: profileHasDirection ? inferredWeeksToGoal : plan?.estimatedWeeksToGoal ?? inferredWeeksToGoal,
+    showGoalMenu, setShowGoalMenu,
     loading, error: localizeText(error, language), startDate, setStartDate,
   };
 }
