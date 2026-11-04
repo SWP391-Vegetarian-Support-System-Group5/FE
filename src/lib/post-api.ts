@@ -20,6 +20,7 @@ export interface PostResponse {
   videoUrl: string | null;
   status: string;
   imageUrl?: string | null;
+  caloriesPerServing?: number | null;
   moderationReason?: string | null;
   thumbnailUrl: string | null;
   averageRating: number;

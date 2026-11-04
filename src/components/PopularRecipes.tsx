@@ -6,8 +6,14 @@ import { useEffect, useState } from "react";
 import { createCommunityEventSource, listPosts, type CommunityEvent, type PostResponse } from "@/lib/community-api";
 import { useLanguage } from "@/context/LanguageContext";
 import { localizeRecipeTitle } from "@/lib/localized-content";
+import { getMediaUrl } from "@/lib/api";
 
-const fallbackImage = "/images/recipe_tofu_tomato.png";
+const fallbackImages = [
+  "/images/recipe_tofu_tomato.png",
+  "/images/recipe_spring_rolls.png",
+  "/images/recipe_claypot_tofu.png",
+  "/images/recipe_bun_hue.png",
+];
 
 export default function PopularRecipes() {
   const { language, t } = useLanguage();
@@ -57,10 +63,13 @@ export default function PopularRecipes() {
           {t("No recipe posts have been published yet.", "Chưa có bài công thức nào được đăng.")}
         </div>
       )}
-      {posts.map((post) => (
-        <Link key={post.postId} href={`/view-detail/${post.postId}`} className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      {posts.map((post) => {
+        const localFallback = fallbackImages[post.postId % fallbackImages.length];
+        const storedImage = post.imageUrl ?? post.thumbnailUrl;
+        const imageSource = storedImage ? getMediaUrl(storedImage) : localFallback;
+        return <Link key={post.postId} href={`/view-detail/${post.postId}`} className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
           <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
-            <FeedImage key={(post.imageUrl ?? post.thumbnailUrl) || fallbackImage} src={(post.imageUrl ?? post.thumbnailUrl) || fallbackImage} alt={post.title} compact />
+            <FeedImage key={imageSource} src={imageSource} alt={post.title} compact />
             {post.videoUrl && (
               <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
                 {t("Video", "Video")}
@@ -70,6 +79,7 @@ export default function PopularRecipes() {
           <div className="p-4">
             <h3 className="line-clamp-2 font-serif text-lg font-semibold leading-snug text-[#07241A]">{localizeRecipeTitle(post.title, language)}</h3>
             <p className="mt-1 text-xs text-[#424844]">{t("by", "bởi")} {post.authorName}</p>
+            {post.caloriesPerServing != null && post.caloriesPerServing > 0 && <p className="mt-1 text-xs font-medium text-[#59635C]">~ {Math.round(post.caloriesPerServing)} kcal/khẩu phần</p>}
             <div className="mt-3 flex items-center justify-between border-t border-[#EFEEEB] pt-3 text-xs">
               <div className="flex items-center gap-1 text-[#F59E0B]">
                 <span>★</span>
@@ -82,7 +92,7 @@ export default function PopularRecipes() {
             </div>
           </div>
         </Link>
-      ))}
+      })}
     </div>
   );
 }

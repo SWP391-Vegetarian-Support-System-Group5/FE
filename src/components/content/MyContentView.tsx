@@ -40,6 +40,12 @@ function itemThumbnail(item: MyContentItem) {
   return item.recipe?.imageUrl || item.image || item.recipe?.thumbnailUrl || getVideoThumbnailUrl(item.recipe?.videoUrl);
 }
 
+// A video draft is not a published/created post yet.  The cooking-video
+// collection is reserved for recipes that actually carry a video URL.
+function hasCookingVideo(item: MyContentItem) {
+  return !item.videoDraft && Boolean(item.recipe?.videoUrl || item.kind === "video");
+}
+
 function recipeIdFromItem(item: MyContentItem) {
   if (typeof item.recipe?.postId === "number") return item.recipe.postId;
   const match = /^recipe-(\d+)$/.exec(item.id);
@@ -131,6 +137,7 @@ export default function MyContentView() {
             ...item,
             title: recipe.title || item.title,
             description: recipe.content || item.description,
+            kind: recipe.videoUrl ? ("video" as const) : ("recipe" as const),
             recipe,
             image: (recipe.imageUrl ?? recipe.thumbnailUrl) || item.image || getVideoThumbnailUrl(recipe.videoUrl),
             minutes: (recipe.prepMinutes || 0) + (recipe.cookMinutes || 0) || item.minutes,
@@ -201,15 +208,18 @@ export default function MyContentView() {
     all: items.length,
     published: items.filter((item) => item.status === "published").length,
     draft: items.filter((item) => item.status === "draft").length,
-    video: items.filter((item) => item.kind === "video").length,
-    recipe: items.filter((item) => item.kind === "recipe").length,
+    video: items.filter(hasCookingVideo).length,
+    recipe: items.filter((item) => !item.videoDraft && !hasCookingVideo(item)).length,
   };
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase(locale);
     return items.filter((item) => {
       const text = displayText(item, language);
       const searchable = `${text.title} ${text.description} ${item.title} ${item.description}`.toLocaleLowerCase(locale);
-      return (kind === "all" || item.kind === kind) && (status === "all" || item.status === status) && searchable.includes(needle);
+      const matchesKind = kind === "all"
+        || (kind === "video" && hasCookingVideo(item))
+        || (kind === "recipe" && !item.videoDraft && !hasCookingVideo(item));
+      return matchesKind && (status === "all" || item.status === status) && searchable.includes(needle);
     }).sort((a, b) => sort === "title"
       ? displayText(a, language).title.localeCompare(displayText(b, language).title, locale)
       : sort === "oldest" ? Date.parse(a.createdAt) - Date.parse(b.createdAt)
@@ -330,11 +340,11 @@ export default function MyContentView() {
     }
   }
 
-  const stats: { label: string; value: number; detail: string; icon: ContentIconName; onClick: () => void }[] = [
-    { label: t("TOTAL POSTS", "TỔNG BÀI VIẾT"), value: counts.all, detail: t("Your culinary collection", "Bộ sưu tập từ căn bếp của bạn"), icon: "recipe", onClick: resetFilters },
-    { label: t("PUBLISHED", "ĐÃ ĐĂNG"), value: counts.published, detail: t("Stories shared with the community", "Câu chuyện chia sẻ cùng cộng đồng"), icon: "check", onClick: () => { setStatus("published"); setKind("all"); setPage(1); } },
-    { label: t("DRAFTS", "BẢN NHÁP"), value: counts.draft, detail: t("A little inspiration in progress", "Ý tưởng đang chờ bạn hoàn thiện"), icon: "draft", onClick: () => { setStatus("draft"); setKind("all"); setPage(1); } },
-    { label: t("COOKING VIDEOS", "VIDEO NẤU ĂN"), value: counts.video, detail: t("From your kitchen, frame by frame", "Từng khoảnh khắc trong căn bếp"), icon: "video", onClick: () => { setKind("video"); setStatus("all"); setPage(1); } },
+  const stats: { label: string; value: number; detail: string; icon: ContentIconName; active: boolean; onClick: () => void }[] = [
+    { label: t("TOTAL POSTS", "TỔNG BÀI VIẾT"), value: counts.all, detail: t("Your culinary collection", "Bộ sưu tập từ căn bếp của bạn"), icon: "recipe", active: kind === "all" && status === "all", onClick: resetFilters },
+    { label: t("PUBLISHED", "ĐÃ ĐĂNG"), value: counts.published, detail: t("Stories shared with the community", "Câu chuyện chia sẻ cùng cộng đồng"), icon: "check", active: kind === "all" && status === "published", onClick: () => { setStatus("published"); setKind("all"); setPage(1); } },
+    { label: t("DRAFTS", "BẢN NHÁP"), value: counts.draft, detail: t("A little inspiration in progress", "Ý tưởng đang chờ bạn hoàn thiện"), icon: "draft", active: kind === "all" && status === "draft", onClick: () => { setStatus("draft"); setKind("all"); setPage(1); } },
+    { label: t("COOKING VIDEOS", "VIDEO NẤU ĂN"), value: counts.video, detail: t("From your kitchen, frame by frame", "Từng khoảnh khắc trong căn bếp"), icon: "video", active: kind === "video" && status === "all", onClick: () => { setKind("video"); setStatus("all"); setPage(1); } },
   ];
 
   return (
@@ -353,10 +363,10 @@ export default function MyContentView() {
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
-        {stats.map((stat, index) => <button key={stat.icon} type="button" onClick={stat.onClick} className={`group rounded-2xl border p-4 text-left transition sm:p-5 ${index === 0 ? "border-[#1E3A2F] bg-[#1E3A2F] text-white hover:bg-[#254838]" : "border-[#E5E7DF] bg-white/75 hover:border-[#AEC0AE] hover:bg-white"}`}>
-          <div className={`flex items-center justify-between gap-2 text-[10px] font-semibold tracking-[0.12em] sm:text-[11px] ${index === 0 ? "text-[#D9E6DC]" : "text-[#68766A]"}`}><span>{stat.label}</span><ContentIcon name={stat.icon} /></div>
+        {stats.map((stat) => <button key={stat.icon} type="button" aria-pressed={stat.active} onClick={stat.onClick} className={`group rounded-2xl border p-4 text-left transition sm:p-5 ${stat.active ? "border-[#1E3A2F] bg-[#1E3A2F] text-white shadow-[0_8px_24px_#1E3A2F1A] hover:bg-[#254838]" : "border-[#E5E7DF] bg-white/75 hover:border-[#AEC0AE] hover:bg-white"}`}>
+          <div className={`flex items-center justify-between gap-2 text-[10px] font-semibold tracking-[0.12em] sm:text-[11px] ${stat.active ? "text-[#D9E6DC]" : "text-[#68766A]"}`}><span>{stat.label}</span><ContentIcon name={stat.icon} /></div>
           <p className="mt-3 font-serif text-4xl sm:text-[42px]">{stat.value.toLocaleString(locale)}</p>
-          <p className={`mt-1 text-[11px] leading-5 sm:text-xs ${index === 0 ? "text-[#C3D5C8]" : "text-[#727974]"}`}>{stat.detail}</p>
+          <p className={`mt-1 text-[11px] leading-5 sm:text-xs ${stat.active ? "text-[#C3D5C8]" : "text-[#727974]"}`}>{stat.detail}</p>
         </button>)}
       </div>
 
@@ -401,8 +411,8 @@ export default function MyContentView() {
               return <article key={item.id} className={`vm-card vm-enter group overflow-hidden rounded-2xl border border-[#E5E7DF] bg-white transition duration-200 hover:border-[#BBCAB7] hover:shadow-[0_8px_28px_#1E3A2F08] ${layout === "list" ? "flex flex-col sm:flex-row" : "flex flex-col"}`}>
                 <button type="button" onClick={() => setAction({ type: "preview", item })} aria-label={`${t("Preview", "Xem trước")}: ${text.title}`} className={`relative shrink-0 overflow-hidden bg-[#E8EDE4] ${layout === "list" ? "h-48 w-full sm:h-auto sm:min-h-44 sm:w-56" : "aspect-[16/9] w-full"}`}>
                   {thumbnail ? <FeedImage key={thumbnail} src={thumbnail} alt={text.title} compact={false} /> : <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,#D9E6DC,transparent)]"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="64" height="64" className="text-[#8AA18B]" /></div>}
-                  <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#FBF9F6]/95 px-2.5 py-1.5 text-[10px] font-semibold text-[#1E3A2F] shadow-sm"><ContentIcon name={item.kind === "video" ? "video" : "recipe"} width="12" height="12" />{item.kind === "video" ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")}</span>
-                  {item.kind === "video" && <span className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-[#1E3A2F] shadow-sm backdrop-blur-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m9 5 12 7-12 7z" /></svg></span>}
+                  <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#FBF9F6]/95 px-2.5 py-1.5 text-[10px] font-semibold text-[#1E3A2F] shadow-sm"><ContentIcon name={hasCookingVideo(item) || item.videoDraft ? "video" : "recipe"} width="12" height="12" />{item.videoDraft ? t("Video draft", "Bản nháp video") : hasCookingVideo(item) ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")}</span>
+                  {hasCookingVideo(item) && <span className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-[#1E3A2F] shadow-sm backdrop-blur-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m9 5 12 7-12 7z" /></svg></span>}
                 </button>
                 <div className="flex min-w-0 flex-1 flex-col p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2"><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${item.status === "published" ? "bg-[#EDF3E9] text-[#4F754E]" : "bg-[#FBF0DE] text-[#A27A36]"}`}><span className={`h-1.5 w-1.5 rounded-full ${item.status === "published" ? "bg-[#6E9561]" : "bg-[#CDA258]"}`} />{item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><span className="text-[10px] text-[#899388]">{dateText(item.updatedAt)}</span></div>
