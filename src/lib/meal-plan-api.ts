@@ -17,6 +17,7 @@ export interface MealPlanMealResponse {
   mealType: "BREAKFAST" | "LUNCH" | "DINNER" | string;
   recipeId: number;
   recipeName: string;
+  caloriesPerServing: number | null;
 }
 
 export interface MealPlanResponse {
@@ -25,7 +26,18 @@ export interface MealPlanResponse {
   bmi: number | null;
   bmiCategory: string | null;
   meals: MealPlanMealResponse[];
+  tdee: number | null;
+  targetCaloriesPerDay: number | null;
+  nutritionGoal: "MAINTAIN" | "LOSE" | "GAIN" | null;
+  calorieAdjustment: number | null;
+  goalWeightKg: number | null;
+  healthyWeightMinKg: number | null;
+  healthyWeightMaxKg: number | null;
+  estimatedWeeksToGoal: number | null;
 }
+
+export type MealPlanNutritionGoal = "MAINTAIN" | "LOSE" | "GAIN";
+export interface GenerateMealPlanPayload { startDate: string | null; availableIngredients: string | null; nutritionGoal?: MealPlanNutritionGoal; calorieAdjustment?: number | null; }
 
 export function getMealPlans() {
   return apiGet<MealPlanResponse[]>("/api/meal-plans", { cache: "no-store" });
@@ -37,7 +49,7 @@ export async function getMealPlan(planId: number, signal?: AbortSignal): Promise
   return await response.json() as MealPlanResponse;
 }
 
-export async function generateMealPlan(payload: { startDate: string | null; availableIngredients: string | null }) {
+export async function generateMealPlan(payload: GenerateMealPlanPayload) {
   const res = await apiFetch("/api/meal-plans/generate", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -46,7 +58,7 @@ export async function generateMealPlan(payload: { startDate: string | null; avai
   return (await res.json()) as MealPlanResponse;
 }
 
-export async function regenerateMealPlan(id: number, payload: { startDate: string | null; availableIngredients: string | null }) {
+export async function regenerateMealPlan(id: number, payload: GenerateMealPlanPayload) {
   const res = await apiFetch(`/api/meal-plans/${id}/regenerate`, {
     method: "POST",
     body: JSON.stringify(payload),

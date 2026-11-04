@@ -10,6 +10,8 @@ import { uploadMealImage, deleteMealImage, generateMealImage } from "@/lib/image
 import { useMealPlanner } from "./useMealPlanner";
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
+import type { MealPlanNutritionGoal } from "@/lib/meal-plan-api";
 
 export interface MealItem {
   id: string;
@@ -219,6 +221,8 @@ export const ALTERNATIVE_DISHES: Record<string, Partial<MealItem>> = {
 export default function MealPlannerView() {
   const ui = useUiText();
   const { t } = useLanguage();
+  const [adjustment, setAdjustment] = useState(500);
+  const [selectedGoal, setSelectedGoal] = useState<MealPlanNutritionGoal>("MAINTAIN");
   const {
     imagePollingNotice, imagesPending, reloadMealImages,
     planId, applyMealImage, refreshMealImages, setImageBusy,
@@ -227,8 +231,14 @@ export default function MealPlannerView() {
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
     toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
     handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal, profileName, bmi, bmiCategory,
-    dietName, savedCount, loading, error, startDate, setStartDate,
+    dietName, savedCount, loading, error, startDate, setStartDate, tdee, targetCalories, nutritionGoal, calorieAdjustment, inferredNutritionGoal,
+    goalWeightKg, estimatedWeeksToGoal, showGoalMenu, setShowGoalMenu,
   } = useMealPlanner();
+  const openGoalMenu = () => {
+    setSelectedGoal(inferredNutritionGoal);
+    setAdjustment(calorieAdjustment ?? 500);
+    setShowGoalMenu(true);
+  };
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Toast */}
@@ -253,19 +263,19 @@ export default function MealPlannerView() {
           </div>
 
           <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]"><UiText text={"Lên thực đơn tuần"} /></h1>
-          <p className="mt-1.5 text-sm text-[#424844] max-w-2xl">{t("Meals selected for your vegetarian type, allergies and BMI group.", "Thực đơn phù hợp với kiểu ăn chay, dị ứng và nhóm BMI của bạn.")}</p>
+          <p className="mt-1.5 text-sm text-[#424844] max-w-2xl">{t("Meals selected for your vegetarian type, allergies and calorie goal.", "Thực đơn phù hợp với kiểu ăn chay, dị ứng và mục tiêu calories của bạn.")}</p>
         </div>
 
         {/* Action Buttons Top Right */}
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
           <button
             type="button"
-            onClick={handleRegenerate}
+            onClick={openGoalMenu}
             disabled={isRegenerating || loading}
             className="flex items-center gap-2 rounded-xl bg-white border border-[#EFEEEB] px-4 py-2.5 text-xs font-semibold text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition cursor-pointer"
           >
             <span>✨</span>
-            <span>{isRegenerating ? t("Generating…", "Đang tạo…") : days.length ? t("Regenerate Plan", "Tạo lại thực đơn") : t("Generate My 7-Day Plan", "Tạo thực đơn 7 ngày")}</span>
+            <span>{isRegenerating ? t("Generating…", "Đang tạo…") : days.length ? "Tạo thực đơn mới" : t("Generate My 7-Day Plan", "Tạo thực đơn 7 ngày")}</span>
           </button>
 
           <button
@@ -296,6 +306,11 @@ export default function MealPlannerView() {
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
       {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
       <label className="mt-4 block text-sm">{ui("Start date")} <input type="text" inputMode="numeric" placeholder="dd/mm/yy" maxLength={10} value={startDate} onChange={e => setStartDate(e.target.value)} className="ml-3 w-36 rounded-lg border p-2" /></label>
+      {(tdee || targetCalories || goalWeightKg) && <div className="mt-4 grid gap-3 rounded-2xl border border-[#D9E6DC] bg-[#EDF4ED] p-4 text-sm text-[#07241A] sm:grid-cols-3">
+        <p><span className="text-xs text-[#727974]">TDEE ước lượng</span><strong className="block">{tdee ? `~ ${Math.round(tdee)} kcal/ngày` : "Cần hoàn thiện hồ sơ"}</strong></p>
+        <p><span className="text-xs text-[#727974]">Mục tiêu thực đơn</span><strong className="block">{targetCalories ? `~ ${Math.round(targetCalories)} kcal/ngày` : "Cần hoàn thiện hồ sơ"}</strong><span className="text-xs">{nutritionGoal === "LOSE" ? `Giảm ${calorieAdjustment} kcal/ngày` : nutritionGoal === "GAIN" ? `Tăng ${calorieAdjustment} kcal/ngày` : "Duy trì cân nặng"}</span></p>
+        <p><span className="text-xs text-[#727974]">Mục tiêu cân nặng</span><strong className="block">{goalWeightKg ? `${goalWeightKg} kg` : "Chưa thiết lập"}</strong>{estimatedWeeksToGoal ? <span className="text-xs">~ {estimatedWeeksToGoal} tuần để {nutritionGoal === "LOSE" ? "giảm" : "tăng"} đến mục tiêu (ước lượng)</span> : goalWeightKg ? <span className="text-xs">Cần hoàn thiện hồ sơ để ước tính thời gian</span> : null}</p>
+      </div>}
       {/* ── Main Two-Column Layout ─────────────────────────────────────── */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
         {/* =============================================================== */}
@@ -536,6 +551,21 @@ export default function MealPlannerView() {
 
         </div>
       </div>
+
+      {showGoalMenu && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowGoalMenu(false)}>
+        <div role="dialog" aria-modal="true" aria-labelledby="meal-plan-goal-title" className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <h2 id="meal-plan-goal-title" className="font-serif text-2xl font-bold text-[#07241A]">Tạo thực đơn mới</h2>
+          <p className="mt-2 text-sm text-[#424844]">Mục tiêu được tự suy ra từ cân nặng hiện tại và cân nặng mong muốn. Bạn vẫn có thể chọn phương án khác. Tất cả số liệu là ước lượng, không thay thế tư vấn y tế.</p>
+          <div className="mt-5 grid gap-3">
+            {inferredNutritionGoal !== "MAINTAIN" && <button type="button" onClick={() => setSelectedGoal(inferredNutritionGoal)} aria-pressed={selectedGoal === inferredNutritionGoal} className={`rounded-2xl border-2 p-4 text-left transition ${selectedGoal === inferredNutritionGoal ? "border-[#1E3A2F] bg-[#EDF4ED] shadow-[0_4px_12px_rgba(30,58,47,0.10)]" : "border-[#D9E6DC] bg-white hover:bg-[#F6FAF5]"}`}><strong>{inferredNutritionGoal === "LOSE" ? "Theo mục tiêu giảm cân của bạn" : "Theo mục tiêu tăng cân của bạn"}</strong><span className="mt-1 block text-xs text-[#424844]">Dùng mức {adjustment} kcal/ngày và tự tính thời gian ước lượng đến cân nặng mục tiêu.</span></button>}
+            <button type="button" onClick={() => setSelectedGoal("MAINTAIN")} aria-pressed={selectedGoal === "MAINTAIN"} className={`rounded-2xl border-2 p-4 text-left transition ${selectedGoal === "MAINTAIN" ? "border-[#1E3A2F] bg-[#EDF4ED] shadow-[0_4px_12px_rgba(30,58,47,0.10)]" : "border-[#D9E6DC] bg-white hover:bg-[#F6FAF5]"}`}><strong>Duy trì cân nặng</strong><span className="mt-1 block text-xs text-[#727974]">Tạo thực đơn gần bằng TDEE mỗi ngày.</span></button>
+            {inferredNutritionGoal !== "LOSE" && (bmi == null || bmi >= 18.5) ? <button type="button" onClick={() => setSelectedGoal("LOSE")} aria-pressed={selectedGoal === "LOSE"} className={`rounded-2xl border-2 p-4 text-left transition ${selectedGoal === "LOSE" ? "border-[#99462A] bg-[#FFF6F4] shadow-[0_4px_12px_rgba(153,70,42,0.08)]" : "border-[#F1D9D1] bg-white hover:bg-[#FFF9F7]"}`}><strong>Hỗ trợ giảm cân</strong><span className="mt-1 block text-xs text-[#727974]">Thâm hụt {adjustment} kcal/ngày.</span></button> : null}
+            {inferredNutritionGoal !== "GAIN" && (bmi == null || bmi < 25) ? <button type="button" onClick={() => setSelectedGoal("GAIN")} aria-pressed={selectedGoal === "GAIN"} className={`rounded-2xl border-2 p-4 text-left transition ${selectedGoal === "GAIN" ? "border-[#1E3A2F] bg-[#EDF4ED] shadow-[0_4px_12px_rgba(30,58,47,0.10)]" : "border-[#D9E6DC] bg-white hover:bg-[#F6FAF5]"}`}><strong>Hỗ trợ tăng cân</strong><span className="mt-1 block text-xs text-[#727974]">Dư {adjustment} kcal/ngày.</span></button> : null}
+          </div>
+          {selectedGoal !== "MAINTAIN" && <label className="mt-5 block text-sm font-semibold text-[#07241A]">{selectedGoal === "LOSE" ? "Mức calories thâm hụt" : "Mức calories dư"}: {adjustment} kcal/ngày<input type="range" min="500" max="1000" step="50" value={adjustment} onChange={(event) => setAdjustment(Number(event.target.value))} className="mt-3 w-full accent-[#1E3A2F]" /></label>}
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-[#EFEEEB] pt-5"><button type="button" onClick={() => setShowGoalMenu(false)} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0]">Hủy</button><button type="button" disabled={isRegenerating} onClick={() => void handleRegenerate(selectedGoal, selectedGoal === "MAINTAIN" ? null : adjustment)} className="rounded-xl bg-[#173C2D] px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#234A38] disabled:cursor-not-allowed disabled:opacity-50">{isRegenerating ? "Đang tạo…" : "Tạo thực đơn"}</button></div>
+        </div>
+      </div>}
 
       {/* ── View Recipe Modal ───────────────────────────────────────────── */}
       {selectedMealForView && (
