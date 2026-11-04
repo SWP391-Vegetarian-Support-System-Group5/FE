@@ -14,6 +14,7 @@ interface VeganPlace {
   longitude?: number;
   name: string;
   image: string;
+  isPlaceholder: boolean;
   dietTag: string;
   district: string;
   description: string;
@@ -29,7 +30,8 @@ export default function CuratedVeganPlaces() {
   const { places: nearby, loading, message } = useNearbyPlaces();
   const places: VeganPlace[] = nearby.map(place => ({
     id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude,
-    image: "/images/hero_slide.png",
+    image: place.imageUrl || "/images/hero_slide.png",
+    isPlaceholder: !place.imageUrl,
     dietTag: displayPlaceCategory(place.category, t), district: place.areaCode === "all" ? t("Nearby", "Gần đây") : place.areaCode,
     description: place.address, specialtyTag: "VeggieMate",
     address: place.address, signatureDishes: place.foods ?? [],
@@ -69,11 +71,12 @@ export default function CuratedVeganPlaces() {
                   src={place.image}
                   alt={place.name}
                   fill
+                  unoptimized
                   className="object-cover transition duration-500 group-hover:scale-105"
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
 
-                <span className="absolute bottom-3 left-3 rounded bg-white/90 px-2 py-1 text-xs">{t("Illustration", "Ảnh minh họa")}</span>
+                {place.isPlaceholder && <span className="absolute bottom-3 left-3 rounded bg-white/90 px-2 py-1 text-xs">{t("Illustration", "Ảnh minh họa")}</span>}
                 <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5">
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold shadow-md backdrop-blur-xs ${
@@ -132,6 +135,7 @@ export default function CuratedVeganPlaces() {
                 src={selectedPlace.image}
                 alt={selectedPlace.name}
                 fill
+                unoptimized
                 className="object-cover"
               />
               <button

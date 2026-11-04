@@ -6,14 +6,12 @@ import { localizeRecipeTitle } from "@/lib/localized-content";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
 import { useAdminModeration } from "@/context/AdminModerationContext";
 
 type FilterTab = "All" | "Content" | "Comments";
 
 export default function AdminFlaggedPage() {
   const ui = useUiText();
-  const { user } = useAuth();
   const {
     flaggedCount,
     contentCount,
@@ -65,60 +63,6 @@ export default function AdminFlaggedPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Bar Header */}
-      <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-4">
-        {/* Breadcrumb: VeggieMate / Admin Area */}
-        <div className="flex items-center gap-2">
-          <Link href="/" className="font-serif text-xl font-bold tracking-tight text-[#07241A] hover:opacity-80">
-            VeggieMate
-          </Link>
-          <span className="text-[#A0A5A1]">/</span>
-          <div className="flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-white px-2.5 py-1 text-xs font-medium text-[#424844] shadow-sm">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-            </svg>
-            <span><UiText text={"Khu vực quản trị"} /></span>
-          </div>
-        </div>
-
-        {/* Right Search, Lang & Admin Info */}
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={event => setSearchQuery(event.target.value)}
-              placeholder={ui("Search reports...")}
-              className="w-60 rounded-full border border-[#EFEEEB] bg-white py-1.5 pl-8 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-sm focus:border-[#1E3A2F] focus:outline-none"
-            />
-            <svg
-              className="absolute left-2.5 top-2 text-[#727974]"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </div>
-
-
-          <div className="flex items-center gap-2 pl-2">
-            <div className="text-right">
-              <p className="text-xs font-bold text-[#07241A] leading-tight">
-                {user?.fullName || "Quản trị viên"}
-              </p>
-              <p className="text-[10px] text-[#727974] leading-tight"><UiText text={"Người giám sát"} /></p>
-            </div>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A2F] text-xs font-bold text-white shadow-sm">
-              AD
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Floating Action Feedback Notification */}
       {feedback && (

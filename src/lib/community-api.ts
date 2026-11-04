@@ -12,6 +12,7 @@ export interface PostResponse {
   imageUrl?: string | null;
   thumbnailUrl: string | null;
   status: string;
+  moderationReason?: string | null;
   averageRating: number;
   ratingCount: number;
   commentCount: number;
@@ -111,6 +112,7 @@ export function postToRecipe(post: PostResponse): RecipeResponse {
     recipeName: "",
     content: post.content,
     status: post.status,
+    moderationReason: post.moderationReason,
     servings: null,
     ingredients: [],
     steps: [],

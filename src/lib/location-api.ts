@@ -7,6 +7,7 @@ const nearbyRadiusKm = 5;
 type BackendRestaurant = {
   restaurantId: number;
   name: string;
+  imageUrl?: string | null;
   address: string;
   latitude?: number | null;
   longitude?: number | null;
@@ -89,6 +90,7 @@ export const locationApi = {
     const names = new Map(dietTypes.map(type => [type.id, type.name]));
     return items.filter(item => item.latitude != null && item.longitude != null).map(item => ({
       id: String(item.restaurantId), name: item.name,
+      imageUrl: item.imageUrl,
       category: item.dietTypeIds.length === 0 ? "Unclassified" : item.dietTypeIds.map(id => names.get(id) ?? `#${id}`).join(", "),
       address: item.address, provinceCode, areaCode,
       latitude: item.latitude!, longitude: item.longitude!, rating: 0, reviewCount: 0,

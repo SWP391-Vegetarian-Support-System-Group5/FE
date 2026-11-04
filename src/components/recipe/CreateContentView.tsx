@@ -5,6 +5,8 @@ import ImageFilePicker from "@/components/ui/ImageFilePicker";
 import ImageManager from "@/components/ui/ImageManager";
 import { uploadPostImage, deletePostImage, imageError, ImageRequestError } from "@/lib/image-api";
 import UploadProgress from "@/components/ui/UploadProgress";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 
 import RecipeCategoryPicker from "./RecipeCategoryPicker";
@@ -34,6 +36,7 @@ import {
   getAllergens,
   createRecipe,
   getRecipeById,
+  updateRecipe,
   uploadVideoRecipeDraft,
   getVideoRecipeDraft,
   updateVideoRecipeDraft,
@@ -77,11 +80,13 @@ function RecipeContentView() {
   const [ingredientCategories, setIngredientCategories] = useState<IngredientCategoryItem[]>([]);
   const [ingredientCatalog, setIngredientCatalog] = useState<IngredientItem[]>([]);
   const [allergens, setAllergens] = useState<AllergenItem[]>([]);
-  const [, setIsLoadingMasterData] = useState(true);
+  const [isLoadingMasterData, setIsLoadingMasterData] = useState(true);
 
   // Form fields
   const [title, setTitle] = useState("");
   const [recipeName, setRecipeName] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [prepMinutes, setPrepMinutes] = useState<string>("20");
   const [cookMinutes, setCookMinutes] = useState<string>("15");
   const [servings, setServings] = useState<string>("2");
@@ -102,6 +107,7 @@ function RecipeContentView() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<number | null>(null);
+  const [serverRecipeDraftId, setServerRecipeDraftId] = useState<number | null>(null);
   const [draftStatus, setDraftStatus] = useState<VideoDraftStatus | null>(null);
   const [draftErrorMessage, setDraftErrorMessage] = useState<string | null>(null);
   const [restoringVideoDraft, setRestoringVideoDraft] = useState(false);
@@ -119,7 +125,6 @@ function RecipeContentView() {
     text: string;
   } | null>(null);
   const [publishedResult, setPublishedResult] = useState<RecipeResponse | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const [imageConflict, setImageConflict] = useState(false);
   const publishLock = useRef(false);
@@ -132,23 +137,30 @@ function RecipeContentView() {
     setImageConflict(false);
     createdPost.current = fresh;
     setPublishedResult(fresh);
-    try { rememberPublishedContent(contentOwner, fresh, creationMode === "ai" ? "video" : "recipe"); } catch { /* Server data is already saved. */ }
+    if (creationMode === "manual") setImageUrl(fresh.imageUrl ?? "");
+    if (fresh.status === "PUBLISHED") try { rememberPublishedContent(contentOwner, fresh, creationMode === "ai" ? "video" : "recipe"); } catch { /* Server data is already saved. */ }
   }
   async function finishPublishedImage(saved: RecipeResponse) {
     createdPost.current = saved;
     setPublishedResult(saved);
     setImageFailed(false);
-    if (!imageFile) { setStatusMessage({ type: "success", text: "Đã xuất bản công thức." }); return; }
+    const published = saved.status === "PUBLISHED";
+    const messageType = published ? "success" : "info";
+    const savedMessage = published
+      ? (isAdmin ? "Công thức đã được lưu và đăng bởi quản trị viên." : "Bài viết đã được AI duyệt và đăng.")
+      : saved.moderationReason || "Bài chưa qua kiểm duyệt và đã được lưu bản nháp.";
+    if (!imageFile) { setStatusMessage({ type: messageType, text: savedMessage }); return; }
     try {
       const result = await uploadPostImage(saved.postId, imageFile);
       const updated = { ...saved, imageUrl: result.imageUrl };
       createdPost.current = updated;
       setPublishedResult(updated);
+      if (creationMode === "manual") setImageUrl(result.imageUrl ?? "");
       setImageFile(null);
-      try { rememberPublishedContent(contentOwner, updated, creationMode === "ai" ? "video" : "recipe"); } catch { /* Server data is already saved. */ }
-      const message = "Đã xuất bản công thức và lưu ảnh." + (result.previousImageDeleted === false ? " Máy chủ chưa dọn xong ảnh cũ." : "");
-      setStatusMessage({ type: "success", text: message });
-      try { await refreshPublishedImage(); } catch { setStatusMessage({ type: "success", text: message + " Chưa tải lại được dữ liệu; không cần gửi lại ảnh." }); }
+      if (published) try { rememberPublishedContent(contentOwner, updated, creationMode === "ai" ? "video" : "recipe"); } catch { /* Server data is already saved. */ }
+      const message = savedMessage + " Đã lưu ảnh." + (result.previousImageDeleted === false ? " Máy chủ chưa dọn xong ảnh cũ." : "");
+      setStatusMessage({ type: messageType, text: message });
+      try { await refreshPublishedImage(); } catch { setStatusMessage({ type: messageType, text: message + " Chưa tải lại được dữ liệu; không cần gửi lại ảnh." }); }
     } catch (failure) {
       setImageFailed(true);
       setImageConflict(failure instanceof ImageRequestError && failure.status === 409);
@@ -161,6 +173,7 @@ function RecipeContentView() {
     try { await finishPublishedImage(createdPost.current); }
     finally { publishLock.current = false; setIsSubmitting(false); }
   }
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -180,6 +193,7 @@ function RecipeContentView() {
       setCreationMode("manual");
       setTitle(draft.title);
       setRecipeName(draft.recipeName || "");
+      setImageUrl(draft.imageUrl || "");
       setContent(draft.content);
       setPrepMinutes(draft.prepMinutes);
       setCookMinutes(draft.cookMinutes);
@@ -191,6 +205,35 @@ function RecipeContentView() {
     });
     return () => { cancelled = true; };
   }, [authLoading, contentOwner]);
+
+  useEffect(() => {
+    if (authLoading || restoredDraftRef.current) return;
+    const match = /^recipe-(\d+)$/.exec(new URLSearchParams(window.location.search).get("draft") || "");
+    if (!match) return;
+    let cancelled = false;
+    const id = Number(match[1]);
+    getRecipeById(id).then(recipe => {
+      if (cancelled) return;
+       if (recipe.status !== "DRAFT" && !isAdmin) throw new Error("Bài viết này không còn là bản nháp.");
+      restoredDraftRef.current = true;
+      setServerRecipeDraftId(id);
+      setCreationMode("manual");
+      setTitle(recipe.title);
+      setRecipeName(recipe.recipeName);
+      setImageUrl(recipe.imageUrl || "");
+      setContent(recipe.content);
+      setVideoPreviewUrl(recipe.videoUrl || null);
+      setPrepMinutes(recipe.prepMinutes?.toString() || "");
+      setCookMinutes(recipe.cookMinutes?.toString() || "");
+      setServings(recipe.servings?.toString() || "");
+      setIngredients(recipe.ingredients);
+      setSteps(recipe.steps);
+      setSelectedCategoryIds(recipe.categories.map(category => category.id));
+      setSelectedBmiTypeIds(recipe.bmiTypes?.map(type => type.id) || []);
+       setStatusMessage({ type: "info", text: recipe.moderationReason || (isAdmin ? "Đã mở công thức để quản trị viên chỉnh sửa." : "Đã mở bản nháp trên máy chủ. Chỉnh sửa rồi gửi kiểm duyệt lại.") });
+    }).catch(error => { if (!cancelled) setStatusMessage({ type: "error", text: error instanceof Error ? error.message : "Không mở được bản nháp." }); });
+    return () => { cancelled = true; };
+  }, [authLoading, isAdmin]);
 
   // Load master data on mount
   useEffect(() => {
@@ -220,6 +263,18 @@ function RecipeContentView() {
     fetchMaster();
     return () => { cancelled = true; };
   }, [authLoading, user?.uid, t]);
+
+  useEffect(() => {
+    if (authLoading || !user?.uid) return;
+    let active = true;
+    const refreshCategories = () => {
+      getRecipeCategories().then(categories => {
+        if (active) setRecipeCategories(categories);
+      }).catch(() => { /* The last loaded list remains available. */ });
+    };
+    window.addEventListener("focus", refreshCategories);
+    return () => { active = false; window.removeEventListener("focus", refreshCategories); };
+  }, [authLoading, user?.uid]);
 
   const pollInFlightRef = useRef(false);
   // Poll draft status
@@ -495,6 +550,7 @@ function RecipeContentView() {
 
   // Save Draft action
   const handleSaveDraft = async () => {
+    if (isSubmitting) return;
     setStatusMessage(null);
 
     if (creationMode === "ai") {
@@ -537,38 +593,34 @@ function RecipeContentView() {
       }
     } else {
       // Manual mode: Save to localStorage as BE doesn't have draft endpoint for manual recipes
-      const manualDraft = {
-        title,
-        recipeName,
-        content,
-        prepMinutes,
-        cookMinutes,
-        servings,
-        ingredients,
-        steps,
-        selectedCategoryIds,
-        selectedBmiTypeIds,
-        savedAt: new Date().toISOString(),
-      };
+      setIsSubmitting(true);
       try {
+        const savedImageUrl = imageFile ? await uploadImage(imageFile, "recipes") : imageUrl;
+        if (imageFile) { setImageUrl(savedImageUrl); setImageFile(null); }
+        const manualDraft = {
+          title, recipeName, imageUrl: savedImageUrl, content, prepMinutes, cookMinutes, servings,
+          ingredients, steps, selectedCategoryIds, selectedBmiTypeIds, savedAt: new Date().toISOString(),
+        };
         localStorage.setItem("veggie_manual_recipe_draft", JSON.stringify(manualDraft));
         saveManualContent(contentOwner, manualDraft);
         setStatusMessage({
           type: "success",
           text: "Đã lưu bản nháp công thức vào bộ nhớ trình duyệt!",
         });
-      } catch {
+      } catch (error) {
         setStatusMessage({
           type: "error",
-          text: "Không thể lưu bản nháp vào bộ nhớ trình duyệt.",
+          text: error instanceof Error ? error.message : "Không thể lưu bản nháp.",
         });
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
 
   // Publish Recipe
   const handlePublish = async () => {
-    if (publishLock.current || createdPost.current) return;
+    if (publishLock.current || createdPost.current?.status === "PUBLISHED" || imageFailed) return;
     if (!token) {
       setStatusMessage({
         type: "error",
@@ -642,7 +694,7 @@ function RecipeContentView() {
 
         createdPost.current = published;
         setPublishedResult(published);
-        try { rememberPublishedContent(contentOwner, published, "video"); } catch { /* Publishing already succeeded. */ }
+        if (published.status === "PUBLISHED") try { rememberPublishedContent(contentOwner, published, "video"); } catch { /* Publishing already succeeded. */ }
         await finishPublishedImage(published);
       } else {
         // Manual mode: POST /api/recipes
@@ -652,6 +704,7 @@ function RecipeContentView() {
           recipeName: recipeName.trim(),
           content: content.trim(),
           videoUrl: videoPreviewUrl || null,
+          imageUrl: imageUrl.trim() || null,
           prepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
           cookMinutes: cookMinutes ? parseInt(cookMinutes, 10) : null,
           servings: servings ? parseInt(servings, 10) : null,
@@ -660,11 +713,12 @@ function RecipeContentView() {
           categoryIds: selectedCategoryIds,
         };
 
-        const res = await createRecipe(payload);
+        const res = serverRecipeDraftId ? await updateRecipe(serverRecipeDraftId, payload) : await createRecipe(payload);
+        if (res.status === "DRAFT") setServerRecipeDraftId(res.postId);
         createdPost.current = res;
         setPublishedResult(res);
         try {
-          rememberPublishedContent(contentOwner, res, "recipe");
+          if (res.status === "PUBLISHED") rememberPublishedContent(contentOwner, res, "recipe");
           removeManualContent(contentOwner);
         } catch { /* Publishing already succeeded. */ }
         // Clear local manual draft
@@ -722,13 +776,13 @@ function RecipeContentView() {
                   ? "⚠️"
                   : "ℹ️"}
               </span>
-              <div><UiText text={statusMessage.text} />{publishedResult && statusMessage.type === "success" && <p className="mt-1 break-words">{publishedResult.title} · #{publishedResult.postId}</p>}</div>
+              <div><UiText text={statusMessage.text} />{publishedResult && <p className="mt-1 break-words">{publishedResult.title} · #{publishedResult.postId}</p>}</div>
             </div>
-            {statusMessage.type === "success" && (
+            {publishedResult && statusMessage.type !== "error" && (
               <Link
-                href="/my-content"
+                href={isAdmin ? "/admin/content" : "/my-content"}
                 className="underline font-bold hover:text-black ml-4"
-              ><UiText text={publishedResult ? "Xem bài viết" : "Xem bản nháp"} /></Link>
+              ><UiText text={isAdmin ? "Quay lại nội dung" : publishedResult?.status === "PUBLISHED" ? "Xem bài viết" : "Xem bản nháp"} /></Link>
             )}
           </div>
         </div>
@@ -736,12 +790,12 @@ function RecipeContentView() {
 
       <div className="my-5 rounded-2xl border border-[#EFEEEB] bg-white p-5">
         {!publishedResult ? <ImageFilePicker file={imageFile} onChange={setImageFile} disabled={isSubmitting || isUploading} /> : <div className="flex flex-wrap items-center gap-3">
-          <Link href={`/view-detail/post-${publishedResult.postId}`} className="text-sm underline">Xem bài #{publishedResult.postId}</Link>
-          <button type="button" disabled={isSubmitting} onClick={() => { createdPost.current = null; setPublishedResult(null); setImageFile(null); setImageFailed(false); setImageConflict(false); setHasReviewed(false); setStatusMessage(null); }} className="vm-button text-sm underline disabled:opacity-40">Tạo bài khác</button>
+          <Link href={publishedResult.status === "PUBLISHED" ? `/view-detail/post-${publishedResult.postId}` : "/my-content"} className="text-sm underline">{publishedResult.status === "PUBLISHED" ? "Xem bài" : "Xem bản nháp"} #{publishedResult.postId}</Link>
+          <button type="button" disabled={isSubmitting} onClick={() => { createdPost.current = null; setServerRecipeDraftId(null); setPublishedResult(null); setImageUrl(""); setImageFile(null); setImageFailed(false); setImageConflict(false); setHasReviewed(false); setStatusMessage(null); }} className="vm-button text-sm underline disabled:opacity-40">Tạo bài khác</button>
           {imageFailed && imageFile && <button type="button" disabled={isSubmitting || imageConflict} onClick={() => void retryPublishedImage()} className="vm-button rounded-xl bg-[#254B38] px-4 py-2 text-sm text-white disabled:opacity-40">{isSubmitting ? "Đang tải ảnh…" : "Thử tải ảnh lại"}</button>}
           <ImageManager imageUrl={publishedResult.imageUrl ?? publishedResult.thumbnailUrl} disabled={isSubmitting} requiresRefresh={imageConflict}
             onUpload={file => uploadPostImage(publishedResult.postId, file)} onDelete={() => deletePostImage(publishedResult.postId)}
-            onApplied={result => { const updated = { ...publishedResult, imageUrl: result.imageUrl }; createdPost.current = updated; setPublishedResult(updated); setImageFailed(false); setImageFile(null); }}
+            onApplied={result => { const updated = { ...publishedResult, imageUrl: result.imageUrl }; createdPost.current = updated; setPublishedResult(updated); if (creationMode === "manual") setImageUrl(result.imageUrl ?? ""); setImageFailed(false); setImageFile(null); }}
             onRefresh={refreshPublishedImage} />
         </div>}
       </div>
@@ -914,7 +968,7 @@ function RecipeContentView() {
             </div>}
           </div>
 
-          <RecipeCategoryPicker categories={recipeCategories} selected={selectedCategoryIds} onChange={setSelectedCategoryIds} />
+          <RecipeCategoryPicker categories={recipeCategories} selected={selectedCategoryIds} onChange={setSelectedCategoryIds} loading={isLoadingMasterData} />
           {isAdmin && <div className="mt-5"><BmiTypePicker selected={selectedBmiTypeIds} onChange={setSelectedBmiTypeIds} disabled={isSubmitting} /></div>}
 
           {/* Story & flavor profile */}
@@ -1314,11 +1368,7 @@ function RecipeContentView() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
           <button
             type="button"
-            onClick={() => {
-              if (confirm(ui("Bạn có chắc chắn muốn hủy các thay đổi?"))) {
-                router.push("/");
-              }
-            }}
+            onClick={() => setShowCancelConfirmation(true)}
             className="text-xs font-semibold text-[#727974] hover:text-[#07241A] transition text-left sm:text-center"
           ><UiText text={"✕ Hủy thay đổi"} /></button>
 
@@ -1332,14 +1382,22 @@ function RecipeContentView() {
             <button
               type="button"
               onClick={handlePublish}
-              disabled={isSubmitting || !hasReviewed || !!publishedResult}
+              disabled={isSubmitting || !hasReviewed || publishedResult?.status === "PUBLISHED" || imageFailed}
               className="flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <span>🚀</span>
-              <span>{isSubmitting ? ui("Đang xử lý...") : publishedResult ? "Đã xuất bản" : ui("Publish recipe")}</span>
+              <span>{isSubmitting ? ui("Đang xử lý...") : publishedResult?.status === "PUBLISHED" ? "Đã xuất bản" : ui("Publish recipe")}</span>
             </button>
           </div>
         </div>
+      <ConfirmDialog
+        open={showCancelConfirmation}
+        title={ui("Hủy các thay đổi?")}
+        description={ui("Các nội dung chưa lưu sẽ bị mất. Bạn có muốn rời khỏi trang tạo bài viết?")}
+        confirmLabel={ui("Rời khỏi trang")}
+        onClose={() => setShowCancelConfirmation(false)}
+        onConfirm={() => router.push(isAdmin ? "/admin/content" : "/")}
+      />
       </div>
     </div>
   );

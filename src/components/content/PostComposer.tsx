@@ -88,12 +88,12 @@ export default function PostComposer({ postType }: { postType: PostType }) {
   return <div className="mx-auto max-w-5xl px-4 pb-12 sm:px-6 lg:px-8">
     <header className="border-b border-[#E5E7DF] pb-6">
       <h1 className="font-serif text-3xl font-bold text-[#07241A] sm:text-4xl">{t("Create a post", "Tạo bài viết")}</h1>
-      <p className="mt-3 text-sm text-[#727974]">{t("Share your story, ask the community, or share a video. Your post becomes public when you publish it.", "Chia sẻ câu chuyện, hỏi cộng đồng hoặc chia sẻ video. Bài viết sẽ công khai ngay khi đăng.")}</p>
+      <p className="mt-3 text-sm text-[#727974]">Bài viết chỉ công khai sau khi AI kiểm duyệt. Nội dung chưa đạt sẽ được lưu vào bản nháp để bạn chỉnh sửa.</p>
     </header>
     {visiblePublished && <div ref={resultRef} role="status" aria-live="polite" className="mt-6 rounded-2xl border border-[#CAEADA] bg-[#E8F0E4] p-5 text-[#254B38]">
-      <p className="font-semibold">✓ {t("Post created successfully!", "Đã tạo bài viết thành công!")}</p>
-      <p className="mt-2 break-words text-sm">{visiblePublished.title} · {t("Post ID", "Mã bài viết")}: #{visiblePublished.postId} · {t("Published", "Đã công khai")}</p>
-      <Link href={`/view-detail/post-${visiblePublished.postId}`} className="mt-3 mr-5 inline-block text-sm font-semibold underline">{t("View post", "Xem bài viết")}</Link>
+      <p className="font-semibold">{visiblePublished.status === "PUBLISHED" ? "Đã kiểm duyệt và đăng bài." : "Bài chưa qua kiểm duyệt, đã lưu bản nháp."}</p>
+      <p className="mt-2 break-words text-sm">{visiblePublished.title} · Mã bài viết: #{visiblePublished.postId}{visiblePublished.moderationReason ? ` · ${visiblePublished.moderationReason}` : ""}</p>
+      <Link href={visiblePublished.status === "PUBLISHED" ? `/view-detail/post-${visiblePublished.postId}` : "/my-content"} className="mt-3 mr-5 inline-block text-sm font-semibold underline">{visiblePublished.status === "PUBLISHED" ? "Xem bài viết" : "Xem bản nháp"}</Link>
       <button type="button" disabled={submitting} className="mt-3 text-sm font-semibold underline underline-offset-4" onClick={() => { setTitle(""); setContent(""); setVideoUrl(""); setTouched({}); createdPost.current = null; setPublished(null); setImageFile(null); setImageFailure(""); changed(); focusField(titleRef.current); }}>{t("Create another post", "Tạo bài viết khác")}</button>
     </div>}
     {visiblePublished && <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -148,7 +148,7 @@ export default function PostComposer({ postType }: { postType: PostType }) {
           <span className="mt-2 block text-xs font-normal text-[#727974]">{t("Paste an HTTP or HTTPS video link. This form does not upload a video file.", "Dán đường dẫn video HTTP hoặc HTTPS. Form này không tải tệp video lên.")}</span>
         </label>}
         {!visiblePublished && <ImageFilePicker file={imageFile} onChange={setImageFile} disabled={submitting} />}
-        <div className="flex justify-end border-t border-[#E5E7DF] pt-5"><button type="submit" disabled={submitting || !!visiblePublished} className="rounded-full bg-[#254B38] px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{submitting ? t("Publishing…", "Đang đăng…") : visiblePublished ? t("Published", "Đã đăng") : t("Publish post", "Đăng bài viết")}</button></div>
+        <div className="flex justify-end border-t border-[#E5E7DF] pt-5"><button type="submit" disabled={submitting || !!visiblePublished} className="rounded-full bg-[#254B38] px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{submitting ? t("Publishing…", "Đang đăng…") : visiblePublished ? visiblePublished.status === "PUBLISHED" ? t("Published", "Đã đăng") : "Đã lưu bản nháp" : t("Publish post", "Đăng bài viết")}</button></div>
       </fieldset>
     </form>
   </div>;

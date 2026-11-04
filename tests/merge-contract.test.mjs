@@ -136,5 +136,7 @@ test("main category screen is retained and connected to the current taxonomy", (
 
 test("merging main does not enable the admin-role bypass", () => {
   const source = readFileSync(new URL("../src/context/AdminModerationContext.tsx", import.meta.url), "utf8");
-  assert.match(source, /export const BYPASS_ADMIN_ROLE = false;/);
+  assert.match(source, /user\?\.role\?\.toLowerCase\(\) !== "admin"/);
+  assert.match(source, /user\?\.role\?\.toLowerCase\(\) === "admin"/);
+  assert.doesNotMatch(source, /BYPASS_ADMIN_ROLE/);
 });

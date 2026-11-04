@@ -20,6 +20,7 @@ export interface PostResponse {
   videoUrl: string | null;
   status: string;
   imageUrl?: string | null;
+  moderationReason?: string | null;
   thumbnailUrl: string | null;
   averageRating: number;
   ratingCount: number;
@@ -69,10 +70,10 @@ async function request<T>(path: string, method = "GET", body?: unknown, signal?:
   return (raw.trim() ? JSON.parse(raw) : undefined) as T;
 }
 
-export interface PostFilters { keyword?: string; postType?: string }
+export interface PostFilters { keyword?: string; postType?: string; category?: number }
 export function getPosts(filters: PostFilters = {}, signal?: AbortSignal) {
   const query = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => { if (value) query.set(key, value); });
+  Object.entries(filters).forEach(([key, value]) => { if (value) query.set(key, String(value)); });
   return request<PostResponse[]>(`/api/posts${query.size ? `?${query}` : ""}`, "GET", undefined, signal);
 }
 export const getPost = (id: number, signal?: AbortSignal) => request<PostResponse>(`/api/posts/${id}`, "GET", undefined, signal);
@@ -97,7 +98,7 @@ export const removeBookmark = (id: number) => request<void>(`/api/posts/${id}/bo
 export async function createPost(payload: CreatePostPayload): Promise<PostResponse> {
   // Recipes with ingredients/steps use /api/recipes, never a second /api/posts call.
   const post = await request<PostResponse>("/api/posts", "POST", payload);
-  if (!post || !Number.isInteger(post.postId) || post.postId <= 0 || post.status !== "PUBLISHED" || typeof post.title !== "string") {
+  if (!post || !Number.isInteger(post.postId) || post.postId <= 0 || !["PUBLISHED", "DRAFT"].includes(post.status) || typeof post.title !== "string") {
     throw new PostApiError(201, "");
   }
   return post;

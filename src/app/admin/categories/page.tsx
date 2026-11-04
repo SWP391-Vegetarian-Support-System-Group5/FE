@@ -4,7 +4,8 @@ import { Fragment, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import UiText, { useUiText } from "@/components/UiText";
-import { useAuth } from "@/context/AuthContext";
+import ImageFilePicker from "@/components/ImageFilePicker";
+import { uploadImage } from "@/lib/image-upload";
 import { getIngredientCategories, getIngredients, saveIngredientCategory, type IngredientItem, type RecipeResponse } from "@/lib/recipe-api";
 import { localizeIngredient, localizeIngredientCategory, localizeRecipeTitle } from "@/lib/localized-content";
 import { apiFetch, apiGet } from "@/lib/api";
@@ -22,7 +23,6 @@ function categorySlug(value: string) {
 export default function AdminCategoriesPage() {
   const router = useRouter();
   const ui = useUiText();
-  const { user } = useAuth();
 
   // Tab State: "recipes" | "ingredients" | "dual-dishes"
   const [activeTab, setActiveTab] = useState<"recipes" | "ingredients" | "dual-dishes">("recipes");
@@ -35,8 +35,7 @@ export default function AdminCategoriesPage() {
   const [selectedIngredientCategory, setSelectedIngredientCategory] = useState("all");
   const [dishSearchQuery, setDishSearchQuery] = useState("");
 
-  // Top header admin search
-  const [topAdminSearch, setTopAdminSearch] = useState("");
+  const [topAdminSearch] = useState("");
 
   // Category Lists
   const [recipeCategories, setRecipeCategories] = useState<CategoryData[]>([]);
@@ -62,6 +61,8 @@ export default function AdminCategoriesPage() {
   const [formSlug, setFormSlug] = useState("");
   const [formType, setFormType] = useState<"Recipe Category" | "Ingredient Group">("Recipe Category");
   const [formDescription, setFormDescription] = useState("");
+  const [formImageUrl, setFormImageUrl] = useState("");
+  const [formImageFile, setFormImageFile] = useState<File | null>(null);
   const [formItemCount, setFormItemCount] = useState(0);
   const [formBadgeType, setFormBadgeType] = useState<CategoryData["badgeType"]>("flag-vn");
   const [formStatus, setFormStatus] = useState<"Active" | "Hidden">("Active");
@@ -158,6 +159,8 @@ export default function AdminCategoriesPage() {
     setFormSlug("");
     setFormType(activeTab === "ingredients" ? "Ingredient Group" : "Recipe Category");
     setFormDescription("");
+    setFormImageUrl("");
+    setFormImageFile(null);
     setFormItemCount(0);
     setFormBadgeType("flag-vn");
     setFormStatus("Active");
@@ -173,6 +176,8 @@ export default function AdminCategoriesPage() {
     setFormSlug(cat.slug);
     setFormType(cat.type);
     setFormDescription(cat.description);
+    setFormImageUrl(cat.imageUrl || "");
+    setFormImageFile(null);
     setFormItemCount(cat.itemCount);
     setFormBadgeType(cat.badgeType);
     setFormStatus(cat.status);
@@ -196,10 +201,12 @@ export default function AdminCategoriesPage() {
         await loadCatalog(); setIsModalOpen(false); showToast(ui("Saved successfully."));
         return;
       }
+      const imageUrl = formImageFile ? await uploadImage(formImageFile, "categories") : formImageUrl || null;
+      if (formImageFile) { setFormImageUrl(imageUrl || ""); setFormImageFile(null); }
       const response = await apiFetch(`/api/recipe-categories${editingCategory ? `/${editingCategory.id}` : ""}`, {
         method: editingCategory ? "PUT" : "POST", body: JSON.stringify({
           name: formName.trim(), slug: formSlug, type: formCategoryType,
-          description: formDescription || null, imageUrl: editingCategory?.imageUrl || null, isActive: formStatus === "Active",
+          description: formDescription || null, imageUrl, isActive: formStatus === "Active",
         }),
       });
       if (!response.ok) { const body = await response.json(); throw new Error(body.message || ui("Could not save category.")); }
@@ -323,72 +330,6 @@ export default function AdminCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── TOP BAR HEADER ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 border-b border-[#EFEEEB] pb-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Breadcrumb: VeggieMate Logo & Admin Area Pill */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0B1E17] text-white shadow-xs">
-            {/* Botanical sunburst flower emblem */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3.5" />
-              <path d="M12 2v2.5" />
-              <path d="M12 19.5V22" />
-              <path d="m4.93 4.93 1.77 1.77" />
-              <path d="m17.3 17.3 1.77 1.77" />
-              <path d="M2 12h2.5" />
-              <path d="M19.5 12H22" />
-              <path d="m6.7 17.3-1.77 1.77" />
-              <path d="m19.07 4.93-1.77 1.77" />
-            </svg>
-          </div>
-
-          <Link href="/" className="font-serif text-2xl font-bold tracking-tight text-[#07241A] transition hover:opacity-85">
-            VeggieMate
-          </Link>
-
-          <span className="text-[#A0A5A1]">/</span>
-
-          <div className="flex items-center gap-1.5 rounded-full border border-[#E3E1DB] bg-white px-3 py-1 text-xs font-semibold text-[#424844] shadow-xs">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#1E3A2F]">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-            </svg>
-            <span><UiText text="Khu vực quản trị" /></span>
-          </div>
-        </div>
-
-        {/* Right Search, Language & Supervisor Avatar */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Search Admin input */}
-          <div className="relative">
-            <input
-              type="text"
-              value={topAdminSearch}
-              onChange={(e) => setTopAdminSearch(e.target.value)}
-              placeholder={ui("Search admin...")}
-              className="w-56 rounded-full border border-[#E3E1DB] bg-white py-1.5 pl-8 pr-4 text-xs font-medium text-[#07241A] placeholder-[#9CA3AF] shadow-2xs outline-none transition focus:border-[#1E3A2F]"
-            />
-            <svg className="absolute left-2.5 top-2 text-[#727974]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </div>
-
-          {/* Supervisor Avatar & Role */}
-          <div className="flex items-center gap-2 pl-1">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#CCE5D6] text-xs font-bold text-[#1E3A2F] shadow-xs">
-              VM
-            </div>
-            <div className="text-left">
-              <p className="text-xs font-bold leading-tight text-[#07241A]">
-                {user?.fullName || "Quản trị viên"}
-              </p>
-              <p className="text-[11px] leading-tight text-[#727974]">
-                <UiText text="Người giám sát" />
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ── TOAST FEEDBACK NOTIFICATION ──────────────────────────────────── */}
       {feedback && (
@@ -1081,6 +1022,7 @@ export default function AdminCategoriesPage() {
               </div>}
 
               {/* Description */}
+              {formType === "Recipe Category" && <ImageFilePicker value={formImageUrl} file={formImageFile} onFileChange={setFormImageFile} onValueChange={url => setFormImageUrl(url || "")} disabled={saving} />}
               {formType === "Recipe Category" && <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                   <UiText text="Mô tả và điểm nổi bật" />

@@ -294,7 +294,6 @@ export default function MealPlannerView() {
 
       {loading && <p role="status" className="py-4">{ui("Loading...")}</p>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-
       {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
       <label className="mt-4 block text-sm">{ui("Start date")} <input type="text" inputMode="numeric" placeholder="dd/mm/yy" maxLength={10} value={startDate} onChange={e => setStartDate(e.target.value)} className="ml-3 w-36 rounded-lg border p-2" /></label>
       {/* ── Main Two-Column Layout ─────────────────────────────────────── */}

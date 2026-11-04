@@ -10,8 +10,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useAdminModeration, BYPASS_ADMIN_ROLE } from "@/context/AdminModerationContext";
+import { useAdminModeration } from "@/context/AdminModerationContext";
 import { useLanguage } from "@/context/LanguageContext";
+import NotificationBell from "@/components/NotificationBell";
+import { CATEGORY_TYPES, categoryName, getRecipeCategories, type RecipeCategory } from "@/lib/recipe-categories";
 
 function getInitials(name?: string | null, email?: string | null): string {
   if (name && name.trim().length > 0) {
@@ -26,6 +28,8 @@ function getInitials(name?: string | null, email?: string | null): string {
   }
   return "U";
 }
+
+const preferredRecipeCategoryOrder = ["mon-tu-ngu-coc", "banh", "mon-an-sang", "banh-mi-banh-kep", "trang-mieng", "mi", "salad-mon-an-kem", "nuoc-sot", "an-nhe", "sup-mon-ham"];
 
 interface NavbarProps {
   initialSearchQuery?: string;
@@ -42,8 +46,28 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
   const [searchValue, setSearchValue] = useState(initialSearchQuery);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [recipeCategories, setRecipeCategories] = useState<RecipeCategory[]>([]);
+  const [recipeMenuError, setRecipeMenuError] = useState(false);
+  const [mobileRecipesOpen, setMobileRecipesOpen] = useState(false);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    getRecipeCategories()
+      .then(categories => {
+        if (active) {
+          setRecipeCategories(categories.filter(category => category.isActive && CATEGORY_TYPES.some(type => type === category.type)).sort((a, b) => {
+            const left = preferredRecipeCategoryOrder.indexOf(a.slug);
+            const right = preferredRecipeCategoryOrder.indexOf(b.slug);
+            return (left < 0 ? preferredRecipeCategoryOrder.length : left) - (right < 0 ? preferredRecipeCategoryOrder.length : right) || a.name.localeCompare(b.name, "vi");
+          }));
+          setRecipeMenuError(false);
+        }
+      })
+      .catch(() => { if (active) setRecipeMenuError(true); });
+    return () => { active = false; };
+  }, [pathname]);
 
   // Close dropdowns on outside click or Escape key
   useEffect(() => {
@@ -87,13 +111,21 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     router.push("/");
   };
 
-  const navLinks = [
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+
+  const memberNavLinks = [
     { label: t("Home", "Trang chủ"), href: "/" },
-    { label: t("Community", "Cộng đồng"), href: "/community" },
+    { label: "Công thức", href: "/community" },
     { label: t("Vegan Places", "Địa điểm chay"), href: "/vegan-places" },
     { label: t("Meal Planner", "Thực đơn"), href: "/meal-planner" },
     { label: t("AI Chatbox", "Trợ lý AI"), href: "/ai-chatbox" },
   ].filter(link => user || !["/vegan-places", "/meal-planner"].includes(link.href));
+
+  // Administrators work in the administration area. Do not expose the member
+  // navigation or member-only shortcuts when an admin opens a shared page.
+  const navLinks = isAdmin
+    ? [{ label: "Khu vực quản trị", href: "/admin" }]
+    : memberNavLinks;
 
   const isLinkActive = (href: string) => {
     if (href === "/" && pathname === "/") return true;
@@ -135,7 +167,22 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
           {/* Navigation Links */}
           <nav aria-label={t("Main navigation", "Điều hướng chính")} className="hidden shrink-0 items-center gap-1 xl:flex 2xl:gap-2">
-            {navLinks.map((link) => (
+            {navLinks.map((link) => link.href === "/community" ? (
+              <div key={link.href} className="group relative">
+                <Link href={link.href} aria-current={isLinkActive(link.href) ? "page" : undefined}
+                  aria-haspopup="true"
+                  className={`block whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-semibold transition 2xl:px-4 2xl:text-[15px] ${isLinkActive(link.href) ? "bg-[#1E3A2F] text-white shadow-sm" : "text-[#424844] hover:bg-[#D9E6DC]/40 hover:text-[#07241A]"}`}>
+                  {link.label}
+                </Link>
+                <div className="vm-popover invisible absolute left-0 top-full z-50 w-[min(720px,calc(100vw-2rem))] rounded-2xl border border-[#EFEEEB] bg-white p-5 opacity-0 shadow-xl transition duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                  <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+                    <Link href="/community" className="rounded-lg px-3 py-2 font-semibold text-[#07241A] hover:bg-[#E8F0E5]">Tất cả công thức</Link>
+                    {recipeCategories.map(category => <Link key={category.id} href={`/community?category=${category.id}`} className="rounded-lg px-3 py-2 text-sm text-[#254B38] hover:bg-[#E8F0E5]">{categoryName(category, "vi")}</Link>)}
+                  </div>
+                  {recipeMenuError && <p className="mt-2 px-3 text-xs text-red-700">Không tải được danh mục. Hãy thử tải lại trang.</p>}
+                </div>
+              </div>
+            ) : (
               <Link
                 key={link.label}
                 href={link.href}
@@ -184,7 +231,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
           {loading ? (
             <div className="h-9 w-9 animate-pulse rounded-xl bg-[#EFEEEB] sm:w-24" />
           ) : user ? (
-            <div ref={profileMenuRef} className="relative">
+            <><NotificationBell key={user.uid} userId={user.userId || Number(user.uid) || 0} /><div ref={profileMenuRef} className="relative">
               <button
                 type="button"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -231,8 +278,8 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                     )}
                   </div>
                   <div className="py-1">
-                    {/* Admin Dashboard & Members: Hiển thị khi role là admin hoặc khi bật bypass */}
-                    {(BYPASS_ADMIN_ROLE || user?.role?.toLowerCase() === "admin") && (
+                    {/* Admin Dashboard & Members: Hiển thị khi role là admin */}
+                    {isAdmin && (
                       <>
                         <Link
                           href="/admin"
@@ -331,6 +378,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                         </Link>
                       </>
                     )}
+                    {!isAdmin && <>
                     <Link
                       href="/my-content"
                       onClick={() => setShowProfileMenu(false)}
@@ -372,6 +420,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                       </svg>
                       <span>{t("Bookmarks", "Đã lưu")}</span>
                     </Link>
+                    </>}
                     <button
                       type="button"
                       onClick={handleSignOut}
@@ -387,17 +436,9 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   </div>
                 </div>
               )}
-            </div>
+            </div></>
           ) : (
             <div className="flex items-center gap-2">
-              {BYPASS_ADMIN_ROLE && (
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100"
-                >
-                  <span><UiText text={"🛠️ Thử nghiệm quản trị"} /></span>
-                </Link>
-              )}
               <Link
                 href="/login"
                 aria-label={t("Login / Sign Up", "Đăng nhập / Đăng ký")}
@@ -441,7 +482,19 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
             </div>
           )}
 
-          {navLinks.map((link) => (
+          {navLinks.map((link) => link.href === "/community" ? (
+            <div key={link.href}>
+              <div className="flex items-center justify-between gap-2">
+                <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className="block flex-1 rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">Công thức</Link>
+                <button type="button" aria-label="Mở danh mục công thức" aria-expanded={mobileRecipesOpen} onClick={() => setMobileRecipesOpen(value => !value)} className="rounded-lg px-4 py-2 text-[#254B38]">⌄</button>
+              </div>
+              {mobileRecipesOpen && <div className="max-h-72 space-y-1 overflow-y-auto border-l border-[#CCDCCB] pl-3">
+                <Link href="/community" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs">Tất cả công thức</Link>
+                {recipeCategories.map(category => <Link key={category.id} href={`/community?category=${category.id}`} onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs">{categoryName(category, "vi")}</Link>)}
+                {recipeMenuError && <p className="px-4 py-2 text-xs text-red-700">Không tải được danh mục.</p>}
+              </div>}
+            </div>
+          ) : (
             <Link
               key={link.label}
               href={link.href}
@@ -457,7 +510,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
 
           {user ? (
             <div className="pt-2 border-t border-[#EFEEEB] space-y-1">
-              {(BYPASS_ADMIN_ROLE || user?.role?.toLowerCase() === "admin") && (
+              {isAdmin && (
                 <div className="mb-2 pb-2 border-b border-[#EFEEEB] space-y-1">
                   <div className="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-[#727974]">Quản trị</div>
                   <Link href="/admin" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#1E3A2F] bg-[#D9E6DC]/40">
@@ -488,6 +541,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
                   </Link>
                 </div>
               )}
+              {!isAdmin && <>
               <Link href="/my-content" onClick={() => setIsMobileMenuOpen(false)} className="block rounded-lg px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#D9E6DC]/40">
                 {t("My Content", "Bài viết của tôi")}
               </Link>
@@ -512,6 +566,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               >
                 {t("Bookmarks", "Đã lưu")}
               </Link>
+              </>}
               <button
                 type="button"
                 onClick={handleSignOut}

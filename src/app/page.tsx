@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import UiText, { useUiText } from "@/components/UiText";
-import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
@@ -11,11 +10,24 @@ import PopularRestaurants from "@/components/PopularRestaurants";
 import Reveal from "@/components/ui/Reveal";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import HeroRecipeCarousel from "@/components/HeroRecipeCarousel";
 
 export default function HomePage() {
   const { t } = useLanguage();
   const ui = useUiText();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+
+  useEffect(() => {
+    if (!loading && isAdmin) router.replace("/admin");
+  }, [isAdmin, loading, router]);
+
+  if (isAdmin) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#FBF9F6] text-sm text-[#59635C]"><UiText text="Đang chuyển đến khu vực quản trị..." /></div>;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FBF9F6]">
@@ -80,26 +92,7 @@ export default function HomePage() {
 
             {/* Right Hero Image Inspiration Card */}
             <div className="lg:col-span-6">
-              <div className="relative overflow-hidden rounded-3xl bg-[#EFEEEB] shadow-xl">
-                <div className="relative aspect-[16/11] w-full">
-                  <Image
-                    src="/images/hero_slide.png"
-                    alt={ui("Vegetarian culinary inspiration")}
-                    fill
-                    priority
-                    className="object-cover"
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                </div>
-
-                {/* Minimal Loop Indicator Dots */}
-                <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#07241A]/40 px-3 py-1.5 backdrop-blur-md">
-                  <span className="h-2 w-2 rounded-full bg-white" />
-                  <span className="h-2 w-2 rounded-full bg-white/40" />
-                  <span className="h-2 w-2 rounded-full bg-white/40" />
-                </div>
-              </div>
+              <HeroRecipeCarousel />
             </div>
           </div>
         </section></Reveal>

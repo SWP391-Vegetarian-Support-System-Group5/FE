@@ -76,7 +76,7 @@ export function useMealPlanner() {
         if (profileResult.status === "fulfilled") setProfile(profileResult.value);
         if (dietTypes.status === "fulfilled") setDiets(dietTypes.value);
         if (bookmarks.status === "fulfilled") setSavedIds(bookmarks.value.map(post => post.postId));
-        if ([plans, profileResult, dietTypes, bookmarks].some(result => result.status === "rejected")) setError("Could not load meal planner.");
+        if ([plans, profileResult, dietTypes].some(result => result.status === "rejected")) setError("Không thể tải thông tin thực đơn hoặc hồ sơ của bạn.");
         if (plans.status === "fulfilled") {
           setPlanOwner(user?.uid);
           setPlan(plans.value[0] || null);
@@ -233,6 +233,15 @@ export function useMealPlanner() {
   }
 
   const currentDiet = diets.find(diet => diet.dietTypeId === profile?.dietTypeId);
+  // The profile is the source of truth for the card, even before the user creates a meal plan.
+  // A saved plan may contain an old/null BMI from before the profile was completed.
+  const profileBmi = useMemo(() => {
+    if (!profile || !profile.heightCm || !profile.weightKg || profile.heightCm <= 0 || profile.weightKg <= 0) return null;
+    const heightInMeters = profile.heightCm / 100;
+    const value = Math.round((profile.weightKg / (heightInMeters * heightInMeters)) * 100) / 100;
+    const category = value < 18.5 ? "Underweight" : value < 25 ? "Normal" : "Obese";
+    return { value, category };
+  }, [profile]);
   return {
     imagePollingNotice, imagesPending: hasPendingImages(plan), reloadMealImages: () => run(refreshMealImages),
     planId: plan?.mealPlanId, applyMealImage, refreshMealImages, setImageBusy,
@@ -245,8 +254,10 @@ export function useMealPlanner() {
     toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen,
     handleRemovePantry: (name: string) => setPantryIngredients(items => items.filter(item => item !== name)),
     handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal,
-    profileName: profile?.fullName || t("You", "Bạn"), bmi: plan?.bmi ?? null,
-    bmiCategory: localizeText(plan?.bmiCategory, language), dietName: formatDietTypeName(currentDiet?.name, language), savedCount: savedIds.length,
+    profileName: profile?.fullName || t("You", "Bạn"),
+    bmi: profileBmi?.value ?? plan?.bmi ?? null,
+    bmiCategory: localizeText(profileBmi?.category ?? plan?.bmiCategory, language),
+    dietName: formatDietTypeName(currentDiet?.name, language), savedCount: savedIds.length,
     loading, error: localizeText(error, language), startDate, setStartDate,
   };
 }

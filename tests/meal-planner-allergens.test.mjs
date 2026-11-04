@@ -69,6 +69,7 @@ test("a failed bookmarks API does not discard the allergen catalog or saved alle
   const { render } = await setup({ bookmarksFail: true });
   const view = render();
   assert.equal(view.allergenStatus, "ready");
+  assert.equal(view.error, "");
   assert.deepEqual(Array.from(view.allergens), ["Peanut"]);
   assert.deepEqual(Array.from(view.availableAllergens, item => item.allergenId), [12]);
 });

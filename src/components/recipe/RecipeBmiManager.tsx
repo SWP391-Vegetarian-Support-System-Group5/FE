@@ -50,7 +50,7 @@ export default function RecipeBmiManager() {
   if (user?.role !== "ADMIN") return null;
   const recipes = data?.recipes.filter(recipe => `${recipe.recipeName} ${recipe.title} ${localizeRecipeTitle(recipe.recipeName, "vi")} ${localizeRecipeTitle(recipe.title, "vi")}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())) ?? [];
   return <section className="min-w-0 border-y border-[#E5E7DF] py-6">
-    <header className="flex flex-wrap items-center justify-between gap-4"><h2 className="font-serif text-2xl font-semibold">{t("Recipe BMI groups", "Nhóm BMI của công thức")}</h2><Link href="/create-content" className="text-sm font-semibold text-[#254B38] underline">{t("Create recipe", "Tạo công thức")}</Link></header>
+    <header className="flex flex-wrap items-center justify-between gap-4"><h2 className="font-serif text-2xl font-semibold">{t("Recipe BMI groups", "Nhóm BMI của công thức")}</h2><Link href="/admin/content/create" className="text-sm font-semibold text-[#254B38] underline">{t("Create recipe", "Tạo công thức")}</Link></header>
     <label className="my-4 block text-sm">{t("Search recipes", "Tìm công thức")}<input type="search" value={query} onChange={event => setQuery(event.target.value)} className="mt-2 block w-full max-w-lg rounded-lg border border-[#E5E7DF] bg-white px-3 py-2" /></label>
     {failed ? <p role="alert" className="text-sm text-red-700">{t("Could not load recipes.", "Không tải được công thức.")} <button type="button" onClick={() => setRevision(value => value + 1)} className="underline">{t("Retry", "Thử lại")}</button></p>
       : !data ? <p role="status">{t("Loading recipes...", "Đang tải công thức...")}</p>

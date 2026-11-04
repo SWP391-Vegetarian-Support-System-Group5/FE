@@ -3,6 +3,7 @@ import type { RecipeResponse, RecipeIngredientPayload, RecipeStepPayload, VideoR
 export interface ManualRecipeDraft {
   title: string;
   recipeName?: string;
+  imageUrl?: string;
   content: string;
   prepMinutes: string;
   cookMinutes: string;
@@ -15,6 +16,8 @@ export interface ManualRecipeDraft {
 }
 
 export interface MyContentItem {
+  postType?: string;
+  moderationReason?: string | null;
   id: string;
   title: string;
   description: string;

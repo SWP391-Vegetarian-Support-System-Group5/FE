@@ -50,6 +50,7 @@ export interface CreateRecipePayload {
   recipeName: string;
   content: string;
   videoUrl: string | null;
+  imageUrl?: string | null;
   prepMinutes: number | null;
   cookMinutes: number | null;
   servings: number | null;
@@ -59,6 +60,7 @@ export interface CreateRecipePayload {
 }
 
 export interface RecipeResponse {
+  moderationReason?: string | null;
   bmiTypes?: import("@/lib/bmi-api").BmiType[];
   postId: number;
   title: string;
@@ -87,6 +89,7 @@ export type VideoDraftStatus =
   | "PUBLISHED";
 
 export interface VideoRecipeDraftResponse {
+  recipePostId?: number | null;
   recipeName: string | null;
   videoRecipeDraftId: number;
   status: VideoDraftStatus;
@@ -187,6 +190,15 @@ export async function createRecipe(payload: CreateRecipePayload): Promise<Recipe
   }
 
   return (await res.json()) as RecipeResponse;
+}
+
+export async function updateRecipe(id: number, payload: CreateRecipePayload): Promise<RecipeResponse> {
+  const response = await apiFetch(`/api/recipes/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new Error(body?.message || `Không lưu được công thức (${response.status}).`);
+  }
+  return getRecipeById(id);
 }
 
 export async function getRecipeById(id: number): Promise<RecipeResponse> {
