@@ -1,9 +1,11 @@
 "use client";
 
 import UiText, { useUiText } from "@/components/UiText";
+import ImageFilePicker from "@/components/ui/ImageFilePicker";
+import ImageManager from "@/components/ui/ImageManager";
+import { uploadPostImage, deletePostImage, imageError, ImageRequestError } from "@/lib/image-api";
 import UploadProgress from "@/components/ui/UploadProgress";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import ImageFilePicker from "@/components/ImageFilePicker";
 import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -122,6 +124,54 @@ function RecipeContentView() {
     text: string;
   } | null>(null);
   const [publishedResult, setPublishedResult] = useState<RecipeResponse | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageConflict, setImageConflict] = useState(false);
+  const publishLock = useRef(false);
+  const createdPost = useRef<RecipeResponse | null>(null);
+
+  async function refreshPublishedImage() {
+    const saved = createdPost.current;
+    if (!saved) return;
+    const fresh = await getRecipeById(saved.postId);
+    setImageConflict(false);
+    createdPost.current = fresh;
+    setPublishedResult(fresh);
+    if (creationMode === "manual") setImageUrl(fresh.imageUrl ?? "");
+    if (fresh.status === "PUBLISHED") try { rememberPublishedContent(contentOwner, fresh, creationMode === "ai" ? "video" : "recipe"); } catch { /* Server data is already saved. */ }
+  }
+  async function finishPublishedImage(saved: RecipeResponse) {
+    createdPost.current = saved;
+    setPublishedResult(saved);
+    setImageFailed(false);
+    const published = saved.status === "PUBLISHED";
+    const messageType = published ? "success" : "info";
+    const savedMessage = published
+      ? (isAdmin ? "Công thức đã được lưu và đăng bởi quản trị viên." : "Bài viết đã được AI duyệt và đăng.")
+      : saved.moderationReason || "Bài chưa qua kiểm duyệt và đã được lưu bản nháp.";
+    if (!imageFile) { setStatusMessage({ type: messageType, text: savedMessage }); return; }
+    try {
+      const result = await uploadPostImage(saved.postId, imageFile);
+      const updated = { ...saved, imageUrl: result.imageUrl };
+      createdPost.current = updated;
+      setPublishedResult(updated);
+      if (creationMode === "manual") setImageUrl(result.imageUrl ?? "");
+      setImageFile(null);
+      if (published) try { rememberPublishedContent(contentOwner, updated, creationMode === "ai" ? "video" : "recipe"); } catch { /* Server data is already saved. */ }
+      const message = savedMessage + " Đã lưu ảnh." + (result.previousImageDeleted === false ? " Máy chủ chưa dọn xong ảnh cũ." : "");
+      setStatusMessage({ type: messageType, text: message });
+      try { await refreshPublishedImage(); } catch { setStatusMessage({ type: messageType, text: message + " Chưa tải lại được dữ liệu; không cần gửi lại ảnh." }); }
+    } catch (failure) {
+      setImageFailed(true);
+      setImageConflict(failure instanceof ImageRequestError && failure.status === 409);
+      setStatusMessage({ type: "error", text: `Bài #${saved.postId} đã được tạo và giữ lại. Tải ảnh thất bại: ${imageError(failure)}` });
+    }
+  }
+  async function retryPublishedImage() {
+    if (publishLock.current || imageConflict || !createdPost.current || !imageFile) return;
+    publishLock.current = true; setIsSubmitting(true);
+    try { await finishPublishedImage(createdPost.current); }
+    finally { publishLock.current = false; setIsSubmitting(false); }
+  }
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -572,8 +622,7 @@ function RecipeContentView() {
 
   // Publish Recipe
   const handlePublish = async () => {
-    if (isSubmitting) return;
-    setPublishedResult(null);
+    if (publishLock.current || createdPost.current?.status === "PUBLISHED" || imageFailed) return;
     if (!token) {
       setStatusMessage({
         type: "error",
@@ -618,6 +667,7 @@ function RecipeContentView() {
       return;
     }
 
+    publishLock.current = true;
     setIsSubmitting(true);
     setStatusMessage(null);
 
@@ -648,22 +698,18 @@ function RecipeContentView() {
           categoryIds: selectedCategoryIds,
         });
 
+        createdPost.current = published;
         setPublishedResult(published);
         if (published.status === "PUBLISHED") try { rememberPublishedContent(contentOwner, published, "video"); } catch { /* Publishing already succeeded. */ }
-        setStatusMessage({
-          type: published.status === "PUBLISHED" ? "success" : "info",
-          text: published.status === "PUBLISHED" ? (isAdmin ? "Công thức đã được lưu và đăng bởi quản trị viên." : "Bài viết đã được AI duyệt và đăng.") : published.moderationReason || "Bài chưa qua kiểm duyệt và vẫn ở bản nháp.",
-        });
+        await finishPublishedImage(published);
       } else {
         // Manual mode: POST /api/recipes
-        const savedImageUrl = imageFile ? await uploadImage(imageFile, "recipes") : imageUrl.trim() || null;
-        if (imageFile) { setImageUrl(savedImageUrl || ""); setImageFile(null); }
         const payload = {
           title: title.trim(),
           recipeName: recipeName.trim(),
           content: content.trim(),
           videoUrl: videoPreviewUrl || null,
-          imageUrl: savedImageUrl,
+          imageUrl: imageUrl.trim() || null,
           prepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
           cookMinutes: cookMinutes ? parseInt(cookMinutes, 10) : null,
           servings: servings ? parseInt(servings, 10) : null,
@@ -675,23 +721,22 @@ function RecipeContentView() {
 
         const res = serverRecipeDraftId ? await updateRecipe(serverRecipeDraftId, payload) : await createRecipe(payload);
         if (res.status === "DRAFT") setServerRecipeDraftId(res.postId);
+        createdPost.current = res;
         setPublishedResult(res);
         try {
           if (res.status === "PUBLISHED") rememberPublishedContent(contentOwner, res, "recipe");
           removeManualContent(contentOwner);
         } catch { /* Publishing already succeeded. */ }
         // Clear local manual draft
-        localStorage.removeItem("veggie_manual_recipe_draft");
+        try { localStorage.removeItem("veggie_manual_recipe_draft"); } catch { /* The recipe is already saved on the server. */ }
 
-        setStatusMessage({
-          type: res.status === "PUBLISHED" ? "success" : "info",
-          text: res.status === "PUBLISHED" ? (isAdmin ? "Công thức đã được lưu và đăng bởi quản trị viên." : "Bài viết đã được AI duyệt và đăng.") : res.moderationReason || "Bài chưa qua kiểm duyệt và đã được lưu bản nháp.",
-        });
+        await finishPublishedImage(res);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Đăng công thức thất bại";
       setStatusMessage({ type: "error", text: msg });
     } finally {
+      publishLock.current = false;
       setIsSubmitting(false);
     }
   };
@@ -748,6 +793,18 @@ function RecipeContentView() {
           </div>
         </div>
       )}
+
+      <div className="my-5 rounded-2xl border border-[#EFEEEB] bg-white p-5">
+        {!publishedResult ? <ImageFilePicker file={imageFile} onChange={setImageFile} disabled={isSubmitting || isUploading} /> : <div className="flex flex-wrap items-center gap-3">
+          <Link href={publishedResult.status === "PUBLISHED" ? `/view-detail/post-${publishedResult.postId}` : "/my-content"} className="text-sm underline">{publishedResult.status === "PUBLISHED" ? "Xem bài" : "Xem bản nháp"} #{publishedResult.postId}</Link>
+          <button type="button" disabled={isSubmitting} onClick={() => { createdPost.current = null; setServerRecipeDraftId(null); setPublishedResult(null); setImageUrl(""); setImageFile(null); setImageFailed(false); setImageConflict(false); setHasReviewed(false); setStatusMessage(null); }} className="vm-button text-sm underline disabled:opacity-40">Tạo bài khác</button>
+          {imageFailed && imageFile && <button type="button" disabled={isSubmitting || imageConflict} onClick={() => void retryPublishedImage()} className="vm-button rounded-xl bg-[#254B38] px-4 py-2 text-sm text-white disabled:opacity-40">{isSubmitting ? "Đang tải ảnh…" : "Thử tải ảnh lại"}</button>}
+          <ImageManager imageUrl={publishedResult.imageUrl ?? publishedResult.thumbnailUrl} disabled={isSubmitting} requiresRefresh={imageConflict}
+            onUpload={file => uploadPostImage(publishedResult.postId, file)} onDelete={() => deletePostImage(publishedResult.postId)}
+            onApplied={result => { const updated = { ...publishedResult, imageUrl: result.imageUrl }; createdPost.current = updated; setPublishedResult(updated); if (creationMode === "manual") setImageUrl(result.imageUrl ?? ""); setImageFailed(false); setImageFile(null); }}
+            onRefresh={refreshPublishedImage} />
+        </div>}
+      </div>
 
       {restoringVideoDraft && <p role="status" className="my-4 text-sm text-[#647068]">{t("Loading saved draft...", "Đang tải bản nháp đã lưu...")}</p>}
 
@@ -876,7 +933,6 @@ function RecipeContentView() {
             {t("Recipe name", "Tên món ăn")} <span className="text-red-500">*</span>
             <input type="text" required maxLength={250} value={recipeName} onChange={(event) => setRecipeName(event.target.value)} placeholder={t("e.g. Tofu in tomato sauce", "Ví dụ: Đậu hũ sốt cà chua")} className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 text-sm font-normal text-[#07241A] outline-none focus:border-[#1E3A2F]" />
           </label>
-          {creationMode === "manual" && <ImageFilePicker value={imageUrl} file={imageFile} onFileChange={setImageFile} onValueChange={url => setImageUrl(url || "")} disabled={isSubmitting} />}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 
             {/* Preparation time */}
@@ -1339,11 +1395,11 @@ function RecipeContentView() {
             <button
               type="button"
               onClick={handlePublish}
-              disabled={isSubmitting || !hasReviewed}
+              disabled={isSubmitting || !hasReviewed || publishedResult?.status === "PUBLISHED" || imageFailed}
               className="flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <span>🚀</span>
-              <span>{isSubmitting ? ui("Đang xuất bản...") : ui("Publish recipe")}</span>
+              <span>{isSubmitting ? ui("Đang xử lý...") : publishedResult?.status === "PUBLISHED" ? "Đã xuất bản" : ui("Publish recipe")}</span>
             </button>
           </div>
         </div>

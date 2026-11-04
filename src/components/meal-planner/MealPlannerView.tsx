@@ -4,6 +4,9 @@ import { useLanguage } from "@/context/LanguageContext";
 import UiText, { useUiText } from "@/components/UiText";
 
 
+import MealImageStatus from "./MealImageStatus";
+import ImageManager from "@/components/ui/ImageManager";
+import { uploadMealImage, deleteMealImage, generateMealImage } from "@/lib/image-api";
 import { useMealPlanner } from "./useMealPlanner";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,6 +24,9 @@ export interface MealItem {
   title: string;
   description: string;
   image: string;
+  imageIsGenerated?: boolean;
+  imageGenerationStatus?: string | null;
+  imageGenerationError?: string | null;
   ingredients: string[];
   steps: string[];
 }
@@ -218,10 +224,12 @@ export default function MealPlannerView() {
   const [adjustment, setAdjustment] = useState(500);
   const [selectedGoal, setSelectedGoal] = useState<MealPlanNutritionGoal>("MAINTAIN");
   const {
+    imagePollingNotice, imagesPending, reloadMealImages,
+    planId, applyMealImage, refreshMealImages, setImageBusy,
     days, allergens, newAllergen, setNewAllergen, showAddAllergen, setShowAddAllergen,
     availableAllergens, allergenStatus, allergenError, retryAllergens,
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
-    toastMessage, isRegenerating, replacementLimitReached, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
+    toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
     handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal, profileName, bmi, bmiCategory,
     dietName, savedCount, loading, error, startDate, setStartDate, tdee, targetCalories, nutritionGoal, calorieAdjustment, inferredNutritionGoal,
     goalWeightKg, estimatedWeeksToGoal, showGoalMenu, setShowGoalMenu,
@@ -240,6 +248,11 @@ export default function MealPlannerView() {
           <span>{<UiText text={toastMessage} />}</span>
         </div>
       )}
+
+      {(imagesPending || imagePollingNotice) && <div role="status" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E5E7DF] bg-white px-4 py-3 text-xs text-[#59635C]">
+        <span>{imagePollingNotice || "Ảnh món ăn đang được xử lý nền. Thực đơn vẫn dùng bình thường; ảnh sẽ tự cập nhật mỗi 5 giây."}</span>
+        <button type="button" disabled={isRegenerating} onClick={() => void reloadMealImages()} className="vm-button shrink-0 underline disabled:opacity-40">Tải lại ảnh</button>
+      </div>}
 
       {/* ── Top Header ─────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-[#EFEEEB] pb-6">
@@ -291,11 +304,6 @@ export default function MealPlannerView() {
 
       {loading && <p role="status" className="py-4">{ui("Loading...")}</p>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-      {!loading && days.length > 0 && <p role="status" className="mt-4 border-l-2 border-[#4A7659] bg-[#EDF4ED] px-4 py-3 text-sm text-[#1E3A2F]">
-        {replacementLimitReached
-          ? "Bạn đã hết 5 lượt đổi món cho thực đơn này. Các nút Thay món tạm khóa và sẽ được mở lại vào đầu tuần mới."
-          : "Giới hạn đổi món: tối đa 5 lần cho mỗi thực đơn trong tuần; lượt được làm mới vào đầu tuần mới."}
-      </p>}
       {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
       <label className="mt-4 block text-sm">{ui("Start date")} <input type="text" inputMode="numeric" placeholder="dd/mm/yy" maxLength={10} value={startDate} onChange={e => setStartDate(e.target.value)} className="ml-3 w-36 rounded-lg border p-2" /></label>
       {(tdee || targetCalories || goalWeightKg) && <div className="mt-4 grid gap-3 rounded-2xl border border-[#D9E6DC] bg-[#EDF4ED] p-4 text-sm text-[#07241A] sm:grid-cols-3">
@@ -471,13 +479,13 @@ export default function MealPlannerView() {
                     <div className="flex items-center gap-4">
                       {/* Dish Photo */}
                       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#EFEEEB]">
-                        <Image
-                          src={meal.image || "/images/hero_slide.png"}
+                        {meal.image ? <Image
+                          src={meal.image}
                           alt={meal.title}
                           fill
                           className="object-cover"
                           unoptimized
-                        />
+                        /> : <span className="flex h-full items-center justify-center text-center text-[10px] text-[#727974]">Chưa có ảnh</span>}
                         <span className="absolute bottom-1 left-1 rounded-md bg-black/60 px-1.5 py-0.2 text-[9px] font-semibold text-white">
                           {<UiText text={meal.timeLabel} />}
                         </span>
@@ -493,11 +501,13 @@ export default function MealPlannerView() {
                           <span className="text-[11px] font-medium text-[#727974]">
                             {<UiText text={meal.durationCalories} />}
                           </span>
+                          {meal.imageIsGenerated && <span className="text-[10px] text-[#99462A]">Ảnh AI minh họa</span>}
                           {meal.isSavedInCollection && (
                             <span className="rounded-full bg-[#FDE8E4] px-2 py-0.2 text-[10px] font-semibold text-[#99462A]"><UiText text={"Đã lưu vào bộ sưu tập"} /></span>
                           )}
                         </div>
 
+                        <MealImageStatus status={meal.imageGenerationStatus} error={meal.imageGenerationError} compact />
                         <h3 className="font-serif text-base font-bold text-[#07241A]">
                           {<UiText text={meal.title} />}
                         </h3>
@@ -508,7 +518,15 @@ export default function MealPlannerView() {
                     </div>
 
                     {/* Meal actions */}
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                      {planId && meal.mealPlanMealId && <ImageManager
+                        label={meal.image ? t("Change image", "Đổi ảnh") : t("Add image", "Thêm ảnh")}
+                        imageUrl={meal.image} disabled={isRegenerating}
+                        onUpload={file => uploadMealImage(planId, meal.mealPlanMealId!, file)}
+                        onDelete={() => deleteMealImage(planId, meal.mealPlanMealId!)}
+                        onGenerate={style => generateMealImage(planId, meal.mealPlanMealId!, style)}
+                        onApplied={result => applyMealImage(meal.mealPlanMealId!, result)}
+                        onRefresh={refreshMealImages} onBusyChange={setImageBusy} />}
                       <button
                         type="button"
                         onClick={() => viewMeal(meal)}
@@ -516,8 +534,8 @@ export default function MealPlannerView() {
                       ><UiText text={"Xem công thức"} /></button>
                       <button
                         type="button"
-                        disabled={isRegenerating || replacementLimitReached} onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
-                        title={replacementLimitReached ? "Đã hết lượt đổi món cho thực đơn này" : "Thay món"}
+                        disabled={isRegenerating} onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
+                        title={t("Replace meal", "Thay món")}
                         className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <span>🔄</span>
@@ -553,7 +571,7 @@ export default function MealPlannerView() {
       {selectedMealForView && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-fade-in"
-          onClick={() => setSelectedMealForView(null)}
+          onClick={() => { if (!isRegenerating) setSelectedMealForView(null); }}
         >
           <div
             className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
@@ -561,16 +579,16 @@ export default function MealPlannerView() {
           >
             {/* Modal Image Header */}
             <div className="relative aspect-video w-full bg-[#EFEEEB]">
-              <Image
-                src={selectedMealForView.image || "/images/hero_slide.png"}
+              {selectedMealForView.image ? <Image
+                src={selectedMealForView.image}
                 alt={selectedMealForView.title}
                 fill
                 className="object-cover"
                 unoptimized
-              />
+              /> : <div className="flex h-full items-center justify-center text-sm text-[#727974]">Chưa có ảnh</div>}
               <button
                 type="button"
-                onClick={() => setSelectedMealForView(null)}
+                onClick={() => { if (!isRegenerating) setSelectedMealForView(null); }}
                 className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md transition hover:bg-white"
               >
                 ✕
@@ -590,6 +608,14 @@ export default function MealPlannerView() {
                   {<UiText text={selectedMealForView.description} />}
                 </p>
               </div>
+
+              <MealImageStatus status={selectedMealForView.imageGenerationStatus} error={selectedMealForView.imageGenerationError} />
+              {selectedMealForView.imageIsGenerated && <p className="text-xs text-[#99462A]">Ảnh AI minh họa</p>}
+              {planId && selectedMealForView.mealPlanMealId && <ImageManager key={`${planId}:${selectedMealForView.mealPlanMealId}`} label="Đổi ảnh món ăn" imageUrl={selectedMealForView.image} disabled={isRegenerating}
+                onUpload={file => uploadMealImage(planId, selectedMealForView.mealPlanMealId!, file)}
+                onDelete={() => deleteMealImage(planId, selectedMealForView.mealPlanMealId!)}
+                onGenerate={style => generateMealImage(planId, selectedMealForView.mealPlanMealId!, style)}
+                onApplied={result => applyMealImage(selectedMealForView.mealPlanMealId!, result)} onRefresh={refreshMealImages} onBusyChange={setImageBusy} />}
 
               {/* Ingredients */}
               <div className="space-y-1.5 border-t border-[#EFEEEB] pt-3">
@@ -614,7 +640,7 @@ export default function MealPlannerView() {
               <div className="pt-2 border-t border-[#EFEEEB] flex justify-end">
                 <button
                   type="button"
-                  onClick={() => setSelectedMealForView(null)}
+                  onClick={() => { if (!isRegenerating) setSelectedMealForView(null); }}
                   className="rounded-xl bg-[#07241A] px-5 py-2 text-xs font-semibold text-white hover:bg-[#1E3A2F]"
                 ><UiText text={"Đóng"} /></button>
               </div>

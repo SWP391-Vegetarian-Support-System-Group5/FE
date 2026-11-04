@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { getStoredToken } from "@/lib/auth";
+import { useMealImagePolling, hasPendingImages } from "./useMealImagePolling";
+import type { ImageMutationResponse } from "@/lib/image-api";
 import { getMediaUrl } from "@/lib/api";
 import { generateMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
 import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
@@ -17,6 +20,7 @@ export function useMealPlanner() {
   const { t, language, locale } = useLanguage();
   const { user, loading: authLoading } = useAuth();
   const [plan, setPlan] = useState<MealPlanResponse | null>(null);
+  const [planOwner, setPlanOwner] = useState<string | undefined>(undefined);
   const [profile, setProfile] = useState<BackendUserProfile | null>(null);
   const [diets, setDiets] = useState<DietTypeItem[]>([]);
   const [allergenCatalog, setAllergenCatalog] = useState<{ allergenId: number; name: string }[]>([]);
@@ -42,6 +46,23 @@ export function useMealPlanner() {
   const [startDate, setStartDate] = useState(() => initialMealPlanDate());
   const lock = useRef(false);
 
+  const applyPolledPlan = useCallback((fresh: MealPlanResponse) => {
+    if (lock.current) return;
+    setPlan(current => current?.mealPlanId === fresh.mealPlanId ? fresh : current);
+    setSelectedMealForView(current => {
+      if (!current) return current;
+      const meal = fresh.meals.find(item => item.mealPlanMealId === current.mealPlanMealId);
+      if (!meal || meal.recipeId !== current.recipeId) return null;
+      const recipe = recipeData[meal.recipeId];
+      return { ...current, image: getMediaUrl(meal.imageUrl ?? recipe?.imageUrl ?? recipe?.thumbnailUrl),
+        imageIsGenerated: meal.imageIsGenerated ?? false,
+        imageGenerationStatus: meal.imageGenerationStatus, imageGenerationError: meal.imageGenerationError };
+    });
+  }, [recipeData]);
+  const { imagePollingNotice, resumeImagePolling } = useMealImagePolling({
+    plan, owner: user?.uid, enabled: !authLoading && !!user && planOwner === user.uid && !!getStoredToken(), busy: isRegenerating, onUpdate: applyPolledPlan,
+  });
+
   async function hydrateRecipes(value: MealPlanResponse | null) {
     if (!value) return;
     const ids = [...new Set(value.meals.map(meal => meal.recipeId))];
@@ -59,6 +80,7 @@ export function useMealPlanner() {
         if (bookmarks.status === "fulfilled") setSavedIds(bookmarks.value.map(post => post.postId));
         if ([plans, profileResult, dietTypes].some(result => result.status === "rejected")) setError("Không thể tải thông tin thực đơn hoặc hồ sơ của bạn.");
         if (plans.status === "fulfilled") {
+          setPlanOwner(user?.uid);
           setPlan(plans.value[0] || null);
           await hydrateRecipes(plans.value[0] || null);
         }
@@ -94,7 +116,9 @@ export function useMealPlanner() {
         slot: meal.mealType as MealItem["slot"], timeLabel: meal.mealType,
         durationCalories: [minutes ? `${minutes} ${t("mins", "phút")}` : "", recipe?.caloriesPerServing ? `~ ${Math.round(recipe.caloriesPerServing)} kcal` : meal.caloriesPerServing ? `~ ${Math.round(meal.caloriesPerServing)} kcal` : ""].filter(Boolean).join(" · "),
         title: localizeRecipeTitle(recipe?.recipeName || meal.recipeName, language),
-        description: localizeText(recipe?.content, language), image: getMediaUrl(recipe?.thumbnailUrl),
+        description: localizeText(recipe?.content, language), image: getMediaUrl(meal.imageUrl ?? recipe?.imageUrl ?? recipe?.thumbnailUrl),
+        imageIsGenerated: meal.imageIsGenerated ?? false,
+        imageGenerationStatus: meal.imageGenerationStatus, imageGenerationError: meal.imageGenerationError,
         isSavedInCollection: savedIds.includes(meal.recipeId),
         ingredients: recipe?.ingredients.map(ingredient => `${localizeAmount(ingredient.amount, language)} ${localizeIngredient(ingredient.ingredientName, language)}`) || [],
         steps: recipe?.steps.map(step => localizeText(step.instruction, language)) || [],
@@ -125,20 +149,12 @@ export function useMealPlanner() {
     });
   }
   async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"]) {
-    if (!plan || replacementLimitReached) return;
+    if (!plan) return;
     const meal = plan.meals.find(item => item.mealPlanMealId === Number(mealId));
     if (!meal || meal.dayNumber !== _day + 1 || meal.mealType !== _slot) return;
     await run(async () => {
-      try {
-        const next = await replaceMeal(plan.mealPlanId, Number(mealId));
-        setPlan(next); await hydrateRecipes(next);
-      } catch (failure) {
-        if (failure instanceof MealPlanRequestError && failure.status === 429) {
-          setReplacementLimitReached(true);
-          return;
-        }
-        throw failure;
-      }
+      const next = await replaceMeal(plan.mealPlanId, Number(mealId));
+      setPlan(next); await hydrateRecipes(next);
     });
   }
   async function viewMeal(meal: MealItem) {
@@ -186,6 +202,39 @@ export function useMealPlanner() {
     if (newPantryItem.trim()) setPantryIngredients(items => [...new Set([...items, newPantryItem.trim()])]);
     setNewPantryItem("");
   }
+  function setImageBusy(busy: boolean) {
+    lock.current = busy;
+    setWorking(busy);
+  }
+  function applyMealImage(mealId: number, result: ImageMutationResponse) {
+    const meal = plan?.meals.find(item => item.mealPlanMealId === mealId);
+    if (!meal) return;
+    const recipe = recipeData[meal.recipeId];
+    const image = getMediaUrl(result.imageUrl ?? recipe?.imageUrl ?? recipe?.thumbnailUrl);
+    setPlan(current => current ? { ...current, meals: current.meals.map(item => item.mealPlanMealId === mealId ? { ...item, imageUrl: result.imageUrl, imageIsGenerated: result.isGenerated, imageGenerationStatus: result.imageUrl ? "READY" : null, imageGenerationError: null } : item) } : current);
+    setSelectedMealForView(current => current?.mealPlanMealId === mealId ? { ...current, image, imageIsGenerated: result.isGenerated, imageGenerationStatus: result.imageUrl ? "READY" : null, imageGenerationError: null } : current);
+  }
+  async function refreshMealImages() {
+    if (!plan) return;
+    const fresh = await getMealPlan(plan.mealPlanId);
+    setPlan(fresh);
+    resumeImagePolling();
+    const selected = fresh.meals.find(item => item.mealPlanMealId === selectedMealForView?.mealPlanMealId);
+    if (!selected) { setSelectedMealForView(null); return; }
+    const recipe = await getRecipeById(selected.recipeId);
+    setRecipeData(current => ({ ...current, [selected.recipeId]: recipe }));
+    setSelectedMealForView(current => current?.mealPlanMealId === selected.mealPlanMealId ? {
+      ...current, recipeId: selected.recipeId,
+      title: localizeRecipeTitle(recipe.recipeName || selected.recipeName, language),
+      description: localizeText(recipe.content, language),
+      ingredients: recipe.ingredients.map(item => `${localizeAmount(item.amount, language)} ${localizeIngredient(item.ingredientName, language)}`),
+      steps: recipe.steps.map(item => localizeText(item.instruction, language)),
+      image: getMediaUrl(selected.imageUrl ?? recipe.imageUrl ?? recipe.thumbnailUrl),
+      imageIsGenerated: selected.imageIsGenerated ?? false,
+      imageGenerationStatus: selected.imageGenerationStatus, imageGenerationError: selected.imageGenerationError,
+    } : current);
+  }
+
   const currentDiet = diets.find(diet => diet.dietTypeId === profile?.dietTypeId);
   // The profile is the source of truth for the card, even before the user creates a meal plan.
   // A saved plan may contain an old/null BMI from before the profile was completed.
@@ -226,13 +275,15 @@ export function useMealPlanner() {
     return Math.round((Math.abs(profile.goalWeightKg - profile.weightKg) * 7700 / (displayAdjustment * 7)) * 10) / 10;
   }, [profile?.goalWeightKg, profile?.weightKg, displayAdjustment, inferredNutritionGoal]);
   return {
+    imagePollingNotice, imagesPending: hasPendingImages(plan), reloadMealImages: () => run(refreshMealImages),
+    planId: plan?.mealPlanId, applyMealImage, refreshMealImages, setImageBusy,
     days, allergens: selectedAllergens.map(item => item.name), newAllergen,
     setNewAllergen: (value: string) => { setNewAllergen(value); setAllergenError(null); }, showAddAllergen, setShowAddAllergen,
     availableAllergens: allergenCatalog.filter(item => !selectedAllergens.some(selected => selected.allergenId === item.allergenId)),
     allergenStatus: authLoading || allergenOwner !== (user?.uid ?? "guest") ? "loading" : allergenStatus, allergenError,
     retryAllergens: () => { setAllergenStatus("loading"); setAllergenRevision(value => value + 1); },
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
-    toastMessage, isRegenerating, replacementLimitReached, handleRemoveAllergen, handleAddAllergen,
+    toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen,
     handleRemovePantry: (name: string) => setPantryIngredients(items => items.filter(item => item !== name)),
     handleAddPantry, handleReplaceMeal, handleRegenerate, viewMeal,
     profileName: profile?.fullName || t("You", "Bạn"),

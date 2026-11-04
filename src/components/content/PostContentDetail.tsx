@@ -9,6 +9,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { localizeRecipeTitle, localizeText, localizeIngredient, localizeAmount } from "@/lib/localized-content";
 import { categoryName } from "@/lib/recipe-categories";
+import ImageManager from "@/components/ui/ImageManager";
+import { uploadPostImage, deletePostImage } from "@/lib/image-api";
 import InlinePostRating from "./InlinePostRating";
 import ContentIcon from "./ContentIcon";
 
@@ -147,9 +149,9 @@ export default function PostContentDetail({ postId }: { postId: number }) {
 
         <div className="relative overflow-hidden rounded-3xl bg-[#E8EDE4]">
           {post.videoUrl ? (
-            <video controls preload="metadata" poster={post.thumbnailUrl || undefined} src={post.videoUrl} className="aspect-video w-full bg-black object-contain" />
+            <video controls preload="metadata" poster={(post.imageUrl ?? post.thumbnailUrl) || undefined} src={post.videoUrl} className="aspect-video w-full bg-black object-contain" />
           ) : (
-            <Image unoptimized width={1200} height={675} src={post.thumbnailUrl || "/images/recipe_tofu_tomato.png"} alt={localizeRecipeTitle(post.title, language)} className="aspect-video w-full object-cover" />
+            <Image unoptimized width={1200} height={675} src={(post.imageUrl ?? post.thumbnailUrl) || "/images/recipe_tofu_tomato.png"} alt={localizeRecipeTitle(post.title, language)} className="aspect-video w-full object-cover" />
           )}
         </div>
 
@@ -159,6 +161,10 @@ export default function PostContentDetail({ postId }: { postId: number }) {
           </div>
           <a href="#comments" className="text-sm hover:text-[#BC4B22]">{post.commentCount} {t("Comments", "bình luận")}</a>
         </div>
+        {!!user && (user.userId === post.userId || user.role?.toUpperCase() === "ADMIN") && <div className="mt-4"><ImageManager key={postId} imageUrl={post.imageUrl ?? post.thumbnailUrl}
+          onUpload={file => uploadPostImage(postId, file)} onDelete={() => deletePostImage(postId)}
+          onApplied={result => { setPost(current => current ? { ...current, imageUrl: result.imageUrl } : current); setRecipe(current => current ? { ...current, imageUrl: result.imageUrl } : current); }}
+          onRefresh={async () => applyDetail(await fetchPostDetail(postId))} /></div>}
         <InlinePostRating key={postId} currentRating={post.currentUserRating} signedIn={!!user} onRate={submitRating} />
         {error && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 

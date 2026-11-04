@@ -34,7 +34,7 @@ function toBookmarkItem(post: PostResponse): BookmarkItem {
     id: String(post.postId), type: post.postType === "RECIPE" || post.postType === "VIDEO" ? "recipe" : "post",
     badge: post.postType, rating: { score: post.averageRating }, categoryPrep: "",
     title: localizeRecipeTitle(post.title, "vi"), description: localizeText(post.content, "vi"), author: { name: post.authorName },
-    image: getMediaUrl(post.thumbnailUrl), isBookmarked: true,
+    image: getMediaUrl((post.imageUrl ?? post.thumbnailUrl)), isBookmarked: true,
   };
 }
 export default function BookmarksView() {

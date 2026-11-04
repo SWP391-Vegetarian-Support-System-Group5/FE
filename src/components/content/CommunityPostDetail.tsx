@@ -14,6 +14,8 @@ import { formatDietTypeName } from "@/lib/diet-type-display";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { addComment, bookmarkPost, communityError, deleteComment, deletePost, getBookmarks, getComments, getPost, getPosts, getRating, PostApiError, ratePost, removeBookmark, replyToComment, updateComment, type CommentResponse, type PostResponse } from "@/lib/post-api";
 import ContentDialog from "./ContentDialog";
+import ImageManager from "@/components/ui/ImageManager";
+import { uploadPostImage, deletePostImage } from "@/lib/image-api";
 import InlinePostRating from "./InlinePostRating";
 import PostEditor from "./PostEditor";
 import { createCommunityEventSource, type CommunityEvent } from "@/lib/community-api";
@@ -137,7 +139,7 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
     {notice && <p role="status" className="mt-4 text-sm text-[#254B38]">{notice}</p>}
     {initialLoading ? <p role="status" className="py-12">Đang tải bài viết…</p> : removed ? <p className="py-12">Bài viết đã được xóa. <Link href="/community" className="underline">Về cộng đồng</Link></p> : post && <>
       <header className="py-8"><p className="text-xs tracking-widest text-[#BC4B22]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</p><h1 className="mt-3 break-words font-serif text-4xl sm:text-5xl">{localizeRecipeTitle(post.title, "vi")}</h1><p className="mt-5 text-sm text-[#727974]">{post.authorName}</p>{post.postType === "RECIPE" && <div className="mt-4 flex flex-wrap items-center gap-2 text-sm"><span className="text-[#59635C]">Kiểu ăn chay phù hợp:</span>{post.compatibleDietTypes?.length ? post.compatibleDietTypes.map(type => <span key={type.id} className="rounded-md bg-[#E8F0E5] px-2.5 py-1 text-[#254B38]">{formatDietTypeName(type.name, "vi")}</span>) : <span className="text-[#727974]">Chưa xác minh từ nguyên liệu</span>}</div>}</header>
-      {post.videoUrl ? <video controls preload="metadata" poster={getMediaUrl(post.thumbnailUrl) || undefined} src={getMediaUrl(post.videoUrl)} className="aspect-video w-full rounded-3xl bg-[#193B2E]" /> : post.thumbnailUrl && <div className="relative aspect-video overflow-hidden rounded-3xl"><Image src={getMediaUrl(post.thumbnailUrl)} alt={post.title} fill unoptimized sizes="100vw" className="object-cover" /></div>}
+      {post.videoUrl ? <video controls preload="metadata" poster={getMediaUrl((post.imageUrl ?? post.thumbnailUrl)) || undefined} src={getMediaUrl(post.videoUrl)} className="aspect-video w-full rounded-3xl bg-[#193B2E]" /> : (post.imageUrl ?? post.thumbnailUrl) && <div className="relative aspect-video overflow-hidden rounded-3xl"><Image src={getMediaUrl((post.imageUrl ?? post.thumbnailUrl))} alt={post.title} fill unoptimized sizes="100vw" className="object-cover" /></div>}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7DF] py-5 text-sm">
         <div className="flex items-center gap-4"><span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{ratingError ? "Chưa tải được điểm" : average === null ? "Đang tải điểm…" : `${average.toFixed(1)} / 5`}</strong></span></div>
         <div className="flex items-center gap-5"><a href="#comments">Bình luận</a><button disabled={busy || authLoading || (!!user && !!getStoredToken() && saved === null)} aria-pressed={saved === true} onClick={() => mutate(async () => {
@@ -160,6 +162,10 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
           catch (failure) { setRatingError(communityError(failure)); }
         } finally { lock.current = false; if (alive.current) setBusy(false); }
       }} />
+      {!!user && (isAdmin || user.userId === post.userId) && <div className="mt-4"><ImageManager key={postId} imageUrl={post.imageUrl ?? post.thumbnailUrl}
+        onUpload={file => uploadPostImage(postId, file)} onDelete={() => deletePostImage(postId)} disabled={busy}
+        onApplied={result => { setPost(current => current ? { ...current, imageUrl: result.imageUrl } : current); setRecipe(current => current ? { ...current, imageUrl: result.imageUrl } : current); }}
+        onRefresh={async () => { await refreshPost(); if (post.postType === "RECIPE") setRecipe(await getRecipeById(postId)); }} /></div>}
       {!!user && (isAdmin || user.userId === post.userId) && <div className="mt-5 flex gap-4 text-sm"><button disabled={busy} onClick={() => setDialog("edit")} className="text-[#254B38] underline">Sửa bài</button><button disabled={busy} onClick={() => setDialog("delete")} className="text-red-700 underline">Xóa bài</button></div>}
       <div className="mt-8 grid items-start gap-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"><div className="space-y-7">
         <section className={panel}><h2 className="font-serif text-2xl">Nội dung bài viết</h2><p className="mt-4 whitespace-pre-wrap break-words text-sm leading-8 text-[#59635C]">{localizeText(post.content, "vi")}</p></section>

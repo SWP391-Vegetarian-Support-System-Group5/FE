@@ -73,8 +73,8 @@ export interface RecipeResponse {
   compatibleDietTypeIds: number[];
   categories: import("@/lib/recipe-categories").RecipeCategory[];
   videoUrl?: string | null;
-  thumbnailUrl?: string | null;
   imageUrl?: string | null;
+  thumbnailUrl?: string | null;
   prepMinutes?: number | null;
   cookMinutes?: number | null;
   categoryIds?: number[];
@@ -210,7 +210,7 @@ export async function updateRecipe(id: number, payload: CreateRecipePayload): Pr
 }
 
 export async function getRecipeById(id: number): Promise<RecipeResponse> {
-  return await apiGet<RecipeResponse>(`/api/recipes/${id}`);
+  return await apiGet<RecipeResponse>(`/api/recipes/${id}`, { cache: "no-store" });
 }
 
 // ── AI Video Recipe Drafts ─────────────────────────────────────────────────

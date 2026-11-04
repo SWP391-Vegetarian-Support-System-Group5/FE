@@ -128,7 +128,7 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
       {(compact ? visible.slice(0, 4) : visible).map(post => <article key={post.postId} className="vm-card vm-enter group overflow-hidden rounded-3xl border border-[#EFEEEB] bg-white shadow-xs">
         <div className="relative aspect-[16/10] overflow-hidden bg-[#E8EDE4]">
           <Link href={`/view-detail/post-${post.postId}`} className="absolute inset-0 flex items-center justify-center">
-            {post.thumbnailUrl ? <FeedImage key={post.thumbnailUrl} src={getMediaUrl(post.thumbnailUrl)} alt={post.title} compact={compact} /> : <span className="font-serif text-xl text-[#658266]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</span>}
+            {(post.imageUrl ?? post.thumbnailUrl) ? <FeedImage key={(post.imageUrl ?? post.thumbnailUrl)} src={getMediaUrl((post.imageUrl ?? post.thumbnailUrl))} alt={post.title} compact={compact} /> : <span className="font-serif text-xl text-[#658266]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</span>}
           </Link>
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs">★ {post.averageRating.toFixed(1)} / 5</span>
           <button type="button" aria-label={bookmarks?.includes(post.postId) ? "Bỏ lưu bài" : "Lưu bài"} aria-pressed={bookmarks?.includes(post.postId) || false} disabled={pending.includes(post.postId) || authLoading || (!!user && !!getStoredToken() && bookmarks === null)} onClick={() => toggleBookmark(post.postId)} className="vm-button absolute right-3 top-3 rounded-full bg-white/90 px-3 py-2 text-sm disabled:opacity-40">{pending.includes(post.postId) ? "…" : bookmarks?.includes(post.postId) ? "🔖" : "♡"}</button>

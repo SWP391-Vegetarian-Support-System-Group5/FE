@@ -117,7 +117,7 @@ export function removeManualContent(owner: string) {
 
 export function rememberPublishedContent(owner: string, recipe: RecipeResponse, kind: MyContentItem["kind"]) {
   const now = new Date().toISOString();
-  const image = recipe.thumbnailUrl || getVideoThumbnailUrl(recipe.videoUrl);
+  const image = (recipe.imageUrl ?? recipe.thumbnailUrl) || getVideoThumbnailUrl(recipe.videoUrl);
   saveContentItem(owner, {
     id: `recipe-${recipe.postId}`, title: recipe.title, description: recipe.content,
     kind, status: "published", createdAt: now, updatedAt: now,

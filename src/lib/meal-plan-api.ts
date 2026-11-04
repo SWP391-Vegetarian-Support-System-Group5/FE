@@ -8,6 +8,10 @@ export class MealPlanRequestError extends Error {
 }
 
 export interface MealPlanMealResponse {
+  imageUrl?: string | null;
+  imageIsGenerated?: boolean;
+  imageGenerationStatus?: string | null;
+  imageGenerationError?: string | null;
   mealPlanMealId: number;
   dayNumber: number;
   mealType: "BREAKFAST" | "LUNCH" | "DINNER" | string;
@@ -36,7 +40,13 @@ export type MealPlanNutritionGoal = "MAINTAIN" | "LOSE" | "GAIN";
 export interface GenerateMealPlanPayload { startDate: string | null; availableIngredients: string | null; nutritionGoal?: MealPlanNutritionGoal; calorieAdjustment?: number | null; }
 
 export function getMealPlans() {
-  return apiGet<MealPlanResponse[]>("/api/meal-plans");
+  return apiGet<MealPlanResponse[]>("/api/meal-plans", { cache: "no-store" });
+}
+
+export async function getMealPlan(planId: number, signal?: AbortSignal): Promise<MealPlanResponse> {
+  const response = await apiFetch(`/api/meal-plans/${planId}`, { cache: "no-store", signal });
+  if (!response.ok) throw new MealPlanRequestError(await readApiError(response, "Không tải được ảnh thực đơn."), response.status);
+  return await response.json() as MealPlanResponse;
 }
 
 export async function generateMealPlan(payload: GenerateMealPlanPayload) {

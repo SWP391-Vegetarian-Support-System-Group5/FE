@@ -60,7 +60,7 @@ export default function PopularRecipes() {
       {posts.map((post) => (
         <Link key={post.postId} href={`/view-detail/${post.postId}`} className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
           <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
-            <FeedImage key={post.thumbnailUrl || fallbackImage} src={post.thumbnailUrl || fallbackImage} alt={post.title} compact />
+            <FeedImage key={(post.imageUrl ?? post.thumbnailUrl) || fallbackImage} src={(post.imageUrl ?? post.thumbnailUrl) || fallbackImage} alt={post.title} compact />
             {post.videoUrl && (
               <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
                 {t("Video", "Video")}

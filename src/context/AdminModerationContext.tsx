@@ -90,7 +90,7 @@ export function AdminModerationProvider({ children }: { children: React.ReactNod
           title: comment?.content || post?.title || `Nội dung #${flag.postId ?? flag.commentId}`,
           authorName, authorBadge: `#${comment?.commentId ?? post?.postId ?? flag.flagId}`,
           authorInitials: authorName.split(/\s+/).map(part => part[0]).slice(-2).join("").toUpperCase(),
-          image: getMediaUrl(post?.thumbnailUrl) || undefined,
+          image: getMediaUrl(post?.imageUrl ?? post?.thumbnailUrl) || undefined,
           commentQuote: comment?.content, commentThread: post?.title,
           flagReason: flag.reason || "Không có lý do chi tiết.",
           flagSubBadge: flag.reportedBy ? `Người báo cáo #${flag.reportedBy}` : undefined,

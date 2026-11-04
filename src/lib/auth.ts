@@ -2,6 +2,7 @@ import { apiFetch } from "@/lib/api";
 import { clearSession, readSessionToken, readSessionUser, setSession, setSessionUser } from "./auth-session";
 
 export interface BackendUser {
+  avatarUrl?: string | null;
   userId: number;
   email: string;
   role: string;
@@ -153,6 +154,27 @@ export async function loginWithApi(
 
   setSession(data.token, data.user);
 
+  return data;
+}
+
+/** Exchange a Firebase ID token for the application's DB user and JWT. */
+export async function loginWithGoogleApi(idToken: string): Promise<LoginResponse> {
+  const res = await apiFetch("/api/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+  if (res.status === 404 || res.status === 405) {
+    throw new ApiError("BE chưa hỗ trợ đăng nhập Google (POST /api/auth/google). Cần cập nhật BE để lưu tài khoản vào cơ sở dữ liệu.", res.status);
+  }
+  if (!res.ok) throw await responseError(res, "Không thể đồng bộ tài khoản Google với máy chủ. Vui lòng thử lại.");
+
+  const data = (await res.json()) as LoginResponse;
+  if (!data || typeof data.token !== "string" || !data.token.trim() ||
+      !Number.isInteger(data.user?.userId) || data.user.userId <= 0 ||
+      typeof data.user.email !== "string" || typeof data.user.role !== "string") {
+    throw new Error("BE chưa trả về JWT và thông tin tài khoản hợp lệ. Chưa thể hoàn tất đăng nhập Google.");
+  }
+  setSession(data.token, data.user);
   return data;
 }
 

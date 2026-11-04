@@ -11,6 +11,7 @@ import { apiFetch, apiGet, apiPut } from "@/lib/api";
 
 /** Shape returned by GET /api/users/me */
 export interface BackendUserProfile {
+  avatarUrl?: string | null;
   userId: number;
   email: string;
   fullName: string;
@@ -93,7 +94,7 @@ type BackendCatalogItem = {
 
 /** Fetch the authenticated user's profile */
 export function getProfile() {
-  return apiGet<BackendUserProfile>("/api/users/me");
+  return apiGet<BackendUserProfile>("/api/users/me", { cache: "no-store" });
 }
 
 /** Update the authenticated user's profile */

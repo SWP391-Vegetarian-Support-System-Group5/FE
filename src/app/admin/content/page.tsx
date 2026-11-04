@@ -573,9 +573,9 @@ export default function AdminContentPage() {
                             )}
                             <div className="flex items-center gap-3">
                               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#EFEEEB] bg-[#FAF8F5]">
-                                {item.thumbnailUrl ? (
+                                {(item.imageUrl ?? item.thumbnailUrl) ? (
                                   <Image
-                                    src={getMediaUrl(item.thumbnailUrl)}
+                                    src={getMediaUrl(item.imageUrl ?? item.thumbnailUrl)}
                                     alt={item.title}
                                     fill
                                     className="object-cover"
