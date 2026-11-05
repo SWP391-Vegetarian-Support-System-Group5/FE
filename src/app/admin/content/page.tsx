@@ -118,8 +118,8 @@ export default function AdminContentPage() {
     commentFilter === "Hidden"
       ? comment.status === "HIDDEN"
       : commentFilter === "Flagged"
-      ? flaggedIds.has(comment.commentId)
-      : true
+        ? flaggedIds.has(comment.commentId)
+        : true
   );
 
   const filteredPosts = posts.filter((post) => {
@@ -251,9 +251,8 @@ export default function AdminContentPage() {
       {feedback && (
         <div
           role="status"
-          className={`fixed top-20 right-6 z-50 flex items-center gap-2 rounded-2xl ${
-            feedback.error ? "bg-red-700" : "bg-[#07241A]"
-          } px-4 py-3 text-xs font-semibold text-white shadow-xl animate-fade-in`}
+          className={`fixed top-20 right-6 z-50 flex items-center gap-2 rounded-2xl ${feedback.error ? "bg-red-700" : "bg-[#07241A]"
+            } px-4 py-3 text-xs font-semibold text-white shadow-xl animate-fade-in`}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="20 6 9 17 4 12" />
@@ -346,7 +345,7 @@ export default function AdminContentPage() {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>{t("+ Create Entry", "+ Tạo nội dung mới")}</span>
+            <span>{"Tạo nội dung mới"}</span>
           </Link>
         </div>
       </div>
@@ -361,11 +360,10 @@ export default function AdminContentPage() {
               setTypeFilter("All");
               setPage(1);
             }}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
-              typeFilter === "All"
-                ? "bg-[#07241A] text-white shadow-2xs"
-                : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
-            }`}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${typeFilter === "All"
+              ? "bg-[#07241A] text-white shadow-2xs"
+              : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
+              }`}
           >
             {t(`All (${posts.length})`, `Tất cả (${posts.length})`)}
           </button>
@@ -375,11 +373,10 @@ export default function AdminContentPage() {
               setTypeFilter("Video & Recipe");
               setPage(1);
             }}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
-              typeFilter === "Video & Recipe"
-                ? "bg-[#07241A] text-white shadow-2xs"
-                : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
-            }`}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${typeFilter === "Video & Recipe"
+              ? "bg-[#07241A] text-white shadow-2xs"
+              : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
+              }`}
           >
             {t(`Video & Recipes (${recipeCount})`, `Video & công thức (${recipeCount})`)}
           </button>
@@ -389,11 +386,10 @@ export default function AdminContentPage() {
               setTypeFilter("Post");
               setPage(1);
             }}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
-              typeFilter === "Post"
-                ? "bg-[#07241A] text-white shadow-2xs"
-                : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
-            }`}
+            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${typeFilter === "Post"
+              ? "bg-[#07241A] text-white shadow-2xs"
+              : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
+              }`}
           >
             {t(`Restaurant Reviews (${reviewCount})`, `Đánh giá nhà hàng (${reviewCount})`)}
           </button>
@@ -548,23 +544,22 @@ export default function AdminContentPage() {
                         <tr
                           key={item.postId}
                           onClick={() => {
-                             void openContentDetail(item);
+                            void openContentDetail(item);
                             if (!showModerationStream) setShowModerationStream(true);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                               void openContentDetail(item);
+                              void openContentDetail(item);
                               if (!showModerationStream) setShowModerationStream(true);
                             }
                           }}
                           tabIndex={0}
                           aria-label={t(`View ${item.title}`, `Xem ${item.title}`)}
-                          className={`group relative cursor-pointer transition ${
-                            isSelected
-                              ? "bg-[#F0F7F4] font-medium"
-                              : "hover:bg-[#FAF9F6] focus:bg-[#FAF9F6]"
-                          }`}
+                          className={`group relative cursor-pointer transition ${isSelected
+                            ? "bg-[#F0F7F4] font-medium"
+                            : "hover:bg-[#FAF9F6] focus:bg-[#FAF9F6]"
+                            }`}
                         >
                           {/* Title & Thumbnail */}
                           <td className="relative py-4 pl-6 pr-4">
@@ -635,20 +630,19 @@ export default function AdminContentPage() {
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5">
                                 <span
-                                  className={`h-2 w-2 rounded-full ${
-                                    item.status === "PUBLISHED"
-                                      ? "bg-[#10B981]"
-                                      : item.status === "DRAFT"
+                                  className={`h-2 w-2 rounded-full ${item.status === "PUBLISHED"
+                                    ? "bg-[#10B981]"
+                                    : item.status === "DRAFT"
                                       ? "bg-gray-400"
                                       : "bg-[#F97316]"
-                                  }`}
+                                    }`}
                                 />
                                 <span className="font-semibold text-[#07241A]">
                                   {item.status === "PUBLISHED"
                                     ? t("Published", "Đã xuất bản")
                                     : item.status === "DRAFT"
-                                    ? t("Draft", "Bản nháp")
-                                    : t("Removed", "Đã xóa")}
+                                      ? t("Draft", "Bản nháp")
+                                      : t("Removed", "Đã xóa")}
                                 </span>
                               </div>
                               {item.status !== "REMOVED" && (
@@ -711,11 +705,10 @@ export default function AdminContentPage() {
                       type="button"
                       onClick={() => setPage(pageItem)}
                       aria-label={`${t("Page", "Trang")} ${pageItem}`}
-                      className={`flex h-7 min-w-7 items-center justify-center rounded-lg text-xs font-semibold transition ${
-                        isCurrent
-                          ? "bg-[#1E3A2F] text-white shadow-2xs"
-                          : "text-[#424844] hover:bg-[#FAF9F6]"
-                      }`}
+                      className={`flex h-7 min-w-7 items-center justify-center rounded-lg text-xs font-semibold transition ${isCurrent
+                        ? "bg-[#1E3A2F] text-white shadow-2xs"
+                        : "text-[#424844] hover:bg-[#FAF9F6]"
+                        }`}
                     >
                       {pageItem}
                     </button>
@@ -787,22 +780,20 @@ export default function AdminContentPage() {
                   <button
                     type="button"
                     onClick={() => setCommentFilter("All")}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                      commentFilter === "All"
-                        ? "bg-[#EFEEEB] text-[#07241A]"
-                        : "text-[#727974] hover:text-[#07241A]"
-                    }`}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${commentFilter === "All"
+                      ? "bg-[#EFEEEB] text-[#07241A]"
+                      : "text-[#727974] hover:text-[#07241A]"
+                      }`}
                   >
                     {t("All", "Tất cả")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setCommentFilter("Flagged")}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                      commentFilter === "Flagged"
-                        ? "bg-[#FEE2E2] text-[#B91C1C]"
-                        : "text-[#727974] hover:text-[#07241A]"
-                    }`}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${commentFilter === "Flagged"
+                      ? "bg-[#FEE2E2] text-[#B91C1C]"
+                      : "text-[#727974] hover:text-[#07241A]"
+                      }`}
                   >
                     {t(
                       `Flagged (${selectedComments.filter((c) => flaggedIds.has(c.commentId)).length})`,
@@ -812,11 +803,10 @@ export default function AdminContentPage() {
                   <button
                     type="button"
                     onClick={() => setCommentFilter("Hidden")}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                      commentFilter === "Hidden"
-                        ? "bg-[#EFEEEB] text-[#07241A]"
-                        : "text-[#727974] hover:text-[#07241A]"
-                    }`}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${commentFilter === "Hidden"
+                      ? "bg-[#EFEEEB] text-[#07241A]"
+                      : "text-[#727974] hover:text-[#07241A]"
+                      }`}
                   >
                     {t("Hidden", "Đã ẩn")}
                   </button>
@@ -837,13 +827,12 @@ export default function AdminContentPage() {
                       return (
                         <div
                           key={c.commentId}
-                          className={`rounded-2xl border p-3.5 text-xs space-y-2.5 transition ${
-                            isHidden
-                              ? "border-dashed border-gray-300 bg-gray-50/70 opacity-60"
-                              : isFlagged
+                          className={`rounded-2xl border p-3.5 text-xs space-y-2.5 transition ${isHidden
+                            ? "border-dashed border-gray-300 bg-gray-50/70 opacity-60"
+                            : isFlagged
                               ? "border-amber-200 bg-amber-50/40"
                               : "border-[#EFEEEB] bg-[#FBF9F6]/80"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2.5">
@@ -859,15 +848,14 @@ export default function AdminContentPage() {
                                   {cIdx === 0
                                     ? ` · ${t("Verified Reader", "Độc giả đã xác minh")}`
                                     : cIdx === 2
-                                    ? ` · ${t("Top Contributor", "Người đóng góp hàng đầu")}`
-                                    : ""}
+                                      ? ` · ${t("Top Contributor", "Người đóng góp hàng đầu")}`
+                                      : ""}
                                 </p>
                               </div>
                             </div>
                             <span
-                              className={`h-2 w-2 rounded-full ${
-                                isFlagged ? "bg-[#F97316]" : "bg-[#10B981]"
-                              }`}
+                              className={`h-2 w-2 rounded-full ${isFlagged ? "bg-[#F97316]" : "bg-[#10B981]"
+                                }`}
                             />
                           </div>
 
