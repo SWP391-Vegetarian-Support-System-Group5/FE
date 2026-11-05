@@ -2,14 +2,13 @@
 
 import { Fragment, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import UiText, { useUiText } from "@/components/UiText";
 import { getIngredientCategories, getIngredients, saveIngredientCategory, type IngredientItem, type RecipeResponse } from "@/lib/recipe-api";
-import { localizeIngredient, localizeIngredientCategory, localizeRecipeTitle } from "@/lib/localized-content";
+import { localizeIngredient, localizeIngredientCategory } from "@/lib/localized-content";
 import { apiFetch, apiGet } from "@/lib/api";
 import { categoryName, getRecipeCategories } from "@/lib/recipe-categories";
 
-import type { CategoryData, DishItem } from "@/lib/admin-category-design";
+import type { CategoryData } from "@/lib/admin-category-design";
 import CategoryRecipeAssignments from "@/components/recipe/CategoryRecipeAssignments";
 
 function categorySlug(value: string) {
@@ -18,19 +17,13 @@ function categorySlug(value: string) {
 }
 
 export default function AdminCategoriesPage() {
-  const router = useRouter();
   const ui = useUiText();
 
-  // Tab State: "recipes" | "ingredients" | "dual-dishes"
-  const [activeTab, setActiveTab] = useState<"recipes" | "ingredients" | "dual-dishes">("recipes");
+  // Tab State: "recipes" | "ingredients"
+  const [activeTab, setActiveTab] = useState<"recipes" | "ingredients">("recipes");
 
   // Search input top right of tab row
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
-
-  // Dual Category Filter States
-  const [selectedRecipeCategory, setSelectedRecipeCategory] = useState("all");
-  const [selectedIngredientCategory, setSelectedIngredientCategory] = useState("all");
-  const [dishSearchQuery, setDishSearchQuery] = useState("");
 
   const [topAdminSearch] = useState("");
 
@@ -39,13 +32,11 @@ export default function AdminCategoriesPage() {
   const [ingredientCategories, setIngredientCategories] = useState<CategoryData[]>([]);
   const [allIngredients, setAllIngredients] = useState<IngredientItem[]>([]);
 
-  const [dishes, setDishes] = useState<DishItem[]>([]);
   const [adminRecipes, setAdminRecipes] = useState<RecipeResponse[]>([]);
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [formCategoryType, setFormCategoryType] = useState("CUISINE");
   const [formDietaryGroup, setFormDietaryGroup] = useState("PLANT");
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,14 +44,9 @@ export default function AdminCategoriesPage() {
 
   // Form State
   const [formName, setFormName] = useState("");
-  const [formNameVi, setFormNameVi] = useState("");
   const [formSlug, setFormSlug] = useState("");
   const [formType, setFormType] = useState<"Recipe Category" | "Ingredient Group">("Recipe Category");
   const [formDescription, setFormDescription] = useState("");
-  const [formImageUrl, setFormImageUrl] = useState("");
-  const [formImageFile, setFormImageFile] = useState<File | null>(null);
-  const [formItemCount, setFormItemCount] = useState(0);
-  const [formBadgeType, setFormBadgeType] = useState<CategoryData["badgeType"]>("flag-vn");
   const [formStatus, setFormStatus] = useState<"Active" | "Hidden">("Active");
 
   // Feedback Notification Toast
@@ -89,16 +75,6 @@ export default function AdminCategoriesPage() {
       description: g.dietaryGroup, itemCount: ingredients.filter(i => i.ingredientCategoryId === g.id).length,
       status: "Active", badgeType: "text-vg", updatedAt: "",
     })));
-    const groupById = new Map(groups.map(group => [group.id, group.code]));
-    setDishes(recipes.map(r => ({
-      id: r.postId, title: r.recipeName, titleVi: localizeRecipeTitle(r.recipeName, "vi"),
-      recipeCategorySlug: r.categories[0] ? String(r.categories[0].id) : "",
-      recipeCategorySlugs: r.categories.map(c => String(c.id)),
-      ingredientGroupSlug: groupById.get(r.ingredients[0]?.ingredientCategoryId ?? -1) || r.ingredients[0]?.dietaryGroup || "",
-      ingredientGroupSlugs: [...new Set(r.ingredients.map(i => groupById.get(i.ingredientCategoryId ?? -1) || i.dietaryGroup))],
-      prepTime: r.prepMinutes != null ? String(r.prepMinutes) : "",
-      difficulty: "—", status: "Published", rating: 0,
-    })));
   }
   useEffect(() => {
     let active = true;
@@ -125,54 +101,27 @@ export default function AdminCategoriesPage() {
     );
   }, [currentCategoryList, categorySearchQuery, topAdminSearch]);
 
-  // Filter Dishes for Dual Filter
-  const filteredDishes = useMemo(() => {
-    return dishes.filter((d) => {
-      const matchRecipe =
-        !selectedRecipeCategory || selectedRecipeCategory === "all" || (d.recipeCategorySlugs || [d.recipeCategorySlug]).includes(selectedRecipeCategory);
-      const matchIngredient =
-        !selectedIngredientCategory || selectedIngredientCategory === "all" || (d.ingredientGroupSlugs || [d.ingredientGroupSlug]).includes(selectedIngredientCategory);
-      const matchQuery =
-        !dishSearchQuery.trim() ||
-        d.title.toLowerCase().includes(dishSearchQuery.toLowerCase()) ||
-        d.titleVi.toLowerCase().includes(dishSearchQuery.toLowerCase());
-      return matchRecipe && matchIngredient && matchQuery;
-    });
-  }, [dishes, selectedRecipeCategory, selectedIngredientCategory, dishSearchQuery]);
-
   const activeRecipeCount = recipeCategories.filter((c) => c.status === "Active").length;
   const activeIngredientCount = ingredientCategories.filter((c) => c.status === "Active").length;
 
   const handleOpenAddModal = () => {
-    setFormCategoryType("CUISINE");
-    setFormDietaryGroup("PLANT");
+    setFormDietaryGroup("");
     setEditingCategory(null);
     setFormName("");
-    setFormNameVi("");
     setFormSlug("");
     setFormType(activeTab === "ingredients" ? "Ingredient Group" : "Recipe Category");
     setFormDescription("");
-    setFormImageUrl("");
-    setFormImageFile(null);
-    setFormItemCount(0);
-    setFormBadgeType("flag-vn");
     setFormStatus("Active");
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (cat: CategoryData) => {
-    setFormCategoryType("RECIPE");
-    setFormDietaryGroup(cat.categoryType || "PLANT");
+    setFormDietaryGroup(cat.categoryType || cat.name || "");
     setEditingCategory(cat);
     setFormName(cat.name);
-    setFormNameVi(cat.nameVi);
     setFormSlug(cat.slug);
     setFormType(cat.type);
     setFormDescription(cat.description);
-    setFormImageUrl(cat.imageUrl || "");
-    setFormImageFile(null);
-    setFormItemCount(cat.itemCount);
-    setFormBadgeType(cat.badgeType);
     setFormStatus(cat.status);
     setIsModalOpen(true);
   };
@@ -187,7 +136,12 @@ export default function AdminCategoriesPage() {
     setSaving(true); setError("");
     try {
       if (formType === "Ingredient Group") {
-        await saveIngredientCategory({ name: formName.trim(), code: formSlug.trim().toUpperCase(), dietaryGroup: formDietaryGroup as "PLANT" | "DAIRY" | "EGG" | "HONEY" | "UNVERIFIED" }, editingCategory?.id);
+        const code = formSlug.trim() || formName.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "");
+        await saveIngredientCategory({
+          name: formName.trim(),
+          code: code || "CUSTOM_GROUP",
+          dietaryGroup: (formDietaryGroup.trim() || formName.trim()) as "PLANT" | "DAIRY" | "EGG" | "HONEY" | "UNVERIFIED",
+        }, editingCategory?.id);
         await loadCatalog(); setIsModalOpen(false); showToast(ui("Saved successfully."));
         return;
       }
@@ -216,13 +170,6 @@ export default function AdminCategoriesPage() {
     try { await persistCategory(cat, false); await loadCatalog(); }
     catch (failure) { setError(failure instanceof Error ? failure.message : ui("Could not save category.")); }
     finally { setSaving(false); }
-  };
-
-  const handleResetFilters = () => {
-    setSelectedRecipeCategory("all");
-    setSelectedIngredientCategory("all");
-    setDishSearchQuery("");
-    showToast("Dual filters reset to default");
   };
 
   // Badge icon renderer matching screenshot accurately
@@ -394,31 +341,6 @@ export default function AdminCategoriesPage() {
             </svg>
             <span><UiText text="Nhóm nguyên liệu" /> ({ingredientCategories.length})</span>
           </button>
-
-          {/* Tab 3: Dual Filter & Dishes */}
-          <button
-            type="button"
-            onClick={() => { setActiveTab("dual-dishes"); setExpandedCategoryId(null); }}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
-              activeTab === "dual-dishes"
-                ? "bg-white text-[#0B1E17] shadow-xs"
-                : "text-[#6A736E] hover:text-[#0B1E17]"
-            }`}
-          >
-            {/* Sliders / Filter icon */}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="4" y1="21" x2="4" y2="14" />
-              <line x1="4" y1="10" x2="4" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12" y2="3" />
-              <line x1="20" y1="21" x2="20" y2="16" />
-              <line x1="20" y1="12" x2="20" y2="3" />
-              <line x1="1" y1="14" x2="7" y2="14" />
-              <line x1="9" y1="8" x2="15" y2="8" />
-              <line x1="17" y1="16" x2="23" y2="16" />
-            </svg>
-            <span><UiText text="Lọc kết hợp và món ăn" /> ({filteredDishes.length})</span>
-          </button>
         </div>
 
         {/* Right Search Input */}
@@ -437,256 +359,8 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
 
-      {/* ── DUAL CATEGORY FILTER & RECIPE EXPLORER CARD ───────────────────── */}
-      <div className="rounded-2xl border border-[#E6E3DA] bg-[#FBF9F6] p-5 shadow-xs space-y-4">
-        {/* Card Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            {/* Soft Green Funnel Icon Container */}
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#DCEDE2] text-[#246B49] shadow-2xs">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#07241A]">
-                <UiText text="Tra cứu công thức theo danh mục kết hợp" />
-              </h3>
-              <p className="text-xs text-[#727974]">
-                <UiText text="Kết hợp phong cách ẩm thực với nhóm dinh dưỡng và nguyên liệu" />
-              </p>
-            </div>
-          </div>
+      {/* ── CATEGORIES TABLE VIEW ──────────────────── */}
 
-          <div className="flex items-center gap-2">
-            {/* Pill: 18 Dishes Matching Selection */}
-            <button
-              type="button"
-              onClick={() => setActiveTab("dual-dishes")}
-              className="flex items-center gap-1.5 rounded-full border border-[#CDE5D8] bg-[#E7F3EC] px-3.5 py-1.5 text-xs font-semibold text-[#1E4D36] transition hover:bg-[#DCEDE2]"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1E4D36]" />
-              <span>{filteredDishes.length} <UiText text="Món ăn phù hợp lựa chọn" /></span>
-            </button>
-
-            {/* Reset Filters Button */}
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-[#636C66] transition hover:bg-[#EFECE6] hover:text-[#07241A]"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-              </svg>
-              <span><UiText text="Đặt lại bộ lọc" /></span>
-            </button>
-          </div>
-        </div>
-
-        {/* Card Controls Grid: 3 columns */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {/* Column 1: Category Recipes (Region/Style) */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#525B55]">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
-                <line x1="6" y1="17" x2="18" y2="17" />
-              </svg>
-              <span><UiText text="1. Danh mục công thức (vùng miền/phong cách)" /></span>
-            </label>
-            <div className="relative">
-              <select
-                value={selectedRecipeCategory}
-                onChange={(e) => setSelectedRecipeCategory(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-[#E3E1DB] bg-white px-3.5 py-2.5 pr-8 text-xs font-medium text-[#07241A] shadow-2xs outline-none transition focus:border-[#1E3A2F]"
-              >
-                {recipeCategories.map((cat) => (
-                  <option key={cat.id} value={cat.slug}>
-                    {cat.nameVi} ({cat.itemCount} món)
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#727974]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Column 2: Category Ingredients (Pantry / Group) */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#525B55]">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-              </svg>
-              <span><UiText text="2. Nhóm nguyên liệu" /></span>
-            </label>
-            <div className="relative">
-              <select
-                value={selectedIngredientCategory}
-                onChange={(e) => setSelectedIngredientCategory(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-[#E3E1DB] bg-white px-3.5 py-2.5 pr-8 text-xs font-medium text-[#07241A] shadow-2xs outline-none transition focus:border-[#1E3A2F]"
-              >
-                {ingredientCategories.map((cat) => (
-                  <option key={cat.id} value={cat.slug}>
-                    {cat.nameVi}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#727974]">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Column 3: Search Dishes or Ingredients */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[#525B55]">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-              <span><UiText text="Tìm món ăn hoặc nguyên liệu" /></span>
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={dishSearchQuery}
-                onChange={(e) => {
-                  setDishSearchQuery(e.target.value);
-                  if (activeTab !== "dual-dishes") {
-                    // Stay on current tab, but users can see filtered count
-                  }
-                }}
-                placeholder="e.g. Bún bò chay, Phở nấm, Tofu..."
-                className="w-full rounded-xl border border-[#E3E1DB] bg-white py-2.5 pl-9 pr-3.5 text-xs font-medium text-[#07241A] placeholder-[#9CA3AF] shadow-2xs outline-none transition focus:border-[#1E3A2F]"
-              />
-              <svg className="absolute left-3 top-3 text-[#9CA3AF]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── MAIN CONTENT: TABLE OR DUAL DISHES EXPLORER ──────────────────── */}
-      {activeTab === "dual-dishes" ? (
-        /* DUAL DISHES EXPLORER VIEW */
-        <div className="overflow-hidden rounded-2xl border border-[#E6E3DA] bg-white shadow-xs">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-[#F0EFEB] px-6 py-4">
-            <div className="flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
-                <line x1="4" y1="21" x2="4" y2="14" />
-                <line x1="4" y1="10" x2="4" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12" y2="3" />
-                <line x1="20" y1="21" x2="20" y2="16" />
-                <line x1="20" y1="12" x2="20" y2="3" />
-                <line x1="1" y1="14" x2="7" y2="14" />
-                <line x1="9" y1="8" x2="15" y2="8" />
-                <line x1="17" y1="16" x2="23" y2="16" />
-              </svg>
-              <h2 className="text-sm font-bold text-[#07241A]">
-                <UiText text="Món ăn theo bộ lọc kết hợp" />
-              </h2>
-              <span className="text-xs text-[#727974]">
-                — <UiText text="Danh sách công thức từ cộng đồng" />
-              </span>
-            </div>
-
-            <span className="rounded-full bg-[#DCEDE2] px-3 py-1 text-xs font-bold text-[#1E4D36]">
-              {filteredDishes.length} <UiText text="Món ăn tìm thấy" />
-            </span>
-          </div>
-
-          {/* Dishes Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#F0EFEB] bg-[#FAF9F5] text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                <tr>
-                  <th className="py-3.5 pl-6 pr-4"><UiText text="Món ăn / Công thức" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Danh mục ẩm thực" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Nhóm nguyên liệu" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Chuẩn bị và nấu" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Đánh giá" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Trạng thái" /></th>
-                  <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Thao tác" /></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0EFEB]">
-                {filteredDishes.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-xs text-[#727974]">
-                      <p className="font-semibold text-[#07241A]"><UiText text="Không có món ăn phù hợp với bộ lọc kết hợp." /></p>
-                      <button
-                        type="button"
-                        onClick={handleResetFilters}
-                        className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
-                      >
-                        <UiText text="Đặt lại bộ lọc kết hợp" />
-                      </button>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredDishes.map((dish) => {
-                    const rCat = recipeCategories.find((r) => r.slug === dish.recipeCategorySlug);
-                    const iCat = ingredientCategories.find((i) => i.slug === dish.ingredientGroupSlug);
-                    return (
-                      <tr key={dish.id} className="transition-colors hover:bg-[#FAF9F5]/70">
-                        <td className="py-3.5 pl-6 pr-4">
-                          <div className="font-bold text-[#07241A]">{dish.titleVi}</div>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-block rounded-md border border-[#CDE5D8] bg-[#E7F3EC] px-2.5 py-0.5 text-[11px] font-semibold text-[#1E4D36]">
-                            {rCat?.name || dish.recipeCategorySlug}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-block rounded-md border border-[#F2DEB0] bg-[#FEF7E6] px-2.5 py-0.5 text-[11px] font-semibold text-[#925B08]">
-                            {iCat?.name || dish.ingredientGroupSlug}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-[#525B55]">
-                          {dish.prepTime} • <span className="font-medium text-[#727974]">{dish.difficulty}</span>
-                        </td>
-                        <td className="px-4 py-3.5 font-semibold text-[#07241A]">
-                          ★ {dish.rating > 0 ? dish.rating : ui("Not rated")}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E7F3EC] px-2.5 py-0.5 text-xs font-semibold text-[#1E4D36]">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#1E4D36]" />
-                            {ui(dish.status)}
-                          </span>
-                        </td>
-                        <td className="py-3.5 pl-4 pr-6 text-right">
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/view-detail/${dish.id}`)}
-                            className="rounded-lg p-1.5 text-[#6D7570] transition hover:bg-[#F2EFE9] hover:text-[#07241A]"
-                            title={ui("View recipe")}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        /* CATEGORIES TABLE VIEW (Tab 1: Category Recipes OR Tab 2: Category Ingredients) */
         <div className="overflow-hidden rounded-2xl border border-[#E6E3DA] bg-white shadow-xs">
           {/* Section Sub-header */}
           <div className="flex items-center justify-between border-b border-[#F0EFEB] px-6 py-4">
@@ -838,7 +512,6 @@ export default function AdminCategoriesPage() {
             </table>
           </div>
         </div>
-      )}
 
       {loading && <p role="status">{ui("Loading...")}</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
@@ -863,139 +536,47 @@ export default function AdminCategoriesPage() {
             <form onSubmit={handleSaveCategory} className="mt-4 space-y-4">
               {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
               <fieldset disabled={saving} className="contents">
-              {formType === "Recipe Category" ? <label className="block text-xs font-semibold">{ui("Type")}
-                <select disabled={editingCategory !== null} value={formCategoryType} onChange={e => setFormCategoryType(e.target.value)} className="mt-2 block w-full rounded-xl border p-2">
-                  <option value="RECIPE">Danh mục công thức</option>
-                </select>
-              </label> : <label className="block text-xs font-semibold">{ui("Dietary group")}
-                <select value={formDietaryGroup} onChange={e => setFormDietaryGroup(e.target.value)} disabled={editingCategory !== null && ["PLANT", "DAIRY", "EGG", "HONEY", "UNVERIFIED"].includes(editingCategory.slug)} className="mt-2 block w-full rounded-xl border p-2">
-                  {["PLANT", "DAIRY", "EGG", "HONEY", "UNVERIFIED"].map(group => <option key={group} value={group}><UiText text={group} /></option>)}
-                </select>
-              </label>}
-              {/* Category Group Type */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                  <UiText text="Phân loại danh mục" /> *
-                </label>
-                <div className="mt-1.5 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={editingCategory !== null || activeTab !== "recipes"} onClick={() => setFormType("Recipe Category")}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                      formType === "Recipe Category"
-                        ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
-                        : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
-                    }`}
-                  >
-                    <UiText text="Danh mục công thức" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={editingCategory !== null || activeTab !== "ingredients"} onClick={() => setFormType("Ingredient Group")}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                      formType === "Ingredient Group"
-                        ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
-                        : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
-                    }`}
-                  >
-                    <UiText text="Nhóm nguyên liệu" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Names */}
-              <div className="grid grid-cols-1 gap-3">
+              {formType === "Recipe Category" ? (
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                    Tên danh mục *
+                    <UiText text="Loại" /> *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ví dụ: Ẩm thực Việt Nam"
+                    placeholder={ui("e.g. Vietnamese cuisine")}
                     value={formName}
                     onChange={(e) => {
                       setFormName(e.target.value);
                       if (!editingCategory) {
-                        setFormNameVi(e.target.value);
-                        setFormSlug(formType === "Ingredient Group"
-                          ? e.target.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "")
-                          : categorySlug(e.target.value));
+                        setFormSlug(categorySlug(e.target.value));
                       }
                     }}
                     className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
                   />
                 </div>
-
-              </div>
-
-              {/* Slug & Associated Count */}
-              {formType === "Ingredient Group" && <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
+              ) : (
+                <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                    {formType === "Ingredient Group" ? ui("Category code") : ui("URL Slug")} *
+                    <UiText text="Nhóm thực phẩm" /> *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder={formType === "Ingredient Group" ? "RAU_CU" : "am-thuc-viet-nam"}
-                    value={formSlug}
-                    readOnly={formType === "Ingredient Group" && editingCategory !== null && ["PLANT", "DAIRY", "EGG", "HONEY", "UNVERIFIED"].includes(editingCategory.slug)}
-                    onChange={(e) => setFormSlug(e.target.value)}
-                    className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 font-mono text-xs text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
+                    placeholder={ui("e.g. Plant-based, Fruits, Mushrooms...")}
+                    value={formName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormName(val);
+                      setFormDietaryGroup(val);
+                      if (!editingCategory) {
+                        setFormSlug(val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, ""));
+                      }
+                    }}
+                    className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                    <UiText text="Số lượng" />
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    readOnly value={formItemCount}
-                    onChange={(e) => setFormItemCount(Number(e.target.value))}
-                    className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold outline-none focus:border-[#1E3A2F] focus:bg-white"
-                  />
-                </div>
-              </div>}
-
-              {/* Badge Style Selector */}
-              {formType === "Ingredient Group" && <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                  <UiText text="Kiểu biểu tượng" />
-                </label>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  {[
-                    { id: "flag-vn", label: "VN Star" },
-                    { id: "flag-jp", label: "JP Circle" },
-                    { id: "globe-eu", label: "EU Globe" },
-                    { id: "text-th", label: "TH" },
-                    { id: "text-it", label: "IT" },
-                    { id: "text-in", label: "IN" },
-                    { id: "text-pr", label: "PR (Protein)" },
-                    { id: "text-vg", label: "VG (Veggie)" },
-                    { id: "text-lg", label: "LG (Legume)" },
-                    { id: "text-gr", label: "GR (Grain)" },
-                    { id: "text-ms", label: "MS (Mushroom)" },
-                    { id: "text-hb", label: "HB (Herbs)" },
-                  ].map((badge) => (
-                    <button
-                      key={badge.id}
-                      type="button"
-                      onClick={() => setFormBadgeType(badge.id as CategoryData["badgeType"])}
-                      disabled
-                      className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-                        formBadgeType === badge.id
-                          ? "border-[#1E3A2F] bg-[#1E3A2F] text-white"
-                          : "border-[#EFEEEB] bg-[#FBF9F6] text-[#525B55] hover:bg-white"
-                      }`}
-                    >
-                      <span>{badge.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>}
+              )}
 
               {/* Description */}
               {formType === "Recipe Category" && <div>
@@ -1004,7 +585,7 @@ export default function AdminCategoriesPage() {
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="e.g. Phở chay, bún bò Huế thanh tịnh, bánh xèo giòn, chả giò nấm..."
+                  placeholder={ui("e.g. Vegetarian pho, gentle Hue noodles, crispy pancakes, mushroom spring rolls...")}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
