@@ -140,7 +140,7 @@ export default function AdminCategoriesPage() {
         await saveIngredientCategory({
           name: formName.trim(),
           code: code || "CUSTOM_GROUP",
-          dietaryGroup: (formDietaryGroup.trim() || formName.trim()) as "PLANT" | "DAIRY" | "EGG" | "HONEY" | "UNVERIFIED",
+          dietaryGroup: (formDescription.trim() || formDietaryGroup.trim() || formName.trim()) as "PLANT" | "DAIRY" | "EGG" | "HONEY" | "UNVERIFIED",
         }, editingCategory?.id);
         await loadCatalog(); setIsModalOpen(false); showToast(ui("Saved successfully."));
         return;
@@ -579,18 +579,22 @@ export default function AdminCategoriesPage() {
               )}
 
               {/* Description */}
-              {formType === "Recipe Category" && <div>
+              <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                  <UiText text="Mô tả và điểm nổi bật" />
+                  <UiText text="Mô tả và đặc điểm nổi bật" />
                 </label>
                 <textarea
                   rows={3}
-                  placeholder={ui("e.g. Vegetarian pho, gentle Hue noodles, crispy pancakes, mushroom spring rolls...")}
+                  placeholder={
+                    formType === "Recipe Category"
+                      ? ui("e.g. Vegetarian pho, gentle Hue noodles, crispy pancakes, mushroom spring rolls...")
+                      : ui("e.g. Fresh vegetables, root vegetables, fiber-rich leafy greens...")
+                  }
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
                 />
-              </div>}
+              </div>
 
               {/* Status Toggle */}
               {formType === "Recipe Category" && <div className="flex items-center gap-2 pt-1">
