@@ -311,8 +311,8 @@ export default function AdminCategoriesPage() {
             type="button"
             onClick={() => { setActiveTab("recipes"); setExpandedCategoryId(null); }}
             className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${activeTab === "recipes"
-                ? "bg-white text-[#0B1E17] shadow-xs"
-                : "text-[#6A736E] hover:text-[#0B1E17]"
+              ? "bg-white text-[#0B1E17] shadow-xs"
+              : "text-[#6A736E] hover:text-[#0B1E17]"
               }`}
           >
             {/* Chef Pot / Recipe icon */}
@@ -328,8 +328,8 @@ export default function AdminCategoriesPage() {
             type="button"
             onClick={() => { setActiveTab("ingredients"); setExpandedCategoryId(null); }}
             className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${activeTab === "ingredients"
-                ? "bg-white text-[#0B1E17] shadow-xs"
-                : "text-[#6A736E] hover:text-[#0B1E17]"
+              ? "bg-white text-[#0B1E17] shadow-xs"
+              : "text-[#6A736E] hover:text-[#0B1E17]"
               }`}
           >
             {/* Leaf / Sprout icon */}
@@ -455,8 +455,8 @@ export default function AdminCategoriesPage() {
                           type="button"
                           onClick={() => handleToggleStatus(cat)}
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${cat.status === "Active"
-                              ? "bg-[#E7F3EC] text-[#1E4D36] hover:bg-[#DCEDE2]"
-                              : "bg-[#F1F0EB] text-[#727974] hover:bg-[#E6E4DC]"
+                            ? "bg-[#E7F3EC] text-[#1E4D36] hover:bg-[#DCEDE2]"
+                            : "bg-[#F1F0EB] text-[#727974] hover:bg-[#E6E4DC]"
                             }`}
                           title={ui("Change status")}
                         >
@@ -592,17 +592,7 @@ export default function AdminCategoriesPage() {
                   />
                 </div>
 
-                {/* Status Toggle */}
-                {formType === "Recipe Category" && <div className="flex items-center gap-2 pt-1">
-                  <input
-                    type="checkbox"
-                    id="statusToggle"
-                    checked={formStatus === "Active"}
-                    onChange={(e) => setFormStatus(e.target.checked ? "Active" : "Hidden")}
-                    className="h-4 w-4 rounded border-gray-300 text-[#1E3A2F] focus:ring-[#1E3A2F]"
-                  />
 
-                </div>}
 
                 {/* Submit / Cancel Buttons */}
                 <div className="flex items-center justify-end gap-3 border-t border-[#EFEEEB] pt-4">
