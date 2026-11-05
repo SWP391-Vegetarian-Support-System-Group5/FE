@@ -310,11 +310,10 @@ export default function AdminCategoriesPage() {
           <button
             type="button"
             onClick={() => { setActiveTab("recipes"); setExpandedCategoryId(null); }}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
-              activeTab === "recipes"
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${activeTab === "recipes"
                 ? "bg-white text-[#0B1E17] shadow-xs"
                 : "text-[#6A736E] hover:text-[#0B1E17]"
-            }`}
+              }`}
           >
             {/* Chef Pot / Recipe icon */}
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -328,11 +327,10 @@ export default function AdminCategoriesPage() {
           <button
             type="button"
             onClick={() => { setActiveTab("ingredients"); setExpandedCategoryId(null); }}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
-              activeTab === "ingredients"
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${activeTab === "ingredients"
                 ? "bg-white text-[#0B1E17] shadow-xs"
                 : "text-[#6A736E] hover:text-[#0B1E17]"
-            }`}
+              }`}
           >
             {/* Leaf / Sprout icon */}
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -361,74 +359,74 @@ export default function AdminCategoriesPage() {
 
       {/* ── CATEGORIES TABLE VIEW ──────────────────── */}
 
-        <div className="overflow-hidden rounded-2xl border border-[#E6E3DA] bg-white shadow-xs">
-          {/* Section Sub-header */}
-          <div className="flex items-center justify-between border-b border-[#F0EFEB] px-6 py-4">
-            <div className="flex items-center gap-2">
-              {activeTab === "recipes" ? (
-                /* Pot icon */
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
-                  <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
-                  <line x1="6" y1="17" x2="18" y2="17" />
-                </svg>
-              ) : (
-                /* Leaf icon */
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
-                  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-                </svg>
-              )}
-              <h2 className="text-sm font-bold text-[#07241A]">
-                <UiText text={activeTab === "recipes" ? "Category Recipes" : "Category Ingredients"} />
-              </h2>
-              <span className="text-xs text-[#727974]">
-                —{" "}
-                <UiText
-                  text={
-                    activeTab === "recipes"
-                      ? "Organized for culinary discovery"
-                      : "Pantry & nutrition classifications"
-                  }
-                />
-              </span>
-            </div>
-
-            <span className="rounded-full bg-[#DCEDE2] px-3 py-1 text-xs font-bold text-[#1E4D36]">
-              {activeTab === "recipes" ? activeRecipeCount : activeIngredientCount} <UiText text="Đang hoạt động" />
+      <div className="overflow-hidden rounded-2xl border border-[#E6E3DA] bg-white shadow-xs">
+        {/* Section Sub-header */}
+        <div className="flex items-center justify-between border-b border-[#F0EFEB] px-6 py-4">
+          <div className="flex items-center gap-2">
+            {activeTab === "recipes" ? (
+              /* Pot icon */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
+                <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z" />
+                <line x1="6" y1="17" x2="18" y2="17" />
+              </svg>
+            ) : (
+              /* Leaf icon */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#1E3A2F]">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+              </svg>
+            )}
+            <h2 className="text-sm font-bold text-[#07241A]">
+              <UiText text={activeTab === "recipes" ? "Category Recipes" : "Category Ingredients"} />
+            </h2>
+            <span className="text-xs text-[#727974]">
+              —{" "}
+              <UiText
+                text={
+                  activeTab === "recipes"
+                    ? "Organized for culinary discovery"
+                    : "Pantry & nutrition classifications"
+                }
+              />
             </span>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#F0EFEB] bg-[#FAF9F5] text-[11px] font-bold uppercase tracking-wider text-[#727974]">
+          <span className="rounded-full bg-[#DCEDE2] px-3 py-1 text-xs font-bold text-[#1E4D36]">
+            {activeTab === "recipes" ? activeRecipeCount : activeIngredientCount} <UiText text="Đang hoạt động" />
+          </span>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-[#F0EFEB] bg-[#FAF9F5] text-[11px] font-bold uppercase tracking-wider text-[#727974]">
+              <tr>
+                <th className="py-3.5 pl-6 pr-4"><UiText text="Tên danh mục" /></th>
+                <th className="px-4 py-3.5"><UiText text="Mô tả và điểm nổi bật" /></th>
+                <th className="px-4 py-3.5"><UiText text="Mục liên quan" /></th>
+                <th className="px-4 py-3.5"><UiText text="Trạng thái" /></th>
+                <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Thao tác" /></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0EFEB]">
+              {filteredCategories.length === 0 ? (
                 <tr>
-                  <th className="py-3.5 pl-6 pr-4"><UiText text="Tên danh mục" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Mô tả và điểm nổi bật" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Mục liên quan" /></th>
-                  <th className="px-4 py-3.5"><UiText text="Trạng thái" /></th>
-                  <th className="py-3.5 pl-4 pr-6 text-right"><UiText text="Thao tác" /></th>
+                  <td colSpan={5} className="py-12 text-center text-xs text-[#727974]">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="text-3xl">🏷️</span>
+                      <p className="font-semibold text-[#07241A]"><UiText text="Không tìm thấy danh mục phù hợp." /></p>
+                      <button
+                        type="button"
+                        onClick={handleOpenAddModal}
+                        className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
+                      >
+                        <UiText text="Tạo danh mục mới" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0EFEB]">
-                {filteredCategories.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-xs text-[#727974]">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <span className="text-3xl">🏷️</span>
-                        <p className="font-semibold text-[#07241A]"><UiText text="Không tìm thấy danh mục phù hợp." /></p>
-                        <button
-                          type="button"
-                          onClick={handleOpenAddModal}
-                          className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
-                        >
-                          <UiText text="Tạo danh mục mới" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredCategories.map((cat) => (
-                    <Fragment key={cat.id}>
+              ) : (
+                filteredCategories.map((cat) => (
+                  <Fragment key={cat.id}>
                     <tr className="transition-colors hover:bg-[#FAF9F5]/80">
                       {/* CATEGORY NAME COLUMN */}
                       <td className="py-4 pl-6 pr-4">
@@ -456,17 +454,15 @@ export default function AdminCategoriesPage() {
                         {activeTab === "recipes" ? <button
                           type="button"
                           onClick={() => handleToggleStatus(cat)}
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-                            cat.status === "Active"
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${cat.status === "Active"
                               ? "bg-[#E7F3EC] text-[#1E4D36] hover:bg-[#DCEDE2]"
                               : "bg-[#F1F0EB] text-[#727974] hover:bg-[#E6E4DC]"
-                          }`}
+                            }`}
                           title={ui("Change status")}
                         >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              cat.status === "Active" ? "bg-[#1E4D36]" : "bg-[#8D948F]"
-                            }`}
+                            className={`h-1.5 w-1.5 rounded-full ${cat.status === "Active" ? "bg-[#1E4D36]" : "bg-[#8D948F]"
+                              }`}
                           />
                           <span>{ui(cat.status)}</span>
                         </button> : <span className="inline-flex rounded-full bg-[#E7F3EC] px-2.5 py-1 text-xs font-semibold text-[#1E4D36]">{ui(cat.status)}</span>}
@@ -505,13 +501,13 @@ export default function AdminCategoriesPage() {
                     </tr>
                     {expandedCategoryId === cat.id && activeTab === "recipes" && <tr><td colSpan={5} className="p-0"><CategoryRecipeAssignments categoryId={cat.id} categoryName={cat.nameVi || cat.name} recipes={adminRecipes} onChanged={loadCatalog} /></td></tr>}
                     {expandedCategoryId === cat.id && activeTab === "ingredients" && <tr><td colSpan={5} className="bg-[#FAF9F5] px-6 py-5"><h3 className="font-serif text-lg font-semibold text-[#07241A]">{cat.nameVi} ({cat.itemCount})</h3><div className="mt-3 max-h-80 overflow-y-auto">{allIngredients.filter(ingredient => ingredient.ingredientCategoryId === cat.id).length === 0 ? <p className="py-3 text-sm text-[#727974]">{ui("No ingredients in this category yet.")}</p> : <div className="grid gap-x-8 sm:grid-cols-2">{allIngredients.filter(ingredient => ingredient.ingredientCategoryId === cat.id).map(ingredient => <div key={ingredient.id} className="flex items-center justify-between border-b border-[#E6E3DA] py-2 text-sm"><span>{localizeIngredient(ingredient.name, "vi")}</span><span className="text-xs text-[#727974]">#{ingredient.id}</span></div>)}</div>}</div><Link href="/admin/ingredients" className="mt-4 inline-block text-sm font-semibold text-[#1E3A2F] underline">{ui("Manage ingredients")}</Link></td></tr>}
-                    </Fragment>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </Fragment>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
       {loading && <p role="status">{ui("Loading...")}</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
@@ -536,96 +532,94 @@ export default function AdminCategoriesPage() {
             <form onSubmit={handleSaveCategory} className="mt-4 space-y-4">
               {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
               <fieldset disabled={saving} className="contents">
-              {formType === "Recipe Category" ? (
+                {formType === "Recipe Category" ? (
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
+                      <UiText text="Loại" /> *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={ui("e.g. Vietnamese cuisine")}
+                      value={formName}
+                      onChange={(e) => {
+                        setFormName(e.target.value);
+                        if (!editingCategory) {
+                          setFormSlug(categorySlug(e.target.value));
+                        }
+                      }}
+                      className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
+                      <UiText text="Nhóm thực phẩm" /> *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={ui("e.g. Plant-based, Fruits, Mushrooms...")}
+                      value={formName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormName(val);
+                        setFormDietaryGroup(val);
+                        if (!editingCategory) {
+                          setFormSlug(val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, ""));
+                        }
+                      }}
+                      className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
+                    />
+                  </div>
+                )}
+
+                {/* Description */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                    <UiText text="Loại" /> *
+                    <UiText text="Mô tả và đặc điểm nổi bật" />
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder={ui("e.g. Vietnamese cuisine")}
-                    value={formName}
-                    onChange={(e) => {
-                      setFormName(e.target.value);
-                      if (!editingCategory) {
-                        setFormSlug(categorySlug(e.target.value));
-                      }
-                    }}
-                    className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
+                  <textarea
+                    rows={3}
+                    placeholder={
+                      formType === "Recipe Category"
+                        ? ui("e.g. Vegetarian pho, gentle Hue noodles, crispy pancakes, mushroom spring rolls...")
+                        : ui("e.g. Fresh vegetables, root vegetables, fiber-rich leafy greens...")
+                    }
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
                   />
                 </div>
-              ) : (
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                    <UiText text="Nhóm thực phẩm" /> *
-                  </label>
+
+                {/* Status Toggle */}
+                {formType === "Recipe Category" && <div className="flex items-center gap-2 pt-1">
                   <input
-                    type="text"
-                    required
-                    placeholder={ui("e.g. Plant-based, Fruits, Mushrooms...")}
-                    value={formName}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormName(val);
-                      setFormDietaryGroup(val);
-                      if (!editingCategory) {
-                        setFormSlug(val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, ""));
-                      }
-                    }}
-                    className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
+                    type="checkbox"
+                    id="statusToggle"
+                    checked={formStatus === "Active"}
+                    onChange={(e) => setFormStatus(e.target.checked ? "Active" : "Hidden")}
+                    className="h-4 w-4 rounded border-gray-300 text-[#1E3A2F] focus:ring-[#1E3A2F]"
                   />
+
+                </div>}
+
+                {/* Submit / Cancel Buttons */}
+                <div className="flex items-center justify-end gap-3 border-t border-[#EFEEEB] pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="rounded-xl border border-[#EFEEEB] px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#F2EFE9]"
+                  >
+                    <UiText text="Hủy bỏ" />
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-[#0B1E17] px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#183B2F]"
+                  >
+                    {editingCategory ? ui("Save Changes") : ui("Create Category")}
+                  </button>
                 </div>
-              )}
-
-              {/* Description */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
-                  <UiText text="Mô tả và đặc điểm nổi bật" />
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder={
-                    formType === "Recipe Category"
-                      ? ui("e.g. Vegetarian pho, gentle Hue noodles, crispy pancakes, mushroom spring rolls...")
-                      : ui("e.g. Fresh vegetables, root vegetables, fiber-rich leafy greens...")
-                  }
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
-                />
-              </div>
-
-              {/* Status Toggle */}
-              {formType === "Recipe Category" && <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="statusToggle"
-                  checked={formStatus === "Active"}
-                  onChange={(e) => setFormStatus(e.target.checked ? "Active" : "Hidden")}
-                  className="h-4 w-4 rounded border-gray-300 text-[#1E3A2F] focus:ring-[#1E3A2F]"
-                />
-                <label htmlFor="statusToggle" className="text-xs font-semibold text-[#07241A]">
-                  <UiText text="Đang hoạt động và hiển thị trong cộng đồng VeggieMate" />
-                </label>
-              </div>}
-
-              {/* Submit / Cancel Buttons */}
-              <div className="flex items-center justify-end gap-3 border-t border-[#EFEEEB] pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-[#EFEEEB] px-4 py-2 text-xs font-semibold text-[#424844] hover:bg-[#F2EFE9]"
-                >
-                  <UiText text="Hủy bỏ" />
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-[#0B1E17] px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#183B2F]"
-                >
-                  {editingCategory ? ui("Save Changes") : ui("Create Category")}
-                </button>
-              </div>
               </fieldset>
             </form>
           </div>
