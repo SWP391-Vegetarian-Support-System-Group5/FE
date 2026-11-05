@@ -72,12 +72,6 @@ export default function AdminMembersPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Email / notification modal state
-  const [showNotifyModal, setShowNotifyModal] = useState(false);
-  const [notifySubject, setNotifySubject] = useState("");
-  const [notifyMessage, setNotifyMessage] = useState("");
-  const [sendingNotify, setSendingNotify] = useState(false);
-  const [notifySuccessMsg, setNotifySuccessMsg] = useState("");
 
   useEffect(() => {
     if (user?.role?.toLowerCase() !== "admin") return;
@@ -183,24 +177,6 @@ export default function AdminMembersPage() {
     document.body.removeChild(link);
   }
 
-  // Send email / notification handler
-  async function handleSendNotification(event: React.FormEvent) {
-    event.preventDefault();
-    if (!selected) return;
-    setSendingNotify(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    setSendingNotify(false);
-    setShowNotifyModal(false);
-    setNotifySubject("");
-    setNotifyMessage("");
-    setNotifySuccessMsg(
-      t(
-        `Notification sent to ${selected.fullName} (${selected.email})`,
-        `Đã gửi thông báo đến ${selected.fullName} (${selected.email})`
-      )
-    );
-    setTimeout(() => setNotifySuccessMsg(""), 5000);
-  }
 
   // Generate pagination items with ellipses
   const paginationRange = useMemo(() => {
@@ -401,14 +377,6 @@ export default function AdminMembersPage() {
         </div>
       )}
 
-      {notifySuccessMsg && (
-        <div role="status" className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-[#15803D]">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <span>{notifySuccessMsg}</span>
-        </div>
-      )}
 
       {/* Main Grid: Left Table & Right Profile Panel */}
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
@@ -647,6 +615,9 @@ export default function AdminMembersPage() {
               {(() => {
                 const palette = AVATAR_PALETTES[selected.userId % AVATAR_PALETTES.length];
                 const memberActivity = activity?.userId === selected.userId ? activity : null;
+                const contributions = Array.isArray(memberActivity?.dailyContributions) ? memberActivity.dailyContributions : [];
+                const totalContributions = contributions.reduce((total, count) => total + count, 0);
+                const maxContribution = Math.max(1, ...contributions);
 
                 return (
                   <>
@@ -756,11 +727,28 @@ export default function AdminMembersPage() {
                         <span className="font-bold text-[#07241A]">
                           {t("30-Day Contribution Cadence", "Tần suất đóng góp 30 ngày")}
                         </span>
-                        <span className="font-semibold text-emerald-600">{memberActivity?.dailyContributions.reduce((total, count) => total + count, 0) ?? "—"} đóng góp</span>
+                        <span className="font-semibold text-emerald-600">
+                          {memberActivity ? `${totalContributions} đóng góp` : "—"}
+                        </span>
                       </div>
 
                       <div className="mt-2 flex h-14 items-end gap-1" aria-label="Số bài viết và bình luận mỗi ngày trong 30 ngày">
-                        {memberActivity?.dailyContributions.map((count, index) => <div key={index} title={`${count} đóng góp`} className="min-w-0 flex-1 rounded-t bg-[#2D5A46]" style={{ height: `${Math.max(4, count / Math.max(1, ...memberActivity.dailyContributions) * 100)}%` }} />) ?? <p className="text-xs text-[#727974]">Đang tải dữ liệu hoạt động...</p>}
+                        {contributions.length > 0 ? (
+                          contributions.map((count, index) => (
+                            <div
+                              key={index}
+                              title={`${count} đóng góp`}
+                              className="min-w-0 flex-1 rounded-t bg-[#2D5A46]"
+                              style={{ height: `${Math.max(4, (count / maxContribution) * 100)}%` }}
+                            />
+                          ))
+                        ) : (
+                          <p className="text-xs text-[#727974]">
+                            {activityError
+                              ? t("Could not load activity.", "Không thể tải hoạt động.")
+                              : t("No activity data.", "Chưa có dữ liệu hoạt động.")}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -794,29 +782,7 @@ export default function AdminMembersPage() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="space-y-2 pt-1">
-                      {/* Send Notification / Email Button */}
-                      <button
-                        type="button"
-                        onClick={() => setShowNotifyModal(true)}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1E3A2F] py-3 text-xs font-semibold text-white shadow-sm transition hover:bg-[#152820]"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect width="20" height="16" x="2" y="4" rx="2" />
-                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                        </svg>
-                        <span>{t("Send Notification / Email", "Gửi thông báo / Email")}</span>
-                      </button>
-
+                    <div className="pt-1">
                       {/* Suspend / Reactivate Button */}
                       <button
                         type="button"
@@ -855,86 +821,7 @@ export default function AdminMembersPage() {
         )}
       </div>
 
-      {/* Send Notification / Email Modal */}
-      {showNotifyModal && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-2xs p-4">
-          <div className="w-full max-w-md rounded-3xl border border-[#EFEEEB] bg-white p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
-              <div>
-                <h3 className="font-serif text-base font-bold text-[#07241A]">
-                  {t("Send Notification / Email", "Gửi thông báo / Email")}
-                </h3>
-                <p className="text-xs text-[#727974]">
-                  {t("Recipient", "Người nhận")}: {selected.fullName} ({selected.email})
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNotifyModal(false)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F4F2EE] text-xs font-bold text-[#727974] hover:bg-[#EBE7DF]"
-              >
-                ✕
-              </button>
-            </div>
 
-            <form onSubmit={handleSendNotification} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-[#07241A]">
-                  {t("Subject", "Tiêu đề")}
-                </label>
-                <input
-                  required
-                  value={notifySubject}
-                  onChange={(e) => setNotifySubject(e.target.value)}
-                  placeholder={t("e.g. Account update or Community Guidelines", "Ví dụ: Cập nhật tài khoản hoặc Quy tắc cộng đồng")}
-                  className="mt-1 w-full rounded-xl border border-[#EFEEEB] bg-[#F7F5F0]/70 px-3.5 py-2 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#07241A]">
-                  {t("Message", "Nội dung")}
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={notifyMessage}
-                  onChange={(e) => setNotifyMessage(e.target.value)}
-                  placeholder={t("Write your message to the member here...", "Nhập nội dung gửi đến thành viên...")}
-                  className="mt-1 w-full rounded-xl border border-[#EFEEEB] bg-[#F7F5F0]/70 p-3 text-xs text-[#07241A] focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowNotifyModal(false)}
-                  className="rounded-xl border border-[#EFEEEB] px-4 py-2 text-xs font-semibold text-[#727974] hover:bg-[#FAF9F6]"
-                >
-                  {t("Cancel", "Hủy")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={sendingNotify}
-                  className="flex items-center gap-1.5 rounded-xl bg-[#1E3A2F] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#152820] disabled:opacity-50"
-                >
-                  {sendingNotify ? (
-                    <span>{t("Sending...", "Đang gửi...")}</span>
-                  ) : (
-                    <>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="22" y1="2" x2="11" y2="13" />
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                      </svg>
-                      <span>{t("Send", "Gửi")}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
