@@ -12,5 +12,6 @@ export function getRecipeCategories(includeInactive = false) {
 }
 
 export function categoryName(category: Pick<RecipeCategory, "name">, _language = "vi") {
+  void _language; // Kept for compatibility; category names are backend content.
   return category.name;
 }

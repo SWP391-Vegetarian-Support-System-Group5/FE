@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import { Fragment, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import UiText, { useUiText } from "@/components/UiText";
@@ -347,7 +349,7 @@ export default function AdminCategoriesPage() {
             </svg>
             <span>{feedback}</span>
           </div>
-          <button type="button" onClick={() => setFeedback(null)} className="text-emerald-700 hover:text-emerald-900">✕</button>
+          <button type="button" onClick={() => setFeedback(null)} className="text-emerald-700 hover:text-emerald-900"><ContentIcon name="close" className="inline-block align-text-bottom" /></button>
         </div>
       )}
 
@@ -482,7 +484,7 @@ export default function AdminCategoriesPage() {
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-xs text-[#727974]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <span className="text-3xl">🏷️</span>
+                      <span className="text-3xl"><ContentIcon name="tag" width="1em" height="1em" className="inline-block" /></span>
                       <p className="font-semibold text-[#07241A]"><UiText text="Không tìm thấy danh mục phù hợp." /></p>
                       {activeTab === "recipes" && (
                         <button
@@ -604,7 +606,7 @@ export default function AdminCategoriesPage() {
                 onClick={() => setIsModalOpen(false)}
                 className="rounded-lg p-1.5 text-[#727974] hover:bg-[#F2EFE9] hover:text-[#07241A]"
               >
-                ✕
+                <ContentIcon name="close" className="inline-block align-text-bottom" />
               </button>
             </div>
 

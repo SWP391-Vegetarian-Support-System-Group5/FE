@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -605,7 +607,7 @@ export default function AdminMembersPage() {
                   aria-label={t("Close profile", "Đóng hồ sơ")}
                   className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F4F2EE] text-xs font-bold text-[#727974] transition hover:bg-[#EBE7DF] hover:text-[#07241A]"
                 >
-                  ✕
+                  <ContentIcon name="close" className="inline-block align-text-bottom" />
                 </button>
               </div>
 

@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText from "@/components/UiText";
 
 
@@ -215,7 +217,7 @@ function VeggieAIChat() {
           {/* Header bar */}
           <div className="flex items-center justify-between bg-[#1E3A2F] px-4 py-3 text-white">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🤖</span>
+              <span className="text-lg"><ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold tracking-[0.01em]">
                   VeggieAI
@@ -313,7 +315,7 @@ function VeggieAIChat() {
             ) : messages.length === 0 ? (
               <div className="flex flex-col gap-2 rounded-xl bg-white p-3.5 shadow-sm border border-[#EFEEEB]">
                 <div className="flex items-center gap-2 text-xs font-semibold text-[#07241A]">
-                  <span>🤖</span>
+                  <span><ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                   <span>{t("Hello there!", "Xin chào!")}</span>
                 </div>
                 <p className="text-xs leading-relaxed text-[#424844]">
@@ -332,7 +334,7 @@ function VeggieAIChat() {
                 }
               >
                 {msg.sender === "AI" && (
-                  <span className="mt-0.5 text-sm shrink-0">🤖</span>
+                  <span className="mt-0.5 text-sm shrink-0"><ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                 )}
                 <div
                   className={
@@ -346,7 +348,7 @@ function VeggieAIChat() {
                   {/* Related Recipes if present */}
                   {msg.relatedRecipes && msg.relatedRecipes.length > 0 && (
                     <div className="mt-2.5 pt-2 border-t border-[#EFEEEB] space-y-1">
-                      <p className="text-[11px] font-semibold text-[#07241A]"><UiText text={"🥗 Gợi ý món liên quan:"} /></p>
+                      <p className="text-[11px] font-semibold text-[#07241A]"><><ContentIcon name="salad" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /> <UiText text={"Gợi ý món liên quan:"} /></></p>
                       <div className="flex flex-wrap gap-1">
                         {msg.relatedRecipes.map((recipe) => (
                           <Link
@@ -382,7 +384,7 @@ function VeggieAIChat() {
             {/* Thinking indicator */}
             {isThinking && (
               <div className="flex items-start gap-2">
-                <span className="mt-0.5 text-sm shrink-0">🤖</span>
+                <span className="mt-0.5 text-sm shrink-0"><ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                 <div className="rounded-[2px_12px_12px_12px] bg-[#F5F3F0] px-3.5 py-2 text-[12px] text-[#727974] flex items-center gap-1.5 border border-[#EFEEEB]">
                   <span>{t("Thinking", "Đang suy nghĩ")}</span>
                   <span className="flex gap-0.5">
@@ -406,7 +408,7 @@ function VeggieAIChat() {
             {signupRequired && (
               <div className="mt-2 rounded-xl bg-[#F5F3F0] p-3 shadow-sm border border-[#E4E2DF]">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm">🔒</span>
+                  <span className="text-sm"><ContentIcon name="lock" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                   <span className="text-xs font-semibold text-[#99462A]">
                     {t("Guest message limit", "Giới hạn lượt hỏi khách")}
                   </span>
@@ -485,7 +487,7 @@ function VeggieAIChat() {
         aria-label={t("Open or close VeggieAI chat", "Mở hoặc đóng trò chuyện VeggieAI")}
         className="flex items-center gap-2 rounded-full bg-[#07241A] px-4 py-3 text-sm font-semibold tracking-[0.01em] text-white shadow-[0_8px_24px_rgba(30,58,47,0.18)] transition hover:bg-[#1E3A2F]"
       >
-        <span className="text-base font-bold">🤖</span>
+        <span className="text-base font-bold"><ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
         <span>VeggieAI</span>
         <span className="rounded-full bg-[#99462A] px-1.5 py-0.5 text-[10px] font-semibold text-white">
           {t("New", "Mới")}

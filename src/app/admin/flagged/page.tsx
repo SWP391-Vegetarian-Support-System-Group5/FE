@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText, { useUiText } from "@/components/UiText";
 import { localizeRecipeTitle } from "@/lib/localized-content";
 
@@ -73,12 +75,12 @@ export default function AdminFlaggedPage() {
             </svg>
             <span>{feedback}</span>
           </div>
-          <button
+          <button aria-label={ui("Đóng")}
             type="button"
             onClick={() => setFeedback(null)}
             className="text-white/70 hover:text-white"
           >
-            ✕
+            <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
           </button>
         </div>
       )}
@@ -270,7 +272,7 @@ export default function AdminFlaggedPage() {
                       <span><UiText text={"⏱ Bị cảnh báo"} />{" "}{item.flagTime}</span>
                     </div>
                     <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${item.flagTypeColor}`}>
-                      ⚑ {item.flagTypeTag}
+                      <ContentIcon name="flag" width="1em" height="1em" className="inline-block align-[-0.125em]" /> {item.flagTypeTag}
                     </span>
                   </div>
 

@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText, { useUiText } from "@/components/UiText";
 
 
@@ -40,6 +42,7 @@ import { getStoredToken, getStoredUser } from "@/lib/auth";
 import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
 import { saveLivingLocation } from "@/lib/living-location";
 import { useLanguage } from "@/context/LanguageContext";
+import { ACTIVITY_LEVELS, birthYearFromDate, birthDateForYear, validBirthYear, isActivityLevel } from "@/lib/profile-energy";
 
 const ProfileLeafletMap = dynamic(() => import("@/components/profile/ProfileLeafletMap"), {
   ssr: false,
@@ -55,6 +58,7 @@ interface ProfileDraft {
   email: string;
   sex: "MALE" | "FEMALE" | null;
   birthYear: string;
+  birthDate: string | null;
   heightCm: string; // kept as string for controlled input
   weightKg: string;
   activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE" | "VERY_ACTIVE" | null;
@@ -63,20 +67,23 @@ interface ProfileDraft {
 }
 
 interface ProfileErrors {
+  birthYear?: string;
   fullName?: string;
   heightCm?: string;
   weightKg?: string;
 }
 
-function validateDraft(d: ProfileDraft): ProfileErrors {
+function validateDraft(d: ProfileDraft, currentYear: number): ProfileErrors {
   const errors: ProfileErrors = {};
   if (!d.fullName.trim()) errors.fullName = "Full name is required.";
-  const h = parseFloat(d.heightCm);
-  if (d.heightCm !== "" && (isNaN(h) || h <= 0))
-    errors.heightCm = "Enter a positive number.";
-  const w = parseFloat(d.weightKg);
-  if (d.weightKg !== "" && (isNaN(w) || w <= 0))
-    errors.weightKg = "Enter a positive number.";
+  if (d.birthYear && !validBirthYear(d.birthYear, currentYear))
+    errors.birthYear = `Nhập năm sinh từ ${currentYear - 120} đến ${currentYear}.`;
+  const h = Number(d.heightCm);
+  if (d.heightCm !== "" && (!Number.isFinite(h) || h < 1 || h > 300))
+    errors.heightCm = "Chiều cao phải từ 1 đến 300 cm.";
+  const w = Number(d.weightKg);
+  if (d.weightKg !== "" && (!Number.isFinite(w) || w < 1 || w > 1000))
+    errors.weightKg = "Cân nặng phải từ 1 đến 1.000 kg.";
   return errors;
 }
 
@@ -84,17 +91,28 @@ function validateDraft(d: ProfileDraft): ProfileErrors {
 
 export default function ProfileForm() {
   const { user, loading } = useAuth();
+  const [reloadVersion, setReloadVersion] = useState(0);
   if (loading) return <p role="status">Đang tải hồ sơ…</p>;
   if (!user || !getStoredToken()) return <p role="alert">Vui lòng <Link href="/login" className="underline">đăng nhập</Link> để xem hồ sơ.</p>;
-  return <ProfileFields key={user.uid} />;
+  return <ProfileFields key={`${user.uid}:${reloadVersion}`} onRetry={() => setReloadVersion(value => value + 1)} />;
 }
 
-function ProfileFields() {
+function ProfileFields({ onRetry }: { onRetry: () => void }) {
   const ui = useUiText();
-  const { language, t } = useLanguage();
+  const { language, t, locale } = useLanguage();
+  const currentYear = new Date().getFullYear();
   // ── Core state ────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
+  const [loadFailure, setLoadFailure] = useState<"session" | "unavailable" | null>(null);
+  useEffect(() => {
+    if (loading || loadFailure || window.location.hash !== "#living-location") return;
+    document.getElementById("living-location")?.scrollIntoView({
+      block: "start",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  }, [loading, loadFailure]);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errors, setErrors] = useState<ProfileErrors>({});
 
@@ -104,6 +122,7 @@ function ProfileFields() {
     email: "",
     sex: null,
     birthYear: "",
+    birthDate: null,
     heightCm: "",
     weightKg: "",
     activityLevel: null,
@@ -186,7 +205,8 @@ function ProfileFields() {
           fullName: profile.fullName ?? "",
           email: profile.email ?? "",
           sex: profile.sex ?? null,
-          birthYear: profile.birthYear != null ? String(profile.birthYear) : "",
+          birthYear: profile.birthYear != null ? String(profile.birthYear) : birthYearFromDate(profile.birthDate),
+          birthDate: profile.birthDate ?? null,
           heightCm: profile.heightCm != null ? String(profile.heightCm) : "",
           weightKg: profile.weightKg != null ? String(profile.weightKg) : "",
           activityLevel: profile.activityLevel ?? null,
@@ -214,14 +234,9 @@ function ProfileFields() {
       } catch (err: unknown) {
         if (!cancelled) {
           const msg = err instanceof Error ? err.message : "";
-          if (msg.includes("401")) {
-            setToastMessage(
-              "Session expired. Please log in again to load your profile.",
-            );
-          } else {
-            console.error("Failed to load profile data", err);
-            setToastMessage("Failed to load profile. Please try again.");
-          }
+          // This is a handled loading failure: keep it visible in the page,
+          // and never expose an empty editable profile or a disappearing toast.
+          setLoadFailure(msg.includes("401") ? "session" : "unavailable");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -262,6 +277,7 @@ function ProfileFields() {
   // ── Derived ──────────────────────────────────────────────────────────────
   const bmi = computeBmi(draft.heightCm, draft.weightKg);
   const bmiCategory = bmi !== null ? classifyBmi(bmi) : null;
+  const selectedActivity = ACTIVITY_LEVELS.find(level => level.value === draft.activityLevel);
 
   const currentDietType = dietTypes.find((d) => d.dietTypeId === draft.dietTypeId);
   const currentDietTypeExplanation = dietTypeAvoidsText(currentDietType, language);
@@ -343,13 +359,13 @@ function ProfileFields() {
         setAddressSuggestions([]);
       }
     }, 300);
-  }, []);
+  }, [setShowAddressSuggestions]);
 
   const handleAddressSuggestionSelect = useCallback((suggestion: AddressSuggestion) => {
     setAddressQuery(suggestion.label);
     setSelectedCoords({ lat: suggestion.latitude, lng: suggestion.longitude });
     setShowAddressSuggestions(false);
-  }, []);
+  }, [setShowAddressSuggestions]);
 
   // ── Allergy toggle ───────────────────────────────────────────────────────
   const toggleAllergen = useCallback((id: number) => {
@@ -385,6 +401,7 @@ function ProfileFields() {
 
   // ── Cancel ───────────────────────────────────────────────────────────────
   const handleCancel = () => {
+    setSaveError(null);
     setDraft({ ...savedDraft });
     setSelectedAllergenIds([...savedAllergenIds]);
     setErrors({});
@@ -394,7 +411,8 @@ function ProfileFields() {
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (customAllergenBusy || saving) return;
-    const validationErrors = validateDraft(draft);
+    setSaveError(null);
+    const validationErrors = validateDraft(draft, currentYear);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -405,6 +423,7 @@ function ProfileFields() {
       const payload: UpdateProfilePayload = {
         fullName: draft.fullName,
         sex: draft.sex,
+        birthDate: birthDateForYear(draft.birthYear, draft.birthDate),
         birthYear: draft.birthYear ? Number(draft.birthYear) : null,
         heightCm: draft.heightCm ? parseFloat(draft.heightCm) : null,
         weightKg: draft.weightKg ? parseFloat(draft.weightKg) : null,
@@ -424,7 +443,8 @@ function ProfileFields() {
         fullName: updatedProfile.fullName ?? "",
         email: updatedProfile.email ?? "",
         sex: updatedProfile.sex ?? null,
-        birthYear: updatedProfile.birthYear != null ? String(updatedProfile.birthYear) : "",
+        birthYear: updatedProfile.birthYear != null ? String(updatedProfile.birthYear) : birthYearFromDate(updatedProfile.birthDate),
+        birthDate: updatedProfile.birthDate ?? null,
         heightCm:
           updatedProfile.heightCm != null
             ? String(updatedProfile.heightCm)
@@ -452,8 +472,7 @@ function ProfileFields() {
       setErrors({});
       setToastMessage("Profile updated successfully.");
     } catch (err) {
-      console.error("Save failed", err);
-      setToastMessage("Something went wrong. Your changes were not saved.");
+      setSaveError(err instanceof Error ? err.message : "Không thể hoàn tất lưu hồ sơ. Vui lòng thử lại.");
     } finally {
       setSaving(false);
     }
@@ -462,8 +481,8 @@ function ProfileFields() {
   // ── Loading skeleton ─────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-20">
-        <svg className="h-8 w-8 animate-spin text-[#1E3A2F]" viewBox="0 0 24 24" fill="none">
+      <div role="status" className="flex flex-col items-center justify-center gap-4 py-20">
+        <svg aria-hidden="true" className="h-8 w-8 animate-spin text-[#1E3A2F] motion-reduce:animate-none" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
           <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" />
         </svg>
@@ -472,9 +491,39 @@ function ProfileFields() {
     );
   }
 
+  if (loadFailure) {
+    const sessionExpired = loadFailure === "session";
+    return <section className="space-y-6">
+      <h1 className="font-serif text-3xl font-medium text-[#07241A] sm:text-[40px]">Hồ sơ của tôi</h1>
+      <div className="vm-card rounded-2xl border border-[#E5E7DF] bg-white p-6 sm:p-8">
+        <div role="alert" className="flex items-start gap-4">
+          <div aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F8EDE6] text-[#99462A]">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="9" /><path d="M12 7v6M12 16v1" /></svg>
+          </div>
+          <div className="min-w-0 space-y-2">
+            <h2 className="text-lg font-medium text-[#07241A]">{sessionExpired ? "Phiên đăng nhập đã hết hạn" : "Chưa tải được hồ sơ"}</h2>
+            <p className="max-w-xl text-sm leading-6 text-[#727974]">{sessionExpired
+              ? "Vui lòng đăng nhập lại để xem và chỉnh sửa thông tin cá nhân."
+              : "Hiện chưa thể tải thông tin từ máy chủ. Bạn có thể thử lại sau ít phút."}</p>
+          </div>
+        </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {sessionExpired
+            ? <Link href="/login" className="vm-button rounded-xl bg-[#254B38] px-5 py-2.5 text-sm font-medium text-white">Đăng nhập lại</Link>
+            : <button type="button" onClick={onRetry} className="vm-button rounded-xl bg-[#254B38] px-5 py-2.5 text-sm font-medium text-white">Thử tải lại</button>}
+          <Link href="/" className="vm-button rounded-xl border border-[#E5E7DF] px-5 py-2.5 text-sm text-[#424844]">Về trang chủ</Link>
+        </div>
+      </div>
+    </section>;
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <>
+      {saveError && <div role="alert" className="vm-feedback rounded-2xl border border-[#E6C6BA] bg-[#FFF6F2] p-4 text-sm text-[#99462A]">
+        <p className="font-semibold">{t("Could not finish saving your profile", "Chưa thể hoàn tất lưu hồ sơ")}</p>
+        <p className="mt-1 whitespace-pre-line"><UiText text={saveError} /></p>
+      </div>}
       {/* Toast notification */}
       {toastMessage && (
         <div className="fixed top-24 right-6 z-50 max-w-sm animate-fade-in rounded-xl bg-[#07241A] px-5 py-3 text-sm text-white shadow-lg">
@@ -485,7 +534,7 @@ function ProfileFields() {
               className="text-white/60 hover:text-white transition"
               aria-label={ui("Dismiss")}
             >
-              ✕
+              <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
             </button>
           </div>
         </div>
@@ -544,7 +593,7 @@ function ProfileFields() {
       </section>
 
       {/* ═══ 3. PERSONAL INFORMATION CARD ═══ */}
-      <section className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <section className="vm-form-panel rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
             <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]"><UiText text={"Thông tin cá nhân"} /></h2>
@@ -660,7 +709,7 @@ function ProfileFields() {
       </section>
 
       {/* ═══ 4. HEALTH PROFILE CARD ═══ */}
-      <section className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <section className="vm-form-panel rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
@@ -690,7 +739,7 @@ function ProfileFields() {
           </div>
         </div>
 
-        {/* Row 1: Height, Weight */}
+        {/* Height, weight and birth year */}
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Height */}
           <div className="flex flex-col gap-1.5">
@@ -744,19 +793,31 @@ function ProfileFields() {
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.02em] text-[#424844]">
-            Năm sinh
-            <input type="number" inputMode="numeric" min="1900" max={new Date().getFullYear() - 18} value={draft.birthYear} onChange={(event) => updateField("birthYear", event.target.value)} placeholder="Ví dụ: 2004" className="rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20" />
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.02em] text-[#424844]">
-            Mức vận động
-            <select value={draft.activityLevel ?? ""} onChange={(event) => updateField("activityLevel", (event.target.value || null) as ProfileDraft["activityLevel"])} className="rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20">
-              <option value="">Chọn mức vận động</option><option value="SEDENTARY">Ít vận động</option><option value="LIGHT">Nhẹ (1–3 ngày/tuần)</option><option value="MODERATE">Vừa (3–5 ngày/tuần)</option><option value="ACTIVE">Cao (6–7 ngày/tuần)</option><option value="VERY_ACTIVE">Rất cao</option>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="profile-birth-year" className="text-xs font-semibold tracking-[0.02em] text-[#424844]">Năm sinh</label>
+            <input id="profile-birth-year" type="text" inputMode="numeric" autoComplete="bday-year" maxLength={4}
+              value={draft.birthYear} onChange={event => updateField("birthYear", event.target.value)}
+              aria-invalid={!!errors.birthYear} aria-describedby={errors.birthYear ? "profile-birth-year-error" : undefined}
+              placeholder="Ví dụ: 2000" disabled={saving}
+              className={`w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-[15px] leading-6 text-[#1B1C1A] outline-none focus:ring-2 focus:ring-[#1E3A2F]/20 ${errors.birthYear ? "ring-2 ring-[#99462A]/40" : ""}`} />
+            {errors.birthYear && <p id="profile-birth-year-error" className="vm-feedback text-xs text-[#99462A]">{errors.birthYear}</p>}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="profile-activity-level" className="text-xs font-semibold tracking-[0.02em] text-[#424844]">Mức vận động</label>
+            <select id="profile-activity-level" value={draft.activityLevel ?? ""} disabled={saving}
+              onChange={event => updateField("activityLevel", isActivityLevel(event.target.value) ? event.target.value : null)}
+              aria-describedby="profile-activity-help"
+              className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 text-[15px] leading-6 text-[#1B1C1A] outline-none focus:ring-2 focus:ring-[#1E3A2F]/20">
+              <option value="">Chọn mức vận động</option>
+              {ACTIVITY_LEVELS.map(level => <option key={level.value} value={level.value}>{level.label}</option>)}
             </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.02em] text-[#424844]">
+            <p id="profile-activity-help" className="text-xs leading-5 text-[#727974]">{selectedActivity
+              ? `${selectedActivity.detail}. Hệ số: ×${selectedActivity.factor.toLocaleString(locale)}.`
+              : "Chọn theo sinh hoạt và tập luyện thực tế của bạn."}</p>
+          </div>
+          <label className="flex flex-col gap-1.5 text-xs font-semibold text-[#424844]">
             Cân nặng mục tiêu
-            <div className="relative"><input type="text" inputMode="decimal" value={draft.goalWeightKg} onChange={(event) => updateField("goalWeightKg", event.target.value)} placeholder="Ví dụ: 60" className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 pr-10 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20" /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#727974]">kg</span></div>
+            <div className="relative"><input type="text" inputMode="decimal" value={draft.goalWeightKg} disabled={saving} onChange={event => updateField("goalWeightKg", event.target.value)} placeholder="Ví dụ: 60" className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 pr-10 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20" /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#727974]">kg</span></div>
           </label>
         </div>
 
@@ -1024,7 +1085,7 @@ function ProfileFields() {
       </section>
 
       {/* ═══ 5. LIVING LOCATION CARD ═══ */}
-      <section className="flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <section id="living-location" className="vm-form-panel scroll-mt-28 flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">

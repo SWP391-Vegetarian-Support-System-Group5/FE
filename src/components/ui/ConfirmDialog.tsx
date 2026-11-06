@@ -48,7 +48,7 @@ export default function ConfirmDialog({
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby="confirm-dialog-description"
-        className="w-full max-w-md rounded-3xl border border-[#E5E7DF] bg-[#FBF9F6] p-6 shadow-2xl"
+        className="vm-dialog-surface w-full max-w-md rounded-3xl border border-[#E5E7DF] bg-[#FBF9F6] p-6 shadow-2xl"
       >
         <div className="flex gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FEE2E2] text-lg text-[#B91C1C]">!</span>

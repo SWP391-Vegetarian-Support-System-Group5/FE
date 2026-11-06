@@ -17,7 +17,16 @@ export default function RecipeCategoriesPage() {
     const [nextItems, nextRecipes] = await Promise.all([getRecipeCategories(true), apiGet<RecipeResponse[]>("/api/recipes/search")]);
     setItems(nextItems); setRecipes(nextRecipes);
   }
-  useEffect(() => { void load().catch(() => setError("Không thể tải danh mục.")); }, []);
+  useEffect(() => {
+    let active = true;
+    Promise.all([getRecipeCategories(true), apiGet<RecipeResponse[]>("/api/recipes/search")])
+      .then(([nextItems, nextRecipes]) => {
+        if (!active) return;
+        setItems(nextItems); setRecipes(nextRecipes);
+      })
+      .catch(() => { if (active) setError("Không thể tải danh mục."); });
+    return () => { active = false; };
+  }, []);
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) return;

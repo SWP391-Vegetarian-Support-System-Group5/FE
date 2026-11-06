@@ -107,6 +107,7 @@ export default function MyContentView() {
   const [action, setAction] = useState<ContentAction | null>(null);
   const [notice, setNotice] = useState<{ en: string; vi: string; tone?: "error"; undo?: { item: MyContentItem; sample: boolean; owner: string } } | null>(null);
   const [storageError, setStorageError] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [publishingDraft, setPublishingDraft] = useState(false);
   const [publishError, setPublishError] = useState("");
   const [pendingPublish, setPendingPublish] = useState<{ kind: "video"; draft: VideoRecipeDraftResponse } | { kind: "manual"; item: MyContentItem } | null>(null);
@@ -209,7 +210,7 @@ export default function MyContentView() {
     published: items.filter((item) => item.status === "published").length,
     draft: items.filter((item) => item.status === "draft").length,
     video: items.filter(hasCookingVideo).length,
-    recipe: items.filter((item) => !item.videoDraft && !hasCookingVideo(item)).length,
+    recipe: items.filter((item) => !item.videoDraft).length,
   };
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase(locale);
@@ -218,7 +219,7 @@ export default function MyContentView() {
       const searchable = `${text.title} ${text.description} ${item.title} ${item.description}`.toLocaleLowerCase(locale);
       const matchesKind = kind === "all"
         || (kind === "video" && hasCookingVideo(item))
-        || (kind === "recipe" && !item.videoDraft && !hasCookingVideo(item));
+        || (kind === "recipe" && !item.videoDraft);
       return matchesKind && (status === "all" || item.status === status) && searchable.includes(needle);
     }).sort((a, b) => sort === "title"
       ? displayText(a, language).title.localeCompare(displayText(b, language).title, locale)
@@ -300,6 +301,8 @@ export default function MyContentView() {
   }
 
   async function deleteItem(item: MyContentItem) {
+    if (deleting) return;
+    setDeleting(true);
     try {
       if (sampleMode) setSamples((current) => current.filter((entry) => entry.id !== item.id));
       else if (item.videoDraft) {
@@ -307,17 +310,17 @@ export default function MyContentView() {
         setServerItems((current) => current.filter((entry) => entry.id !== item.id));
       }
       else if (item.status === "draft" && item.draft) removeManualContent(owner);
-      else if (item.status === "draft") {
+      else {
         const id = recipeIdFromItem(item);
-        if (!id) return;
+        if (!id) throw new Error("Missing post ID");
         await deletePost(id);
         setServerItems(current => current.filter(entry => entry.id !== item.id));
       }
-      else return;
+
       setAction(null);
       setStorageError(false);
-      setNotice({ ...(sampleMode ? { en: "Sample post removed.", vi: "Đã xóa bài mẫu." } : { en: "Draft deleted.", vi: "Đã xóa bản nháp." }), ...(sampleMode || item.draft ? { undo: { item, sample: sampleMode, owner } } : {}) });
-    } catch { setStorageError(true); }
+      setNotice({ ...(sampleMode ? { en: "Sample post removed.", vi: "Đã xóa bài mẫu." } : { en: "Post deleted.", vi: "Đã xóa bài viết." }), ...(sampleMode || item.draft ? { undo: { item, sample: sampleMode, owner } } : {}) });
+    } catch { setStorageError(true); } finally { setDeleting(false); }
   }
 
   function undoDelete() {
@@ -344,7 +347,6 @@ export default function MyContentView() {
     { label: t("TOTAL POSTS", "TỔNG BÀI VIẾT"), value: counts.all, detail: t("Your culinary collection", "Bộ sưu tập từ căn bếp của bạn"), icon: "recipe", active: kind === "all" && status === "all", onClick: resetFilters },
     { label: t("PUBLISHED", "ĐÃ ĐĂNG"), value: counts.published, detail: t("Stories shared with the community", "Câu chuyện chia sẻ cùng cộng đồng"), icon: "check", active: kind === "all" && status === "published", onClick: () => { setStatus("published"); setKind("all"); setPage(1); } },
     { label: t("DRAFTS", "BẢN NHÁP"), value: counts.draft, detail: t("A little inspiration in progress", "Ý tưởng đang chờ bạn hoàn thiện"), icon: "draft", active: kind === "all" && status === "draft", onClick: () => { setStatus("draft"); setKind("all"); setPage(1); } },
-    { label: t("COOKING VIDEOS", "VIDEO NẤU ĂN"), value: counts.video, detail: t("From your kitchen, frame by frame", "Từng khoảnh khắc trong căn bếp"), icon: "video", active: kind === "video" && status === "all", onClick: () => { setKind("video"); setStatus("all"); setPage(1); } },
   ];
 
   return (
@@ -362,7 +364,7 @@ export default function MyContentView() {
         <Link href="/create-content" className={`${buttonClass} shrink-0 self-start shadow-[0_4px_12px_#1E3A2F12] sm:self-auto`}><ContentIcon name="plus" />{t("Create Content", "Tạo bài viết")}</Link>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
+      <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-5">
         {stats.map((stat) => <button key={stat.icon} type="button" aria-pressed={stat.active} onClick={stat.onClick} className={`group rounded-2xl border p-4 text-left transition sm:p-5 ${stat.active ? "border-[#1E3A2F] bg-[#1E3A2F] text-white shadow-[0_8px_24px_#1E3A2F1A] hover:bg-[#254838]" : "border-[#E5E7DF] bg-white/75 hover:border-[#AEC0AE] hover:bg-white"}`}>
           <div className={`flex items-center justify-between gap-2 text-[10px] font-semibold tracking-[0.12em] sm:text-[11px] ${stat.active ? "text-[#D9E6DC]" : "text-[#68766A]"}`}><span>{stat.label}</span><ContentIcon name={stat.icon} /></div>
           <p className="mt-3 font-serif text-4xl sm:text-[42px]">{stat.value.toLocaleString(locale)}</p>
@@ -385,10 +387,7 @@ export default function MyContentView() {
         </div>
 
         {draftLoadError && !sampleMode && <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{t("Video drafts could not be loaded. Refresh to try again.", "Không tải được bản nháp video. Hãy tải lại trang để thử lại.")}</p>}
-        <div className="mt-5 flex flex-col justify-between gap-4 border-b border-[#E5E7DF] pb-5 lg:flex-row lg:items-center">
-          <div className="flex flex-wrap gap-1.5" aria-label={t("Content type", "Loại nội dung")}>
-            {([{ value: "all", label: t("All posts", "Tất cả"), count: counts.all }, { value: "recipe", label: t("Recipes", "Công thức"), count: counts.recipe }, { value: "video", label: t("Videos & Recipes", "Video & Công thức"), count: counts.video }] as const).map((tab) => <button key={tab.value} type="button" aria-pressed={kind === tab.value} onClick={() => { setKind(tab.value); setPage(1); }} className={`vm-button inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition ${kind === tab.value ? "bg-[#1E3A2F] text-white" : "bg-[#F0F0E9] text-[#68766A] hover:bg-[#E8EDE4]"}`}>{tab.label}<span className={kind === tab.value ? "text-[#C3D5C8]" : "text-[#899388]"}>{tab.count}</span></button>)}
-          </div>
+        <div className="mt-5 flex flex-col justify-end gap-4 border-b border-[#E5E7DF] pb-5 lg:flex-row lg:items-center">
           <div className="flex flex-wrap items-center gap-2">
             <label className="relative min-w-[160px] flex-1 sm:w-60 sm:flex-none"><span className="sr-only">{t("Search your posts", "Tìm bài viết của bạn")}</span><ContentIcon name="search" className="pointer-events-none absolute left-3 top-3 text-[#899388]" width="16" height="16" /><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder={t("Search your stories…", "Tìm câu chuyện của bạn…")} className="h-10 w-full rounded-xl border border-[#E5E7DF] bg-white/80 pl-9 pr-3 text-xs outline-none transition placeholder:text-[#899388] focus:border-[#658266] focus:ring-2 focus:ring-[#658266]/10" /></label>
             <label><span className="sr-only">{t("Post status", "Trạng thái bài viết")}</span><select value={status} onChange={(event) => { setStatus(event.target.value as StatusFilter); setPage(1); }} className="h-10 max-w-[160px] rounded-xl border border-[#E5E7DF] bg-white/80 px-3 text-xs outline-none focus:border-[#658266]"><option value="all">{t("All statuses", "Mọi trạng thái")}</option><option value="published">{t("Published", "Đã đăng")}</option><option value="draft">{t("Drafts", "Bản nháp")}</option></select></label>
@@ -403,7 +402,7 @@ export default function MyContentView() {
         {notice && <div role={notice.tone === "error" ? "alert" : "status"} className={`vm-feedback mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-xs ${notice.tone === "error" ? "border-red-200 bg-red-50 text-red-800" : "border-[#CCDCCB] bg-[#E8F0E5] text-[#1E3A2F]"}`}><span>{t(notice.en, notice.vi)}</span><div className="flex items-center gap-4">{notice.undo?.owner === owner && <button type="button" onClick={undoDelete} className="vm-button font-semibold underline underline-offset-4">{t("Undo", "Hoàn tác")}</button>}<button type="button" onClick={() => setNotice(null)} aria-label={t("Dismiss notification", "Đóng thông báo")}><ContentIcon name="close" width="16" height="16" /></button></div></div>}
 
         {(loading || remoteLoading) && !sampleMode ? <CardSkeleton /> : visibleItems.length > 0 ? (
-          <div className={layout === "grid" ? "grid gap-5 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-4"}>
+          <div className={layout === "grid" ? "grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),340px))] gap-5" : "flex flex-col gap-4"}>
             {visibleItems.map((item) => {
               const text = displayText(item, language);
               const canEdit = sampleMode || item.status === "draft";
@@ -414,16 +413,16 @@ export default function MyContentView() {
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#FBF9F6]/95 px-2.5 py-1.5 text-[10px] font-semibold text-[#1E3A2F] shadow-sm"><ContentIcon name={hasCookingVideo(item) || item.videoDraft ? "video" : "recipe"} width="12" height="12" />{item.videoDraft ? t("Video draft", "Bản nháp video") : hasCookingVideo(item) ? t("Video & Recipe", "Video & Công thức") : t("Recipe", "Công thức")}</span>
                   {hasCookingVideo(item) && <span className="absolute left-1/2 top-1/2 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-[#1E3A2F] shadow-sm backdrop-blur-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m9 5 12 7-12 7z" /></svg></span>}
                 </button>
-                <div className="flex min-w-0 flex-1 flex-col p-5">
+                <div className="flex min-w-0 flex-1 flex-col p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2"><span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ${item.status === "published" ? "bg-[#EDF3E9] text-[#4F754E]" : "bg-[#FBF0DE] text-[#A27A36]"}`}><span className={`h-1.5 w-1.5 rounded-full ${item.status === "published" ? "bg-[#6E9561]" : "bg-[#CDA258]"}`} />{item.status === "published" ? t("Published", "Đã đăng") : t("Draft", "Bản nháp")}</span><span className="text-[10px] text-[#899388]">{dateText(item.updatedAt)}</span></div>
-                  <button type="button" onClick={() => setAction({ type: "preview", item })} className="mt-3 text-left"><h3 className="line-clamp-2 font-serif text-[25px] font-medium leading-[1.15] tracking-tight transition hover:text-[#658266]">{text.title || t("Untitled recipe", "Công thức chưa có tên")}</h3></button>
-                  <p className="mt-2 line-clamp-2 text-xs leading-6 text-[#727974]">{text.description || t("Your next culinary story starts here.", "Câu chuyện ẩm thực tiếp theo bắt đầu từ đây.")}</p>
+                  <button type="button" onClick={() => setAction({ type: "preview", item })} className="mt-3 text-left"><h3 className="line-clamp-2 font-serif text-xl font-medium leading-snug tracking-tight transition hover:text-[#658266]">{text.title || t("Untitled recipe", "Công thức chưa có tên")}</h3></button>
+                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#727974]">{text.description || t("Your next culinary story starts here.", "Câu chuyện ẩm thực tiếp theo bắt đầu từ đây.")}</p>
                   <div className="mt-auto pt-4"><div className="flex items-center justify-between gap-3 border-t border-[#EFEEEB] pt-3">
                     <span className="inline-flex items-center gap-1.5 text-[11px] text-[#899388]">{item.minutes ? <><ContentIcon name="clock" width="14" height="14" />{item.minutes} {t("min", "phút")}</> : <><ContentIcon name="leaf" width="14" height="14" />VeggieMate</>}</span>
                     <div className="flex items-center gap-1">
                       <button type="button" onClick={() => setAction({ type: "preview", item })} aria-label={`${t("Preview", "Xem trước")}: ${text.title}`} title={t("Preview", "Xem trước")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="eye" width="16" height="16" /></button>
                       {canEdit && (sampleMode ? <button type="button" onClick={() => setAction({ type: "edit", item })} aria-label={`${t("Edit sample", "Sửa bài mẫu")}: ${text.title}`} title={t("Edit sample", "Sửa bài mẫu")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></button> : item.postType && item.postType !== "RECIPE" ? <button type="button" onClick={() => setAction({ type: "edit", item })} aria-label={`Chỉnh sửa: ${text.title}`} className="rounded-lg p-2"><ContentIcon name="edit" width="16" height="16" /></button> : <Link href={item.videoDraft ? `/create-content?draft=video-${item.videoDraft.videoRecipeDraftId}` : item.draft ? "/create-content?draft=manual" : `/create-content?draft=${item.id}`} aria-label={`${t("Edit draft", "Chỉnh sửa bản nháp")}: ${text.title}`} title={t("Edit draft", "Chỉnh sửa bản nháp")} className="rounded-lg p-2 text-[#68766A] transition hover:bg-[#EDF3E9] hover:text-[#1E3A2F]"><ContentIcon name="edit" width="16" height="16" /></Link>)}
-                      {canEdit && <button type="button" onClick={() => { setStorageError(false); setAction({ type: "delete", item }); }} aria-label={`${t("Delete", "Xóa")}: ${text.title}`} title={t("Delete", "Xóa")} className="rounded-lg p-2 text-[#899388] transition hover:bg-red-50 hover:text-red-600"><ContentIcon name="trash" width="16" height="16" /></button>}
+                      {<button type="button" onClick={() => { setStorageError(false); setAction({ type: "delete", item }); }} aria-label={`${t("Delete", "Xóa")}: ${text.title}`} title={t("Delete", "Xóa")} className="rounded-lg p-2 text-[#899388] transition hover:bg-red-50 hover:text-red-600"><ContentIcon name="trash" width="16" height="16" /></button>}
                     </div>
                   </div></div>
                 </div>
@@ -470,16 +469,16 @@ export default function MyContentView() {
       {action?.type === "edit" && sampleMode && <SampleEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSave={(next) => { setSamples((current) => current.map((item) => item.id === next.id ? next : item)); setAction(null); setNotice({ en: "Sample changes saved for this preview session.", vi: "Đã lưu thay đổi bài mẫu trong phiên xem trước này." }); }} />}
       {action?.type === "edit" && !sampleMode && action.item.postType !== "RECIPE" && <ServerPostEditDialog key={action.item.id} item={action.item} onClose={() => setAction(null)} onSaved={async () => { setAction(null); await loadServerItems(); setNotice({ en: "Moderation completed.", vi: "Đã gửi kiểm duyệt lại. Kiểm tra trạng thái bài viết." }); }} />}
 
-      {action?.type === "delete" && <ContentDialog title={sampleMode ? t("Delete sample post?", "Xóa bài mẫu?") : t("Delete this draft?", "Xóa bản nháp này?")} onClose={() => setAction(null)}>
+      {action?.type === "delete" && <ContentDialog title={sampleMode ? t("Delete sample post?", "Xóa bài mẫu?") : t("Delete this post?", "Xóa bài viết này?")} onClose={() => setAction(null)}>
         <div className="p-6">
           <p className="text-sm leading-7 text-[#647068]">{sampleMode
             ? t("This removes the sample from your preview session. Reloading restores it.", "Bài mẫu sẽ xuất hiện lại sau khi tải lại trang.")
             : action.item.videoDraft
               ? t("This removes the video draft from your account and cannot be undone.", "Bản nháp video sẽ bị xóa khỏi tài khoản và không thể hoàn tác.")
-              : t("This removes the draft from this browser. You can undo from the confirmation message.", "Bản nháp sẽ bị xóa khỏi trình duyệt. Bạn có thể hoàn tác trong thông báo xác nhận.")}</p>
+              : action.item.draft ? t("This removes the draft from this browser. You can undo from the confirmation message.", "Bản nháp sẽ bị xóa khỏi trình duyệt. Bạn có thể hoàn tác trong thông báo xác nhận.") : t("This deletes the saved post from your account. You cannot undo it here.", "Bài viết đã tạo sẽ bị xóa khỏi tài khoản. Bạn không thể hoàn tác tại đây.")}</p>
           <p className="mt-4 rounded-xl bg-[#F0F0E9] p-4 font-serif text-xl">{displayText(action.item, language).title || t("Untitled recipe", "Công thức chưa có tên")}</p>
-          {storageError && <p role="alert" className="mt-4 text-sm text-red-600">{t("Could not delete the draft. Please try again.", "Không thể xóa bản nháp. Hãy thử lại.")}</p>}
-          <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setAction(null)} className="rounded-xl border border-[#E5E7DF] px-5 py-3 text-sm font-semibold hover:bg-[#E8EDE4]">{t("Keep it", "Giữ lại")}</button><button type="button" onClick={() => void deleteItem(action.item)} className="inline-flex items-center gap-2 rounded-xl bg-[#A24635] px-5 py-3 text-sm font-semibold text-white hover:bg-[#883727]"><ContentIcon name="trash" width="16" height="16" />{t("Delete", "Xóa")}</button></div>
+          {storageError && <p role="alert" className="mt-4 text-sm text-red-600">{t("Could not delete this post. Please try again.", "Không thể xóa bài viết. Hãy thử lại.")}</p>}
+          <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setAction(null)} className="rounded-xl border border-[#E5E7DF] px-5 py-3 text-sm font-semibold hover:bg-[#E8EDE4]">{t("Keep it", "Giữ lại")}</button><button type="button" disabled={deleting} onClick={() => void deleteItem(action.item)} className="disabled:opacity-50 inline-flex items-center gap-2 rounded-xl bg-[#A24635] px-5 py-3 text-sm font-semibold text-white hover:bg-[#883727]"><ContentIcon name="trash" width="16" height="16" />{deleting ? t("Deleting...", "Đang xóa...") : t("Delete", "Xóa")}</button></div>
         </div>
       </ContentDialog>}
       <ConfirmDialog open={pendingPublish !== null} title={t("Publish this draft?", "Đăng bản nháp này?")} description={t("The content will be checked again before it becomes visible to the community.", "Nội dung sẽ được kiểm duyệt lại trước khi hiển thị với cộng đồng.")} confirmLabel={t("Publish", "Đăng bài")} busy={publishingDraft} onClose={() => setPendingPublish(null)} onConfirm={() => { if (pendingPublish?.kind === "video") void publishDraft(pendingPublish.draft); else if (pendingPublish?.kind === "manual") void publishManualDraft(pendingPublish.item); }} />

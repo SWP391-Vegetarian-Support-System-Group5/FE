@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -247,12 +249,12 @@ export default function ExplorePage() {
                   className="w-full bg-transparent text-sm text-[#07241A] placeholder-[#727974] focus:outline-none"
                 />
                 {searchQuery && (
-                  <button
+                  <button aria-label={t("Clear search", "Xóa tìm kiếm")}
                     type="button"
                     onClick={() => setSearchQuery("")}
                     className="ml-2 text-xs text-[#727974] hover:text-[#07241A]"
                   >
-                    ✕
+                    <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                   </button>
                 )}
               </div>
@@ -514,7 +516,7 @@ export default function ExplorePage() {
                 className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#07241A] shadow-lg backdrop-blur-md hover:bg-white"
                 title="Close modal"
               >
-                ✕
+                <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
               </button>
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
                 <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
@@ -536,7 +538,7 @@ export default function ExplorePage() {
               {/* Meta details list */}
               <div className="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 border border-[#EFEEEB] text-xs sm:grid-cols-2">
                 <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">📍 {t("Address:", "Địa chỉ:")}</span>
+                  <span className="font-semibold text-[#07241A]"><ContentIcon name="pin" width="1em" height="1em" className="inline-block align-[-0.125em]" /> {t("Address:", "Địa chỉ:")}</span>
                   <span>{selectedRestaurant.address}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#424844]">
@@ -564,7 +566,7 @@ export default function ExplorePage() {
                       key={dish}
                       className="rounded-full border border-[#D9E6DC] bg-[#E8EFEA] px-3 py-1 text-xs font-medium text-[#1E3A2F]"
                     >
-                      🌿 {dish}
+                      <ContentIcon name="leaf" width="1em" height="1em" className="inline-block align-[-0.125em]" /> {dish}
                     </span>
                   ))}
                 </div>

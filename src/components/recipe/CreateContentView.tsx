@@ -1,11 +1,13 @@
 "use client";
 
 import UiText, { useUiText } from "@/components/UiText";
+import ContentIcon from "@/components/content/ContentIcon";
 import ImageFilePicker from "@/components/ui/ImageFilePicker";
 import ImageManager from "@/components/ui/ImageManager";
 import { uploadPostImage, deletePostImage, imageError, ImageRequestError } from "@/lib/image-api";
 import UploadProgress from "@/components/ui/UploadProgress";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { deletePost } from "@/lib/post-api";
 import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -124,10 +126,33 @@ function RecipeContentView() {
     text: string;
   } | null>(null);
   const [publishedResult, setPublishedResult] = useState<RecipeResponse | null>(null);
+  const [confirmDeletePost, setConfirmDeletePost] = useState(false);
+  const deleteLock = useRef(false);
+  const createdPost = useRef<RecipeResponse | null>(null);
+
+  async function deleteCreatedPost() {
+    if (!publishedResult || deleteLock.current || isSubmitting) return;
+    deleteLock.current = true;
+    setIsSubmitting(true);
+    try {
+      await deletePost(publishedResult.postId);
+      createdPost.current = null;
+      setPublishedResult(null);
+      setConfirmDeletePost(false);
+      setStatusMessage({ type: "success", text: t("Post deleted.", "Đã xóa bài viết.") });
+      router.replace(isAdmin ? "/admin/content" : "/my-content");
+    } catch (error) {
+      setConfirmDeletePost(false);
+      setStatusMessage({ type: "error", text: error instanceof Error ? error.message : t("Could not delete this post.", "Không thể xóa bài viết.") });
+    } finally {
+      deleteLock.current = false;
+      setIsSubmitting(false);
+    }
+  }
   const [imageFailed, setImageFailed] = useState(false);
   const [imageConflict, setImageConflict] = useState(false);
   const publishLock = useRef(false);
-  const createdPost = useRef<RecipeResponse | null>(null);
+
 
   async function refreshPublishedImage() {
     const saved = createdPost.current;
@@ -748,7 +773,7 @@ function RecipeContentView() {
         <div>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EFEEEB] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#99462A]">
-              <span>✒️</span>
+              <ContentIcon name="edit" width="14" height="14" />
               <span><UiText text={"GÓC BIÊN SOẠN"} /></span>
             </span>
           </div>
@@ -776,11 +801,7 @@ function RecipeContentView() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-base">
-                {statusMessage.type === "success"
-                  ? "✓"
-                  : statusMessage.type === "error"
-                  ? "⚠️"
-                  : "ℹ️"}
+                <ContentIcon name={statusMessage.type === "success" ? "check" : statusMessage.type === "error" ? "warning" : "info"} />
               </span>
               <div><UiText text={statusMessage.text} />{publishedResult && <p className="mt-1 break-words">{publishedResult.title} · #{publishedResult.postId}</p>}</div>
             </div>
@@ -794,25 +815,13 @@ function RecipeContentView() {
         </div>
       )}
 
-      <div className="my-5 rounded-2xl border border-[#EFEEEB] bg-white p-5">
-        {!publishedResult ? <ImageFilePicker file={imageFile} onChange={setImageFile} disabled={isSubmitting || isUploading} /> : <div className="flex flex-wrap items-center gap-3">
-          <Link href={publishedResult.status === "PUBLISHED" ? `/view-detail/post-${publishedResult.postId}` : "/my-content"} className="text-sm underline">{publishedResult.status === "PUBLISHED" ? "Xem bài" : "Xem bản nháp"} #{publishedResult.postId}</Link>
-          <button type="button" disabled={isSubmitting} onClick={() => { createdPost.current = null; setServerRecipeDraftId(null); setPublishedResult(null); setImageUrl(""); setImageFile(null); setImageFailed(false); setImageConflict(false); setHasReviewed(false); setStatusMessage(null); }} className="vm-button text-sm underline disabled:opacity-40">Tạo bài khác</button>
-          {imageFailed && imageFile && <button type="button" disabled={isSubmitting || imageConflict} onClick={() => void retryPublishedImage()} className="vm-button rounded-xl bg-[#254B38] px-4 py-2 text-sm text-white disabled:opacity-40">{isSubmitting ? "Đang tải ảnh…" : "Thử tải ảnh lại"}</button>}
-          <ImageManager imageUrl={publishedResult.imageUrl ?? publishedResult.thumbnailUrl} disabled={isSubmitting} requiresRefresh={imageConflict}
-            onUpload={file => uploadPostImage(publishedResult.postId, file)} onDelete={() => deletePostImage(publishedResult.postId)}
-            onApplied={result => { const updated = { ...publishedResult, imageUrl: result.imageUrl }; createdPost.current = updated; setPublishedResult(updated); if (creationMode === "manual") setImageUrl(result.imageUrl ?? ""); setImageFailed(false); setImageFile(null); }}
-            onRefresh={refreshPublishedImage} />
-        </div>}
-      </div>
-
       {restoringVideoDraft && <p role="status" className="my-4 text-sm text-[#647068]">{t("Loading saved draft...", "Đang tải bản nháp đã lưu...")}</p>}
 
       {/* Auth Warning if not logged in */}
       {isMounted && !isLoggedIn && (
         <div className="my-6 rounded-2xl bg-[#F5F3F0] p-4 text-xs text-[#07241A] border border-[#EFEEEB] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span>🔒</span>
+            <ContentIcon name="lock" />
             <span><UiText text={"Bạn đang xem ở chế độ khách. Vui lòng đăng nhập để lưu bản nháp và đăng công thức."} /></span>
           </div>
           <Link
@@ -822,89 +831,13 @@ function RecipeContentView() {
         </div>
       )}
 
-      {/* ── STEP 1: CHOOSE HOW TO CREATE ───────────────────────────────── */}
-      <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
-        <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
-          <span className="text-xs font-bold tracking-wider text-[#727974] uppercase"><UiText text={"BƯỚC 1: CHỌN CÁCH TẠO BÀI"} /></span>
-          <span className="text-xs text-[#727974]"><UiText text={"Bước 1 trên 4"} /></span>
-        </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* Card: Generate with AI */}
-          <div
-            onClick={() => setCreationMode("ai")}
-            className={`cursor-pointer rounded-2xl p-5 border-2 transition relative flex flex-col justify-between ${
-              creationMode === "ai"
-                ? "border-[#07241A] bg-[#F5F3F0]/60 shadow-xs"
-                : "border-[#EFEEEB] bg-white hover:border-[#D9E6DC]"
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-xl text-sm ${
-                      creationMode === "ai"
-                        ? "bg-[#07241A] text-white"
-                        : "bg-[#EFEEEB] text-[#07241A]"
-                    }`}
-                  >
-                    ✨
-                  </div>
-                  <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Tạo với AI"} /></h3>
-                </div>
-                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#99462A]"><UiText text={"Đề xuất"} /></span>
-              </div>
-              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]"><UiText text={"Tải video nấu ăn lên. AI tạo bản nháp nguyên liệu và các bước để bạn kiểm tra, chỉnh sửa."} /></p>
-            </div>
-            <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-[#1E3A2F]">
-              <span><UiText text={"Tự động nhận diện nguyên liệu & công thức"} /></span>
-              <span>→</span>
-            </div>
-          </div>
-
-          {/* Card: Write Manually */}
-          <div
-            onClick={() => setCreationMode("manual")}
-            className={`cursor-pointer rounded-2xl p-5 border-2 transition relative flex flex-col justify-between ${
-              creationMode === "manual"
-                ? "border-[#07241A] bg-[#F5F3F0]/60 shadow-xs"
-                : "border-[#EFEEEB] bg-white hover:border-[#D9E6DC]"
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-xl text-sm ${
-                      creationMode === "manual"
-                        ? "bg-[#07241A] text-white"
-                        : "bg-[#EFEEEB] text-[#07241A]"
-                    }`}
-                  >
-                    ✍️
-                  </div>
-                  <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Viết thủ công"} /></h3>
-                </div>
-                <span className="rounded-full bg-[#EFEEEB] px-2.5 py-0.5 text-[10px] font-bold text-[#727974]"><UiText text={"Thông thường"} /></span>
-              </div>
-              <p className="mt-2.5 text-xs leading-relaxed text-[#424844]"><UiText text={"Tự nhập nguyên liệu, định lượng và cách nấu. Bạn có thể đính kèm video nếu muốn."} /></p>
-            </div>
-            <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-[#1E3A2F]">
-              <span><UiText text={"Tự do điều chỉnh toàn bộ chi tiết"} /></span>
-              <span>→</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── Section: Recipe details ─────────────────────────────────────── */}
       <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
         <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
-              📝
-            </span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#DCEBDF] text-[#254B38]">
+                <ContentIcon name="recipe" width="22" height="22" />
+              </span>
             <h2 className="font-serif text-lg font-bold text-[#07241A]">
               {t("Recipe details", "Chi tiết công thức")}
             </h2>
@@ -948,7 +881,7 @@ function RecipeContentView() {
                   className="w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 pl-8 text-xs text-[#07241A] outline-none transition focus:border-[#1E3A2F] focus:bg-white"
                 />
                 <span className="absolute left-2.5 top-3 text-xs text-[#727974]">
-                  ⏱️
+                  <ContentIcon name="clock" width="14" height="14" />
                 </span>
               </div>
             </div>
@@ -968,7 +901,7 @@ function RecipeContentView() {
                   className="w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 pl-8 text-xs text-[#07241A] outline-none transition focus:border-[#1E3A2F] focus:bg-white"
                 />
                 <span className="absolute left-2.5 top-3 text-xs text-[#727974]">
-                  👥
+                  <ContentIcon name="users" width="14" height="14" />
                 </span>
               </div>
             </div>}
@@ -1009,8 +942,8 @@ function RecipeContentView() {
         <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
           <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-3">
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
-                🎥
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#DCEBDF] text-[#254B38]">
+                <ContentIcon name="video" width="22" height="22" />
               </span>
               <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Video nấu ăn"} /></h2>
             </div>
@@ -1039,8 +972,8 @@ function RecipeContentView() {
                 onClick={() => fileInputRef.current?.click()}
                 className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#EFEEEB] bg-[#FBF9F6] p-8 text-center cursor-pointer hover:border-[#07241A] transition"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EFEEEB] text-2xl text-[#07241A]">
-                  📁
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#DCEBDF] text-[#254B38]">
+                  <ContentIcon name="video" width="26" height="26" />
                 </div>
                 <p className="mt-3 text-xs font-semibold text-[#07241A]"><UiText text={"Chọn video nấu ăn từ thiết bị"} /></p>
                 <p className="mt-1 text-[11px] text-[#727974]"><UiText text={"Hỗ trợ MP4, MOV, WEBM hoặc AVI (dưới 100 MB)"} /></p>
@@ -1066,13 +999,13 @@ function RecipeContentView() {
                         {videoFile?.name || "Video đã tải lên"}
                       </span>
                       {isUploading || draftStatus === "UPLOADING" ? (
-                        <span role="status" className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">{t("Uploading video...", "Đang tải video...")}</span>
+                        <span role="status" className="shrink-0 rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#254B38]">{t("Uploading video...", "Đang tải video...")}</span>
                       ) : draftStatus === "READY" ? (
                         <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#07241A]">
                           {t("Analysis complete", "Đã phân tích")}
                         </span>
                       ) : draftStatus === "PROCESSING" ? (
-                        <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">
+                        <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#254B38]">
                           {t("Analyzing...", "Đang phân tích...")}
                         </span>
                       ) : draftStatus === "PENDING" ? (
@@ -1098,16 +1031,6 @@ function RecipeContentView() {
                     )}
 
                     {/* Status descriptions */}
-                    {draftStatus === "PROCESSING" && (
-                      <div className="space-y-1 pt-1">
-                        <div className="flex items-center justify-between text-[11px] text-[#727974]">
-                          <span>{t("Speech and cooking step analysis", "Phân tích lời nói và bước nấu")}</span>
-                        </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFEEEB]">
-                          <div className="h-full w-2/3 animate-pulse rounded-full bg-[#1E3A2F]" />
-                        </div>
-                      </div>
-                    )}
 
                     {draftErrorMessage && (
                       <p role="alert" className="whitespace-pre-wrap break-words text-xs text-red-600 font-medium">
@@ -1150,7 +1073,7 @@ function RecipeContentView() {
                 disabled={isUploading || !videoFile || draftStatus === "UPLOADING" || draftStatus === "PENDING" || draftStatus === "PROCESSING"}
                 className="flex items-center gap-2 rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                <span>✨</span>
+                <ContentIcon name="sparkles" />
                 <span>
                   {isUploading || draftStatus === "UPLOADING"
                     ? t("Uploading video...", "Đang tải video...")
@@ -1166,17 +1089,34 @@ function RecipeContentView() {
               </span>
             </div>
           </div>
-          {(isUploading || draftStatus === "PENDING" || draftStatus === "PROCESSING") && <UploadProgress percent={uploadPercent} processing={!isUploading} onCancel={() => uploadAbort.current?.abort()} />}
+          {(isUploading || draftStatus === "PENDING" || draftStatus === "PROCESSING") && <UploadProgress percent={uploadPercent} processing={!isUploading && draftStatus === "PROCESSING"} queued={!isUploading && draftStatus === "PENDING"} onCancel={() => uploadAbort.current?.abort()} />}
+          {draftStatus === "READY" && <div role="status" aria-live="polite" className="vm-feedback mt-5 flex items-start gap-3 rounded-2xl border border-[#BDD4BF] bg-[#EDF5E9] p-5 text-[#254B38]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#254B38] text-white"><ContentIcon name="check" /></span>
+            <div><p className="font-semibold">{t("Your AI recipe draft is ready!", "AI đã tạo xong bản nháp công thức!")}</p><p className="mt-1 text-sm leading-6">{t("Review the ingredients and cooking steps below before publishing.", "Bạn có thể kiểm tra nguyên liệu và các bước nấu bên dưới trước khi gửi bài.")}</p></div>
+          </div>}
         </section>
       )}
+
+      <div className="my-8 rounded-3xl border border-[#C5D9C9] bg-[#F0F5ED] p-5 shadow-xs sm:p-6">
+        {!publishedResult ? <ImageFilePicker prominent file={imageFile} onChange={setImageFile} disabled={isSubmitting || isUploading} /> : <div className="flex flex-wrap items-center gap-3">
+          <Link href={publishedResult.status === "PUBLISHED" ? `/view-detail/post-${publishedResult.postId}` : "/my-content"} className="text-sm underline">{publishedResult.status === "PUBLISHED" ? "Xem bài" : "Xem bản nháp"} #{publishedResult.postId}</Link>
+          <button type="button" disabled={isSubmitting} onClick={() => setConfirmDeletePost(true)} className="vm-button rounded-xl border border-red-200 px-4 py-2 text-sm text-red-700 disabled:opacity-50">{t("Delete post", "Xóa bài viết")}</button>
+          <button type="button" disabled={isSubmitting} onClick={() => { createdPost.current = null; setServerRecipeDraftId(null); setPublishedResult(null); setImageUrl(""); setImageFile(null); setImageFailed(false); setImageConflict(false); setHasReviewed(false); setStatusMessage(null); }} className="vm-button text-sm underline disabled:opacity-40">Tạo bài khác</button>
+          {imageFailed && imageFile && <button type="button" disabled={isSubmitting || imageConflict} onClick={() => void retryPublishedImage()} className="vm-button rounded-xl bg-[#254B38] px-4 py-2 text-sm text-white disabled:opacity-40">{isSubmitting ? "Đang tải ảnh…" : "Thử tải ảnh lại"}</button>}
+          <ImageManager imageUrl={publishedResult.imageUrl ?? publishedResult.thumbnailUrl} disabled={isSubmitting} requiresRefresh={imageConflict}
+            onUpload={file => uploadPostImage(publishedResult.postId, file)} onDelete={() => deletePostImage(publishedResult.postId)}
+            onApplied={result => { const updated = { ...publishedResult, imageUrl: result.imageUrl }; createdPost.current = updated; setPublishedResult(updated); if (creationMode === "manual") setImageUrl(result.imageUrl ?? ""); setImageFailed(false); setImageFile(null); }}
+            onRefresh={refreshPublishedImage} />
+        </div>}
+      </div>
 
       {/* ── Section: Ingredients ────────────────────────────────────────── */}
       <section className="my-8 rounded-3xl bg-white p-6 shadow-xs border border-[#EFEEEB]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#EFEEEB] pb-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
-                🥗
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#DCEBDF] text-[#254B38]">
+                <ContentIcon name="salad" width="22" height="22" />
               </span>
               <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Nguyên liệu"} /></h2>
             </div>
@@ -1287,7 +1227,7 @@ function RecipeContentView() {
                       className="text-[#727974] hover:text-red-600 transition p-1"
                       title={ui("Xóa nguyên liệu")}
                     >
-                      ✕
+                      <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                     </button>
                   </div>
                 </div>
@@ -1295,7 +1235,7 @@ function RecipeContentView() {
                 {/* Non-plant clarification warning */}
                 {isNonPlant && (
                   <div className="rounded-xl bg-[#FDE8E4] px-3 py-1.5 text-[11px] text-[#99462A] flex items-center justify-between">
-                    <span><UiText text={"⚠️ Nhóm nguyên liệu"} />{" "}<strong>{t(...INGREDIENT_CATEGORY_LABELS[ing.dietaryGroup])}</strong>{" "}<UiText text={"ảnh hưởng đến độ tương thích với chế độ thuần chay."} /></span>
+                    <span><ContentIcon name="warning" className="mr-1 inline-block align-text-bottom" width="14" height="14" /><UiText text={"Nhóm nguyên liệu"} />{" "}<strong>{t(...INGREDIENT_CATEGORY_LABELS[ing.dietaryGroup])}</strong>{" "}<UiText text={"ảnh hưởng đến độ tương thích với chế độ thuần chay."} /></span>
                     <span className="font-semibold text-[10px] uppercase"><UiText text={"Cần làm rõ"} /></span>
                   </div>
                 )}
@@ -1311,8 +1251,8 @@ function RecipeContentView() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#EFEEEB] pb-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#CAEADA] text-xs">
-                🍳
+              <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#DCEBDF] text-[#254B38]">
+                <ContentIcon name="pot" width="22" height="22" />
               </span>
               <h2 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Các bước nấu"} /></h2>
             </div>
@@ -1348,7 +1288,7 @@ function RecipeContentView() {
                   onClick={() => handleRemoveStep(index)}
                   className="text-xs text-[#727974] hover:text-red-600 transition p-1"
                   title={ui("Xóa bước này")}
-                ><UiText text={"✕ Xóa"} /></button>
+                ><><ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /> <UiText text={"Xóa"} /></></button>
               </div>
               <textarea
                 rows={2}
@@ -1383,7 +1323,7 @@ function RecipeContentView() {
             type="button"
             onClick={() => setShowCancelConfirmation(true)}
             className="text-xs font-semibold text-[#727974] hover:text-[#07241A] transition text-left sm:text-center"
-          ><UiText text={"✕ Hủy thay đổi"} /></button>
+          ><><ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /> <UiText text={"Hủy thay đổi"} /></></button>
 
           <div className="flex items-center gap-3">
             <button
@@ -1398,11 +1338,20 @@ function RecipeContentView() {
               disabled={isSubmitting || !hasReviewed || publishedResult?.status === "PUBLISHED" || imageFailed}
               className="flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <span>🚀</span>
+              <ContentIcon name="send" />
               <span>{isSubmitting ? ui("Đang xử lý...") : publishedResult?.status === "PUBLISHED" ? "Đã xuất bản" : ui("Publish recipe")}</span>
             </button>
           </div>
         </div>
+      <ConfirmDialog
+        open={confirmDeletePost}
+        title={t("Delete this post?", "Xóa bài viết này?")}
+        description={t("This removes the saved post from your account. This action cannot be undone here.", "Bài viết đã tạo sẽ bị xóa khỏi tài khoản. Bạn không thể hoàn tác thao tác này tại đây.")}
+        confirmLabel={t("Delete post", "Xóa bài viết")}
+        busy={isSubmitting}
+        onClose={() => { if (!isSubmitting) setConfirmDeletePost(false); }}
+        onConfirm={() => void deleteCreatedPost()}
+      />
       <ConfirmDialog
         open={showCancelConfirmation}
         title={ui("Hủy các thay đổi?")}

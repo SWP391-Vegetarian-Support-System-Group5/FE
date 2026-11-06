@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -141,11 +143,11 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
       <header className="py-8"><p className="text-xs tracking-widest text-[#BC4B22]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</p><h1 className="mt-3 break-words font-serif text-4xl sm:text-5xl">{localizeRecipeTitle(post.title, "vi")}</h1><p className="mt-5 text-sm text-[#727974]">{post.authorName}</p>{post.postType === "RECIPE" && <div className="mt-4 flex flex-wrap items-center gap-2 text-sm"><span className="text-[#59635C]">Kiểu ăn chay phù hợp:</span>{post.compatibleDietTypes?.length ? post.compatibleDietTypes.map(type => <span key={type.id} className="rounded-md bg-[#E8F0E5] px-2.5 py-1 text-[#254B38]">{formatDietTypeName(type.name, "vi")}</span>) : <span className="text-[#727974]">Chưa xác minh từ nguyên liệu</span>}</div>}</header>
       {post.videoUrl ? <video controls preload="metadata" poster={getMediaUrl((post.imageUrl ?? post.thumbnailUrl)) || undefined} src={getMediaUrl(post.videoUrl)} className="aspect-video w-full rounded-3xl bg-[#193B2E]" /> : (post.imageUrl ?? post.thumbnailUrl) && <div className="relative aspect-video overflow-hidden rounded-3xl"><Image src={getMediaUrl((post.imageUrl ?? post.thumbnailUrl))} alt={post.title} fill unoptimized sizes="100vw" className="object-cover" /></div>}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7DF] py-5 text-sm">
-        <div className="flex items-center gap-4"><span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{ratingError ? "Chưa tải được điểm" : average === null ? "Đang tải điểm…" : `${average.toFixed(1)} / 5`}</strong></span></div>
+        <div className="flex items-center gap-4"><span className="text-[#CB8520]"><ContentIcon name="star" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" fill="currentColor" /> <strong className="text-[#07241A]">{ratingError ? "Chưa tải được điểm" : average === null ? "Đang tải điểm…" : `${average.toFixed(1)} / 5`}</strong></span></div>
         <div className="flex items-center gap-5"><a href="#comments">Bình luận</a><button disabled={busy || authLoading || (!!user && !!getStoredToken() && saved === null)} aria-pressed={saved === true} onClick={() => mutate(async () => {
           try { if (saved) await removeBookmark(postId); else await bookmarkPost(postId); }
           catch (e) { if (e instanceof PostApiError && e.status === 409) await refreshBookmarks(); throw e; }
-        }, refreshBookmarks, saved ? "Đã bỏ lưu bài." : "Đã lưu bài.")} className="disabled:opacity-40">{saved ? "🔖 Đã lưu" : "♡ Lưu bài"}</button></div>
+        }, refreshBookmarks, saved ? "Đã bỏ lưu bài." : "Đã lưu bài.")} className="disabled:opacity-40"><ContentIcon name="bookmark" fill={saved ? "currentColor" : "none"} className="mr-1.5 inline-block align-text-bottom" />{saved ? "Đã lưu" : "Lưu bài"}</button></div>
       </div>
       <InlinePostRating currentRating={post.currentUserRating} signedIn={!!user && !!getStoredToken()} disabled={busy || authLoading} onRate={async rating => {
         if (lock.current) throw new Error("Đang xử lý yêu cầu trước. Vui lòng đợi.");

@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText, { useUiText } from "@/components/UiText";
 
 
@@ -229,7 +231,7 @@ function VerifyOtpFields({ email }: { email: string }) {
     return (
       <div className="w-full max-w-[460px] rounded-3xl border border-[#EFEEEB] bg-white p-8 sm:p-10 shadow-sm text-center">
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5F2] text-[#C25E48] text-xl mb-3">
-          ⚠️
+          <ContentIcon name="warning" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
         </span>
         <h2 className="font-serif text-2xl font-bold text-[#07241A]"><UiText text={"Thiếu thông tin xác thực"} /></h2>
         <p className="mt-2 text-xs sm:text-sm text-[#727974] leading-relaxed"><UiText text={"Không tìm thấy địa chỉ email đang chờ xác minh OTP. Vui lòng thực hiện đăng ký hoặc đăng nhập."} /></p>
@@ -283,7 +285,7 @@ function VerifyOtpFields({ email }: { email: string }) {
       {/* Success Notification Banner */}
       {successMessage && (
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
-          <span className="text-sm">✓</span>
+          <span className="text-sm"><ContentIcon name="check" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
           <span className="flex-1 leading-relaxed">{<UiText text={successMessage} />}</span>
         </div>
       )}
@@ -322,7 +324,7 @@ function VerifyOtpFields({ email }: { email: string }) {
             className="text-[#99462A]/60 hover:text-[#99462A]"
             title={ui("Đóng thông báo")}
           >
-            ✕
+            <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
           </button>
         </div>
       )}

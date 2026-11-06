@@ -1,4 +1,12 @@
 import { apiFetch, apiGet } from "@/lib/api";
+import type { NutritionGoal } from "./meal-plan-goals";
+
+export interface GenerateMealPlanPayload {
+  startDate: string | null;
+  availableIngredients: string | null;
+  nutritionGoal: NutritionGoal;
+  calorieAdjustment: number | null;
+}
 
 export class MealPlanRequestError extends Error {
   constructor(message: string, public readonly status: number) {
@@ -46,7 +54,6 @@ export interface MealPlanResponse {
 }
 
 export type MealPlanNutritionGoal = "MAINTAIN" | "LOSE" | "GAIN";
-export interface GenerateMealPlanPayload { startDate: string | null; availableIngredients: string | null; nutritionGoal?: MealPlanNutritionGoal; calorieAdjustment?: number | null; }
 
 export function getMealPlans() {
   return apiGet<MealPlanResponse[]>("/api/meal-plans", { cache: "no-store" });

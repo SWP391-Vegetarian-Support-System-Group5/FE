@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText, { useUiText } from "@/components/UiText";
 
 
@@ -115,7 +117,7 @@ export default function BookmarksView() {
       {/* Toast alert */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-[#07241A] px-5 py-3 text-xs font-semibold text-white shadow-xl transition-all animate-fade-in flex items-center gap-2">
-          <span>🔖</span>
+          <span><ContentIcon name="bookmark" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
           <span>{toastMessage}</span>
         </div>
       )}
@@ -226,7 +228,7 @@ export default function BookmarksView() {
       {loading ? <p role="status" className="py-12 text-center text-sm">Đang tải bài đã lưu…</p> : error ? <div role="alert" className="my-6 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} <Link href="/login" className="underline">Đăng nhập</Link><button className="ml-4 underline" onClick={() => setRevision(n => n + 1)}>Thử lại</button></div> : sortedItems.length === 0 ? (
         <div className="my-16 rounded-3xl bg-white border border-[#EFEEEB] p-12 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F3F0] text-2xl">
-            🔖
+            <ContentIcon name="bookmark" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
           </div>
           <h3 className="mt-4 font-serif text-xl font-bold text-[#07241A]"><UiText text={"Chưa có mục nào được lưu"} /></h3>
           <p className="mt-1 text-xs text-[#727974] max-w-sm mx-auto"><UiText text={"Khám phá các công thức nấu ăn thuần chay hoặc nhà hàng yêu thích và nhấn lưu lại để đưa vào bộ sưu tập cá nhân."} /></p>
@@ -294,7 +296,7 @@ export default function BookmarksView() {
 
                 {item.rating && (
                   <div className="absolute bottom-3 left-3.5 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-sm px-2.5 py-0.5 text-[11px] font-semibold text-white">
-                    <span className="text-amber-300">★</span>
+                    <span className="text-amber-300"><ContentIcon name="star" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" fill="currentColor" /></span>
                     <span>{item.rating.score.toFixed(1)} / 5</span>
 
                   </div>
@@ -331,7 +333,7 @@ export default function BookmarksView() {
                       item.isBookmarked ? "text-[#99462A]" : "text-[#727974]"
                     }`}
                   >
-                    <span>🔖</span>
+                    <span><ContentIcon name="bookmark" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                     <span>{item.isBookmarked ? ui("Bookmarked") : ui("Removed")}</span>
                   </span>
                 </div>

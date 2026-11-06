@@ -3,6 +3,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { AdminModerationProvider } from "@/context/AdminModerationContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import AuthAccessBoundary from "@/components/AuthAccessBoundary";
+import InteractionEffects from "@/components/ui/InteractionEffects";
+import NavigationLoading from "@/components/ui/NavigationLoading";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
@@ -29,6 +31,8 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased selection:bg-[#D9E6DC] selection:text-[#07241A]">
+        <InteractionEffects />
+        <NavigationLoading />
         <LanguageProvider>
           <AuthProvider>
             <AdminModerationProvider><AuthAccessBoundary>{children}</AuthAccessBoundary></AdminModerationProvider>
