@@ -154,28 +154,28 @@ export default function AdminMembersPage() {
   }
 
   // Export filtered list to CSV
-  function handleExportCsv() {
-    if (filtered.length === 0) return;
-    const csvHeaders = ["ID", "Full Name", "Email", "Role", "Status", "Joined Date"];
-    const csvRows = filtered.map((m) => [
-      m.userId,
-      `"${m.fullName.replace(/"/g, '""')}"`,
-      `"${m.email.replace(/"/g, '""')}"`,
-      m.role,
-      m.isActive ? "Active" : "Suspended",
-      `"${formatJoinedDate(m, locale)}"`,
-    ]);
-    const csvContent =
-      "data:text/csv;charset=utf-8,\uFEFF" +
-      [csvHeaders.join(","), ...csvRows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `veggiemate_members_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  // function handleExportCsv() {
+  //   if (filtered.length === 0) return;
+  //   const csvHeaders = ["ID", "Full Name", "Email", "Role", "Status", "Joined Date"];
+  //   const csvRows = filtered.map((m) => [
+  //     m.userId,
+  //     `"${m.fullName.replace(/"/g, '""')}"`,
+  //     `"${m.email.replace(/"/g, '""')}"`,
+  //     m.role,
+  //     m.isActive ? "Active" : "Suspended",
+  //     `"${formatJoinedDate(m, locale)}"`,
+  //   ]);
+  //   const csvContent =
+  //     "data:text/csv;charset=utf-8,\uFEFF" +
+  //     [csvHeaders.join(","), ...csvRows.map((e) => e.join(","))].join("\n");
+  //   const encodedUri = encodeURI(csvContent);
+  //   const link = document.createElement("a");
+  //   link.setAttribute("href", encodedUri);
+  //   link.setAttribute("download", `veggiemate_members_${new Date().toISOString().slice(0, 10)}.csv`);
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  // }
 
 
   // Generate pagination items with ellipses
@@ -337,7 +337,7 @@ export default function AdminMembersPage() {
         </div>
 
         {/* Export CSV Button */}
-        <button
+        {/* <button
           type="button"
           onClick={handleExportCsv}
           title={t("Export members", "Xuất danh sách thành viên")}
@@ -349,7 +349,7 @@ export default function AdminMembersPage() {
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-        </button>
+        </button> */}
       </div>
 
       {/* Alerts & Notifications */}
@@ -416,11 +416,10 @@ export default function AdminMembersPage() {
                         }}
                         tabIndex={0}
                         aria-label={t(`View ${member.fullName}`, `Xem ${member.fullName}`)}
-                        className={`group relative cursor-pointer transition ${
-                          isSelected
+                        className={`group relative cursor-pointer transition ${isSelected
                             ? "bg-[#F0F7F4]"
                             : "hover:bg-[#FAF9F6] focus:bg-[#FAF9F6]"
-                        }`}
+                          }`}
                       >
                         {/* Member Column with Avatar & Subtitle */}
                         <td className="relative py-4 pl-6 pr-4">
@@ -556,11 +555,10 @@ export default function AdminMembersPage() {
                       type="button"
                       onClick={() => setPage(pageItem)}
                       aria-label={`${t("Page", "Trang")} ${pageItem}`}
-                      className={`flex h-7 min-w-7 items-center justify-center rounded-lg text-xs font-semibold transition ${
-                        isCurrent
+                      className={`flex h-7 min-w-7 items-center justify-center rounded-lg text-xs font-semibold transition ${isCurrent
                           ? "bg-[#1E3A2F] text-white shadow-2xs"
                           : "text-[#424844] hover:bg-[#FAF9F6]"
-                      }`}
+                        }`}
                     >
                       {pageItem}
                     </button>
@@ -788,11 +786,10 @@ export default function AdminMembersPage() {
                         type="button"
                         disabled={saving || selected.userId === user?.userId}
                         onClick={() => void updateStatus(selected)}
-                        className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                          selected.isActive
+                        className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${selected.isActive
                             ? "border border-red-200 bg-[#FFF1EE] text-[#C2410C] hover:bg-[#FEE2E2]"
                             : "border border-emerald-200 bg-[#EAF7EE] text-[#166534] hover:bg-[#DCFCE7]"
-                        }`}
+                          }`}
                       >
                         {selected.isActive ? (
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -808,8 +805,8 @@ export default function AdminMembersPage() {
                           {saving
                             ? t("Updating...", "Đang cập nhật...")
                             : selected.isActive
-                            ? t("Suspend Member", "Đình chỉ thành viên")
-                            : t("Reactivate Member", "Kích hoạt lại thành viên")}
+                              ? t("Suspend Member", "Đình chỉ thành viên")
+                              : t("Reactivate Member", "Kích hoạt lại thành viên")}
                         </span>
                       </button>
                     </div>
