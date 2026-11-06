@@ -702,7 +702,7 @@ export default function AdminRestaurantsPage() {
                   {/* RATING & COMMUNITY */}
                   <div className="col-span-2">
                     <div className="flex items-center gap-1 text-xs font-bold text-[#07241A]">
-                      <span className="text-amber-500 text-sm">★</span>
+                      <span className="text-amber-500 text-sm"><ContentIcon name="star" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" fill="currentColor" /></span>
                       <span>{rating} / 5.0</span>
                     </div>
                     <p className="mt-0.5 text-[11px] text-[#727974]">

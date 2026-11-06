@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -583,7 +585,7 @@ export default function AdminContentPage() {
                                   />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center bg-[#EAF7EE] text-sm text-[#1E3A2F]">
-                                    🍲
+                                    <ContentIcon name="pot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                                   </div>
                                 )}
                               </div>
@@ -663,7 +665,7 @@ export default function AdminContentPage() {
                                   aria-label={t(`Remove ${item.title}`, `Xóa ${item.title}`)}
                                   className="text-[#727974] opacity-0 transition group-hover:opacity-100 hover:text-red-600 disabled:opacity-40"
                                 >
-                                  ✕
+                                  <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                                 </button>
                               )}
                             </div>
@@ -759,7 +761,7 @@ export default function AdminContentPage() {
                     aria-label={t("Close moderation panel", "Đóng bảng kiểm duyệt")}
                     className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F4F2EE] text-xs font-bold text-[#727974] transition hover:bg-[#EBE7DF] hover:text-[#07241A]"
                   >
-                    ✕
+                    <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                   </button>
                 </div>
 
@@ -960,7 +962,7 @@ export default function AdminContentPage() {
                 <>
                   <div className="grid gap-5 md:grid-cols-[220px_1fr]">
                     <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#E8F0E5]">
-                      {detailRecipe.imageUrl || detailRecipe.thumbnailUrl ? <Image src={getMediaUrl(detailRecipe.imageUrl || detailRecipe.thumbnailUrl || "")} alt={detailRecipe.recipeName || detailRecipe.title} fill className="object-cover" unoptimized /> : <div className="flex h-full items-center justify-center text-5xl">🍲</div>}
+                      {detailRecipe.imageUrl || detailRecipe.thumbnailUrl ? <Image src={getMediaUrl(detailRecipe.imageUrl || detailRecipe.thumbnailUrl || "")} alt={detailRecipe.recipeName || detailRecipe.title} fill className="object-cover" unoptimized /> : <div className="flex h-full items-center justify-center text-5xl"><ContentIcon name="pot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></div>}
                     </div>
                     <div>
                       <h3 className="font-serif text-xl font-bold text-[#07241A]">{detailRecipe.recipeName || detailRecipe.title}</h3>

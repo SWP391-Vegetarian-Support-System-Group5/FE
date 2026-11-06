@@ -28,3 +28,13 @@ export function mealPlanDay(startDate: string, dayNumber: number, locale: string
     date: formatMealPlanDate(date),
   };
 }
+
+export function mealPlanWeekRange(startDate: string | null, locale = "vi-VN"): string | null {
+  if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate.slice(0, 10))) return null;
+  const first = new Date(`${startDate.slice(0, 10)}T00:00:00Z`);
+  if (!Number.isFinite(first.getTime()) || first.toISOString().slice(0, 10) !== startDate.slice(0, 10)) return null;
+  const last = new Date(first);
+  last.setUTCDate(last.getUTCDate() + 6);
+  const format = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
+  return `${format.format(first)} – ${format.format(last)}`;
+}

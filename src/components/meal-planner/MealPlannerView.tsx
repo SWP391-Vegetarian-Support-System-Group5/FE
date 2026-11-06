@@ -1,5 +1,10 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
+import MealGoalDialog from "./MealGoalDialog";
+import { GOAL_LABELS } from "@/lib/meal-plan-goals";
+
 import { useLanguage } from "@/context/LanguageContext";
 import UiText, { useUiText } from "@/components/UiText";
 
@@ -220,6 +225,7 @@ export default function MealPlannerView() {
   const ui = useUiText();
   const { t } = useLanguage();
   const {
+    goalContext, inputProblems, confirmGeneration, closeGoalDialog, selectedWeekRange, savedWeekRange, planNutrition,
     imagePollingNotice, imagesPending, reloadMealImages,
     planId, applyMealImage, refreshMealImages, setImageBusy,
     days, allergens, newAllergen, setNewAllergen, showAddAllergen, setShowAddAllergen,
@@ -234,7 +240,7 @@ export default function MealPlannerView() {
       {/* Toast */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-[#07241A] px-5 py-3 text-xs font-semibold text-white shadow-xl transition-all animate-fade-in flex items-center gap-2">
-          <span>🌿</span>
+          <span><ContentIcon name="leaf" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
           <span>{<UiText text={toastMessage} />}</span>
         </div>
       )}
@@ -264,7 +270,7 @@ export default function MealPlannerView() {
             disabled={isRegenerating || loading}
             className="flex items-center gap-2 rounded-xl bg-white border border-[#EFEEEB] px-4 py-2.5 text-xs font-semibold text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition cursor-pointer"
           >
-            <span>✨</span>
+            <span><ContentIcon name="sparkles" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
             <span>{isRegenerating ? t("Generating…", "Đang tạo…") : days.length ? t("Regenerate Plan", "Tạo lại thực đơn") : t("Generate My 7-Day Plan", "Tạo thực đơn 7 ngày")}</span>
           </button>
 
@@ -295,7 +301,27 @@ export default function MealPlannerView() {
       {loading && <p role="status" className="py-4">{ui("Loading...")}</p>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
       {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
-      <label className="mt-4 block text-sm">{ui("Start date")} <input type="text" inputMode="numeric" placeholder="dd/mm/yy" maxLength={10} value={startDate} onChange={e => setStartDate(e.target.value)} className="ml-3 w-36 rounded-lg border p-2" /></label>
+      <section className="mt-5 rounded-2xl border border-[#E5E7DF] bg-white p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="text-xs font-medium uppercase tracking-wider text-[#727974]">{savedWeekRange ? "Tuần đang xem" : "Tuần dự kiến"}</p>
+            <p className="mt-1 font-serif text-xl text-[#07241A]">{savedWeekRange || selectedWeekRange || "Chọn ngày bắt đầu"}</p>
+            {planNutrition && <p className="mt-2 text-sm text-[#254B38]">{GOAL_LABELS[planNutrition.goal]} · {Math.round(planNutrition.target).toLocaleString("vi-VN")} kcal/ngày</p>}
+          </div>
+          <label className="flex flex-col gap-1.5 text-xs text-[#727974]">Ngày bắt đầu tạo thực đơn
+            <input type="text" inputMode="numeric" placeholder="dd/mm/yyyy" maxLength={10} value={startDate} disabled={isRegenerating}
+              onChange={e => setStartDate(e.target.value)} className="w-full rounded-xl border border-[#E5E7DF] bg-[#FBF9F6] px-3 py-2.5 text-sm text-[#07241A] outline-none focus:border-[#254B38] sm:w-40" />
+          </label>
+        </div>
+        {savedWeekRange && selectedWeekRange && savedWeekRange !== selectedWeekRange && <p className="mt-3 text-xs text-[#727974]">Tuần sẽ tạo mới: {selectedWeekRange}</p>}
+      </section>
+      {inputProblems.length > 0 && <div role="alert" className="vm-feedback mt-4 rounded-2xl border border-[#E6CFBB] bg-[#FFF8F0] p-5">
+        <h2 className="text-sm font-medium text-[#754624]">Cập nhật đầu vào trước khi tạo thực đơn</h2>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#754624]">{inputProblems.map(problem => <li key={problem}>{problem}</li>)}</ul>
+        <Link href="/profile" className="vm-button mt-3 inline-block text-sm font-medium text-[#254B38] underline underline-offset-4">Cập nhật hồ sơ sức khỏe →</Link>
+        {inputProblems.includes("Thêm ít nhất một nguyên liệu sẵn có") && <a href="#meal-pantry" className="vm-button ml-4 mt-3 inline-block text-sm font-medium text-[#254B38] underline underline-offset-4">Thêm nguyên liệu →</a>}
+      </div>}
+      {goalContext && selectedWeekRange && <MealGoalDialog context={goalContext} weekRange={selectedWeekRange} busy={isRegenerating}
+        error={error} onClose={closeGoalDialog} onConfirm={(goal, adjustment) => void confirmGeneration(goal, adjustment)} />}
       {/* ── Main Two-Column Layout ─────────────────────────────────────── */}
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
         {/* =============================================================== */}
@@ -392,7 +418,7 @@ export default function MealPlannerView() {
                       aria-label={t(`Remove allergy ${alg}`, `Gỡ dị ứng ${alg}`)}
                       title={ui("Gỡ dị ứng")}
                     >
-                      ✕
+                      <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                     </button>
                   </span>
                 ))}
@@ -405,14 +431,14 @@ export default function MealPlannerView() {
               className="flex items-center justify-between rounded-2xl bg-[#E8F1EC] p-3 text-xs font-semibold text-[#07241A] transition hover:bg-[#D9E6DC]"
             >
               <div className="flex items-center gap-2">
-                <span>🔖</span>
+                <span><ContentIcon name="bookmark" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                 <span>{savedCount} {ui("Saved recipes")}</span>
               </div>
               <span>→</span>
             </Link>
           </div>
 
-          <section className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-xs">
+          <section id="meal-pantry" className="scroll-mt-24 rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-serif text-lg font-bold text-[#07241A]">Nguyên liệu sẵn có</h2>
               <span className="text-xs text-[#727974]">{pantryIngredients.length}</span>
@@ -421,13 +447,13 @@ export default function MealPlannerView() {
               {pantryIngredients.map(item => (
                 <span key={item} className="inline-flex items-center gap-2 rounded-md border border-[#D9E6DC] bg-[#E8F1EC] px-3 py-1.5 text-xs text-[#07241A]">
                   {item}
-                  <button type="button" onClick={() => handleRemovePantry(item)} aria-label={`Xóa nguyên liệu ${item}`} title="Xóa nguyên liệu" className="text-[#59635C] hover:text-red-700">×</button>
+                  <button type="button" disabled={isRegenerating} onClick={() => handleRemovePantry(item)} aria-label={`Xóa nguyên liệu ${item}`} title="Xóa nguyên liệu" className="text-[#59635C] hover:text-red-700 disabled:opacity-40">×</button>
                 </span>
               ))}
             </div>
             <form onSubmit={handleAddPantry} className="mt-4 flex gap-2">
-              <input type="text" value={newPantryItem} onChange={event => setNewPantryItem(event.target.value)} placeholder="Thêm nguyên liệu (ví dụ: sả)" aria-label="Tên nguyên liệu" className="min-w-0 flex-1 rounded-md border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-sm outline-none focus:border-[#1E3A2F]" />
-              <button type="submit" className="rounded-md bg-[#07241A] px-4 py-2 text-sm font-semibold text-white">Thêm</button>
+              <input type="text" disabled={isRegenerating} value={newPantryItem} onChange={event => setNewPantryItem(event.target.value)} placeholder="Thêm nguyên liệu (ví dụ: sả)" aria-label="Tên nguyên liệu" className="min-w-0 flex-1 rounded-md border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-sm outline-none focus:border-[#1E3A2F] disabled:opacity-40" />
+              <button type="submit" disabled={isRegenerating || !newPantryItem.trim()} className="rounded-md bg-[#07241A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Thêm</button>
             </form>
           </section>
         </div>
@@ -523,7 +549,7 @@ export default function MealPlannerView() {
                         title={t("Replace meal", "Thay món")}
                         className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <span>🔄</span>
+                        <span><ContentIcon name="refresh" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                         <span><UiText text={"Thay món"} /></span>
                       </button>
                     </div>
@@ -556,12 +582,12 @@ export default function MealPlannerView() {
                 className="object-cover"
                 unoptimized
               /> : <div className="flex h-full items-center justify-center text-sm text-[#727974]">Chưa có ảnh</div>}
-              <button
+              <button aria-label={t("Close", "Đóng")}
                 type="button"
                 onClick={() => { if (!isRegenerating) setSelectedMealForView(null); }}
                 className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md transition hover:bg-white"
               >
-                ✕
+                <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
               </button>
             </div>
 
@@ -589,7 +615,7 @@ export default function MealPlannerView() {
 
               {/* Ingredients */}
               <div className="space-y-1.5 border-t border-[#EFEEEB] pt-3">
-                <h4 className="text-xs font-bold text-[#07241A]"><UiText text={"🥗 Nguyên liệu cần chuẩn bị:"} /></h4>
+                <h4 className="text-xs font-bold text-[#07241A]"><><ContentIcon name="salad" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /> <UiText text={"Nguyên liệu cần chuẩn bị:"} /></></h4>
                 <ul className="list-disc pl-5 text-xs text-[#424844] space-y-1">
                   {selectedMealForView.ingredients.map((ing, i) => (
                     <li key={i}>{<UiText text={ing} />}</li>
@@ -599,7 +625,7 @@ export default function MealPlannerView() {
 
               {/* Steps */}
               <div className="space-y-1.5 border-t border-[#EFEEEB] pt-3">
-                <h4 className="text-xs font-bold text-[#07241A]"><UiText text={"🍳 Hướng dẫn chế biến:"} /></h4>
+                <h4 className="text-xs font-bold text-[#07241A]"><><ContentIcon name="pot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /> <UiText text={"Hướng dẫn chế biến:"} /></></h4>
                 <ol className="list-decimal pl-5 text-xs text-[#424844] space-y-1.5">
                   {selectedMealForView.steps.map((st, i) => (
                     <li key={i}>{st}</li>

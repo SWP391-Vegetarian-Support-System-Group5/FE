@@ -1,4 +1,12 @@
 import { apiFetch, apiGet } from "@/lib/api";
+import type { NutritionGoal } from "./meal-plan-goals";
+
+export interface GenerateMealPlanPayload {
+  startDate: string | null;
+  availableIngredients: string | null;
+  nutritionGoal: NutritionGoal;
+  calorieAdjustment: number | null;
+}
 
 export class MealPlanRequestError extends Error {
   constructor(message: string, public readonly status: number) {
@@ -25,6 +33,12 @@ export interface MealPlanResponse {
   bmi: number | null;
   bmiCategory: string | null;
   meals: MealPlanMealResponse[];
+  tdee?: number | null;
+  targetCaloriesPerDay?: number | null;
+  nutritionGoal?: NutritionGoal | null;
+  calorieAdjustment?: number | null;
+  goalWeightKg?: number | null;
+  estimatedWeeksToGoal?: number | null;
 }
 
 export function getMealPlans() {
@@ -37,7 +51,7 @@ export async function getMealPlan(planId: number, signal?: AbortSignal): Promise
   return await response.json() as MealPlanResponse;
 }
 
-export async function generateMealPlan(payload: { startDate: string | null; availableIngredients: string | null }) {
+export async function generateMealPlan(payload: GenerateMealPlanPayload) {
   const res = await apiFetch("/api/meal-plans/generate", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -46,7 +60,7 @@ export async function generateMealPlan(payload: { startDate: string | null; avai
   return (await res.json()) as MealPlanResponse;
 }
 
-export async function regenerateMealPlan(id: number, payload: { startDate: string | null; availableIngredients: string | null }) {
+export async function regenerateMealPlan(id: number, payload: GenerateMealPlanPayload) {
   const res = await apiFetch(`/api/meal-plans/${id}/regenerate`, {
     method: "POST",
     body: JSON.stringify(payload),

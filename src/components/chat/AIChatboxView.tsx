@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText, { useUiText } from "@/components/UiText";
 
 
@@ -493,7 +495,7 @@ function AIChatConversation() {
                 <div className="space-y-3 pt-2">
                   <div className="rounded-xl bg-white/70 p-3 text-xs leading-relaxed text-[#424844] border border-[#EFEEEB]">
                     <div className="flex items-center gap-1.5 font-semibold text-[#07241A] mb-1">
-                      <span>👤</span>
+                      <span><ContentIcon name="user" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                       <span>{t("Guest mode", "Chế độ khách")}</span>
                     </div>
                     {t("You are using a guest session (maximum 5 messages per session). Sign in to save your full chat history.", "Bạn đang sử dụng phiên khách (tối đa 5 tin nhắn/phiên). Đăng nhập để lưu trữ toàn bộ lịch sử trò chuyện lâu dài!")}
@@ -638,7 +640,7 @@ function AIChatConversation() {
               /* Welcome screen when empty */
               <div className="flex flex-col items-center justify-center py-10 max-w-xl mx-auto text-center space-y-6">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#07241A] text-white shadow-md">
-                  <span className="text-3xl">🤖</span>
+                  <span className="text-3xl"><ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                 </div>
                 <div className="space-y-2">
                   <h2 className="font-serif text-2xl font-bold text-[#07241A]"><UiText text={"Xin chào! Tôi có thể giúp gì cho bữa ăn chay của bạn?"} /></h2>
@@ -675,7 +677,7 @@ function AIChatConversation() {
                 return (
                   <div key={msg.chatMessageId || `ai-${index}`} className="flex items-start gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#07241A] text-white text-sm shadow-xs">
-                      🤖
+                      <ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                     </div>
                     <div className="flex flex-col items-start max-w-[88%] sm:max-w-[78%] space-y-2">
                       <div className="rounded-[2px_16px_16px_16px] bg-[#F5F3F0] border border-[#EFEEEB] px-5 py-4 text-sm leading-relaxed text-[#1B1C1A] shadow-xs space-y-3">
@@ -685,7 +687,7 @@ function AIChatConversation() {
                         {msg.relatedRecipes && msg.relatedRecipes.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-[#E4E2DF] space-y-2">
                             <div className="flex items-center gap-1.5 text-xs font-semibold text-[#07241A]">
-                              <span>🥗</span>
+                              <span><ContentIcon name="salad" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                               <span><UiText text={"Công thức liên quan:"} /></span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -696,7 +698,7 @@ function AIChatConversation() {
                                   className="flex items-center gap-2.5 rounded-xl bg-white p-2.5 border border-[#EFEEEB] hover:border-[#1E3A2F] hover:shadow-xs transition group"
                                 >
                                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#CAEADA] text-xs text-[#07241A]">
-                                    🍲
+                                    <ContentIcon name="pot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                                   </div>
                                   <span className="text-xs font-medium text-[#07241A] group-hover:text-[#1E3A2F] truncate">
                                     {recipe.title}
@@ -740,7 +742,7 @@ function AIChatConversation() {
             {isThinking && (
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#07241A] text-white text-sm shadow-xs">
-                  🤖
+                  <ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                 </div>
                 <div className="rounded-[2px_16px_16px_16px] bg-[#F5F3F0] border border-[#EFEEEB] px-4 py-3 text-xs text-[#424844] flex items-center gap-2 shadow-xs">
                   <span className="font-medium"><UiText text={"VeggieAI đang suy nghĩ"} /></span>
@@ -765,7 +767,7 @@ function AIChatConversation() {
               <div className="rounded-2xl bg-[#EFEEEB] border border-[#E4E2DF] p-6 shadow-sm space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#07241A] text-white">
-                    🔒
+                    <ContentIcon name="lock" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                   </div>
                   <div>
                     <h3 className="font-serif text-lg font-bold text-[#07241A]"><UiText text={"Mở khóa toàn bộ tính năng với tài khoản VeggieMate"} /></h3>

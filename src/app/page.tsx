@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import Link from "next/link";
 import UiText, { useUiText } from "@/components/UiText";
 import Navbar from "@/components/Navbar";
@@ -41,7 +43,7 @@ export default function HomePage() {
             <div className="lg:col-span-6">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 rounded-full bg-[#D9E6DC] px-3.5 py-1 text-[11px] font-semibold tracking-wider text-[#1E3A2F] uppercase">
-                <span>🌱</span>
+                <span><ContentIcon name="sprout" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                 <span><UiText text={"Lối sống chay"} /></span>
               </div>
 

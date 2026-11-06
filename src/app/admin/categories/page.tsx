@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import { Fragment, useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -340,7 +342,7 @@ export default function AdminCategoriesPage() {
             </svg>
             <span>{feedback}</span>
           </div>
-          <button type="button" onClick={() => setFeedback(null)} className="text-emerald-700 hover:text-emerald-900">✕</button>
+          <button aria-label={ui("Đóng")}  type="button" onClick={() => setFeedback(null)} className="text-emerald-700 hover:text-emerald-900"><ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></button>
         </div>
       )}
 
@@ -669,7 +671,7 @@ export default function AdminCategoriesPage() {
                           {dish.prepTime} • <span className="font-medium text-[#727974]">{dish.difficulty}</span>
                         </td>
                         <td className="px-4 py-3.5 font-semibold text-[#07241A]">
-                          ★ {dish.rating > 0 ? dish.rating : ui("Not rated")}
+                          <ContentIcon name="star" width="1em" height="1em" className="inline-block align-[-0.125em]" fill="currentColor" /> {dish.rating > 0 ? dish.rating : ui("Not rated")}
                         </td>
                         <td className="px-4 py-3.5">
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E7F3EC] px-2.5 py-0.5 text-xs font-semibold text-[#1E4D36]">
@@ -753,7 +755,7 @@ export default function AdminCategoriesPage() {
                   <tr>
                     <td colSpan={5} className="py-12 text-center text-xs text-[#727974]">
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <span className="text-3xl">🏷️</span>
+                        <span className="text-3xl"><ContentIcon name="tag" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                         <p className="font-semibold text-[#07241A]"><UiText text="Không tìm thấy danh mục phù hợp." /></p>
                         <button
                           type="button"
@@ -864,12 +866,12 @@ export default function AdminCategoriesPage() {
               <h2 className="font-serif text-lg font-bold text-[#07241A]">
                 {editingCategory ? ui("Edit Category") : ui("New Category")}
               </h2>
-              <button
+              <button aria-label={ui("Đóng")}
                 type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="rounded-lg p-1.5 text-[#727974] hover:bg-[#F2EFE9] hover:text-[#07241A]"
               >
-                ✕
+                <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
               </button>
             </div>
 

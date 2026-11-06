@@ -6,6 +6,7 @@
  */
 
 import { apiFetch, apiGet, apiPut } from "@/lib/api";
+import type { ActivityLevel } from "@/lib/profile-energy";
 
 // ─── Response types ─────────────────────────────────────────────────────────
 
@@ -16,6 +17,10 @@ export interface BackendUserProfile {
   email: string;
   fullName: string;
   sex: "MALE" | "FEMALE" | null;
+  birthDate?: string | null;
+  birthYear?: number | null;
+  goalWeightKg?: number | null;
+  activityLevel?: ActivityLevel | null;
   heightCm: number | null;
   weightKg: number | null;
   dietTypeId: number | null;
@@ -28,6 +33,10 @@ export interface BackendUserProfile {
 export interface UpdateProfilePayload {
   fullName: string;
   sex: "MALE" | "FEMALE" | null;
+  birthDate: string | null;
+  birthYear?: number | null;
+  goalWeightKg?: number | null;
+  activityLevel: ActivityLevel | null;
   heightCm: number | null;
   weightKg: number | null;
   dietTypeId: number | null;

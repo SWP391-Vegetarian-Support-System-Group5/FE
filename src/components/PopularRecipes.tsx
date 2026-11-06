@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import FeedImage from "@/components/ui/FeedImage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -72,13 +74,13 @@ export default function PopularRecipes() {
             <p className="mt-1 text-xs text-[#424844]">{t("by", "bởi")} {post.authorName}</p>
             <div className="mt-3 flex items-center justify-between border-t border-[#EFEEEB] pt-3 text-xs">
               <div className="flex items-center gap-1 text-[#F59E0B]">
-                <span>★</span>
+                <span><ContentIcon name="star" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" fill="currentColor" /></span>
                 <span className="font-semibold text-[#1B1C1A]">{post.averageRating ? post.averageRating.toFixed(1) : t("New", "Mới")} / 5</span>
                 <span className="text-[#727974]">· {post.ratingCount} {t("ratings", "đánh giá")}</span>
               </div>
             </div>
             <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#727974]">
-              <span>💬 {post.commentCount} {t("comments", "bình luận")}</span>
+              <span><ContentIcon name="message" width="1em" height="1em" className="inline-block align-[-0.125em]" /> {post.commentCount} {t("comments", "bình luận")}</span>
             </div>
           </div>
         </Link>

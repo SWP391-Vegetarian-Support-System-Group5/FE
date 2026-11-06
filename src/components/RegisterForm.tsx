@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText, { useUiText } from "@/components/UiText";
 
 
@@ -216,7 +218,7 @@ export default function RegisterForm() {
             className="text-[#99462A]/60 hover:text-[#99462A]"
             title={ui("Đóng thông báo")}
           >
-            ✕
+            <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
           </button>
         </div>
       )}

@@ -14,7 +14,8 @@ import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { formatDietTypeName } from "@/lib/diet-type-display";
 import { localizeAmount, localizeIngredient, localizeRecipeTitle, localizeText } from "@/lib/localized-content";
 import type { DayPlan, MealItem } from "./MealPlannerView";
-import { initialMealPlanDate, mealPlanDay, parseMealPlanDate } from "@/lib/meal-plan-dates";
+import { initialMealPlanDate, mealPlanDay, parseMealPlanDate, mealPlanWeekRange } from "@/lib/meal-plan-dates";
+import { planningProfile, goalAllowed, goalLimits, normalizeGoal, type PlanningProfile, type NutritionGoal } from "@/lib/meal-plan-goals";
 
 export function useMealPlanner() {
   const { t, language, locale } = useLanguage();
@@ -42,6 +43,9 @@ export function useMealPlanner() {
   const [loading, setLoading] = useState(true);
   const [isRegenerating, setWorking] = useState(false);
   const [startDate, setStartDate] = useState(() => initialMealPlanDate());
+  const [goalContext, setGoalContext] = useState<PlanningProfile | null>(null);
+  const [goalOwner, setGoalOwner] = useState<string | null>(null);
+  const [inputProblems, setInputProblems] = useState<string[]>([]);
   const lock = useRef(false);
 
   const applyPolledPlan = useCallback((fresh: MealPlanResponse) => {
@@ -136,13 +140,53 @@ export function useMealPlanner() {
     catch (failure) { setError(failure instanceof Error ? failure.message : "Could not update meal plan."); }
     finally { lock.current = false; setWorking(false); }
   }
+  function validateGenerationInputs(context: PlanningProfile) {
+    const problems = [...context.missing];
+    if (!pantryIngredients.length) problems.push("Thêm ít nhất một nguyên liệu sẵn có");
+    if (!allergensReady) problems.push("Tải lại danh sách dị ứng trước khi tạo thực đơn");
+    if (context.age !== null && (context.age < 18 || context.age > 120)) problems.push("Hồ sơ chưa đủ điều kiện tạo thực đơn theo calo cho độ tuổi này");
+    if (!problems.length && !context.energy) problems.push("Thông tin sức khỏe chưa tính được nhu cầu năng lượng");
+    if (!parseMealPlanDate(startDate)) problems.push("Chọn ngày bắt đầu hợp lệ theo dd/mm/yyyy");
+    setInputProblems(problems);
+    return problems.length === 0;
+  }
   async function handleRegenerate() {
+    if (lock.current || loading) return;
+    setGoalContext(null);
+    setInputProblems([]);
     await run(async () => {
+      const session = getStoredToken();
+      if (!user || !session) throw new Error("Vui lòng đăng nhập để tạo thực đơn.");
+      const fresh = await getProfile();
+      if (getStoredToken() !== session) throw new Error("Phiên đăng nhập đã thay đổi. Vui lòng tải lại trang.");
+      setProfile(fresh);
+      const context = planningProfile(fresh, new Date().getFullYear());
+      if (validateGenerationInputs(context)) { setGoalOwner(user.uid); setGoalContext(context); }
+    });
+  }
+  async function confirmGeneration(goal: NutritionGoal, adjustment: number) {
+    if (!goalContext || goalOwner !== user?.uid) return;
+    await run(async () => {
+      const session = getStoredToken();
+      if (!user || !session) throw new Error("Vui lòng đăng nhập để tạo thực đơn.");
+      const fresh = await getProfile();
+      if (getStoredToken() !== session) throw new Error("Phiên đăng nhập đã thay đổi. Vui lòng tải lại trang.");
+      setProfile(fresh);
+      const context = planningProfile(fresh, new Date().getFullYear());
+      if (!validateGenerationInputs(context)) { setGoalContext(null); return; }
+      setGoalContext(context);
+      const limits = goalLimits(context, goal);
+      if (!goalAllowed(context.bmi, goal) || !Number.isInteger(adjustment) || adjustment < 0 || adjustment > limits.maxAdjustment ||
+        (adjustment !== 0 && (adjustment < 500 || adjustment % 50 !== 0)))
+        throw new Error("Mục tiêu không còn phù hợp với hồ sơ hiện tại. Vui lòng chọn lại mức điều chỉnh.");
+      const target = (limits.tdee ?? 0) + (goal === "LOSE" ? -adjustment : goal === "GAIN" ? adjustment : 0);
+      if (target < limits.minimumIntake) throw new Error("Mức năng lượng mục tiêu quá thấp cho chế độ tạo thực đơn này. Vui lòng chọn lại mục tiêu hoặc kiểm tra hồ sơ.");
       const parsedDate = parseMealPlanDate(startDate);
       if (!parsedDate) throw new Error(t("Enter a valid start date as dd/mm/yy (2000-2099).", "Nhập ngày bắt đầu hợp lệ theo dd/mm/yy (năm 2000–2099)."));
-      const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", ") || null };
+      const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", "), ...normalizeGoal(goal, adjustment) };
       const next = plan ? await regenerateMealPlan(plan.mealPlanId, payload) : await generateMealPlan(payload);
-      setPlan(next); setPlanOwner(user?.uid); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
+      if (getStoredToken() !== session) return;
+      setPlan(next); setPlanOwner(user?.uid); setGoalContext(null); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
     });
   }
   async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"]) {
@@ -239,10 +283,16 @@ export function useMealPlanner() {
     if (!profile || !profile.heightCm || !profile.weightKg || profile.heightCm <= 0 || profile.weightKg <= 0) return null;
     const heightInMeters = profile.heightCm / 100;
     const value = Math.round((profile.weightKg / (heightInMeters * heightInMeters)) * 100) / 100;
-    const category = value < 18.5 ? "Underweight" : value < 25 ? "Normal" : "Obese";
+    const category = value < 18.5 ? "Thiếu cân" : value < 25 ? "Trong khoảng tham chiếu" : value < 30 ? "Thừa cân" : "BMI cao";
     return { value, category };
   }, [profile]);
   return {
+    goalContext: goalOwner === user?.uid ? goalContext : null,
+    inputProblems, confirmGeneration, closeGoalDialog: () => { if (!lock.current) setGoalContext(null); },
+    selectedWeekRange: mealPlanWeekRange(parseMealPlanDate(startDate), locale),
+    savedWeekRange: mealPlanWeekRange(plan?.startDate ?? null, locale),
+    planNutrition: plan?.tdee && plan?.targetCaloriesPerDay && plan?.nutritionGoal
+      ? { tdee: plan.tdee, target: plan.targetCaloriesPerDay, goal: plan.nutritionGoal } : null,
     imagePollingNotice, imagesPending: hasPendingImages(plan), reloadMealImages: () => run(refreshMealImages),
     planId: plan?.mealPlanId, applyMealImage, refreshMealImages, setImageBusy,
     days, allergens: selectedAllergens.map(item => item.name), newAllergen,

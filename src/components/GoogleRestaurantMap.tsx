@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText from "@/components/UiText";
 
 
@@ -98,7 +100,7 @@ export default function GoogleRestaurantMap({ center, restaurants, selectedId, o
     return (
       <div className="flex min-h-[390px] items-center justify-center bg-[#e8eee9] px-6 text-center">
         <div className="max-w-md rounded-2xl bg-white/90 p-6 shadow-sm">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#d9eee3] text-xl">📍</div>
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#d9eee3] text-xl"><ContentIcon name="pin" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></div>
           <h3 className="mt-3 font-serif text-xl font-semibold text-[#07241A]"><UiText text={"Google Maps chưa được cấu hình"} /></h3>
           <p className="mt-2 text-sm leading-6 text-[#5d655f]"><UiText text={"Thêm"} />{" "}<code className="rounded bg-[#f2f0ec] px-1.5 py-0.5">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>{" "}<UiText text={"vào file"} />{" "}<code>.env.local</code>{" "}<UiText text={"để bật bản đồ tương tác."} /></p>
         </div>

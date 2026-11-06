@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -639,7 +641,7 @@ export default function AdminMembersPage() {
                   aria-label={t("Close profile", "Đóng hồ sơ")}
                   className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F4F2EE] text-xs font-bold text-[#727974] transition hover:bg-[#EBE7DF] hover:text-[#07241A]"
                 >
-                  ✕
+                  <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                 </button>
               </div>
 
@@ -868,12 +870,12 @@ export default function AdminMembersPage() {
                   {t("Recipient", "Người nhận")}: {selected.fullName} ({selected.email})
                 </p>
               </div>
-              <button
+              <button aria-label={t("Close", "Đóng")}
                 type="button"
                 onClick={() => setShowNotifyModal(false)}
                 className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F4F2EE] text-xs font-bold text-[#727974] hover:bg-[#EBE7DF]"
               >
-                ✕
+                <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
               </button>
             </div>
 
