@@ -112,6 +112,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     });
   }, [loading, loadFailure]);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errors, setErrors] = useState<ProfileErrors>({});
 
@@ -400,6 +401,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
 
   // ── Cancel ───────────────────────────────────────────────────────────────
   const handleCancel = () => {
+    setSaveError(null);
     setDraft({ ...savedDraft });
     setSelectedAllergenIds([...savedAllergenIds]);
     setErrors({});
@@ -409,6 +411,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (customAllergenBusy || saving) return;
+    setSaveError(null);
     const validationErrors = validateDraft(draft, currentYear);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -469,8 +472,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
       setErrors({});
       setToastMessage("Profile updated successfully.");
     } catch (err) {
-      console.error("Save failed", err);
-      setToastMessage("Something went wrong. Your changes were not saved.");
+      setSaveError(err instanceof Error ? err.message : "Không thể hoàn tất lưu hồ sơ. Vui lòng thử lại.");
     } finally {
       setSaving(false);
     }
@@ -518,6 +520,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <>
+      {saveError && <div role="alert" className="vm-feedback rounded-2xl border border-[#E6C6BA] bg-[#FFF6F2] p-4 text-sm text-[#99462A]">
+        <p className="font-semibold">{t("Could not finish saving your profile", "Chưa thể hoàn tất lưu hồ sơ")}</p>
+        <p className="mt-1 whitespace-pre-line"><UiText text={saveError} /></p>
+      </div>}
       {/* Toast notification */}
       {toastMessage && (
         <div className="fixed top-24 right-6 z-50 max-w-sm animate-fade-in rounded-xl bg-[#07241A] px-5 py-3 text-sm text-white shadow-lg">
@@ -587,7 +593,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
       </section>
 
       {/* ═══ 3. PERSONAL INFORMATION CARD ═══ */}
-      <section className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <section className="vm-form-panel rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
             <h2 className="font-serif text-[22px] leading-7 font-semibold text-[#07241A]"><UiText text={"Thông tin cá nhân"} /></h2>
@@ -703,7 +709,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
       </section>
 
       {/* ═══ 4. HEALTH PROFILE CARD ═══ */}
-      <section className="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <section className="vm-form-panel rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
@@ -1079,7 +1085,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
       </section>
 
       {/* ═══ 5. LIVING LOCATION CARD ═══ */}
-      <section id="living-location" className="scroll-mt-28 flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <section id="living-location" className="vm-form-panel scroll-mt-28 flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">

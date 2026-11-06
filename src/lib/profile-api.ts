@@ -101,8 +101,26 @@ export function getProfile() {
 }
 
 /** Update the authenticated user's profile */
-export function updateProfile(payload: UpdateProfilePayload) {
-  return apiPut<BackendUserProfile>("/api/users/me/profile", payload);
+export async function updateProfile(payload: UpdateProfilePayload) {
+  const response = await apiFetch("/api/users/me/profile", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    let message = `Không thể lưu hồ sơ (HTTP ${response.status}).`;
+    if (body && typeof body === "object") {
+      const error = body as { message?: unknown; errors?: unknown };
+      const details = Array.isArray(error.errors)
+        ? error.errors
+        : error.errors && typeof error.errors === "object" ? Object.values(error.errors).flat() : [];
+      const messages = details.filter((item): item is string => typeof item === "string" && !!item.trim());
+      if (messages.length) message = [...new Set(messages)].join(" ");
+      else if (typeof error.message === "string" && error.message.trim()) message = error.message;
+    }
+    throw new Error(message);
+  }
+  return response.json() as Promise<BackendUserProfile>;
 }
 
 /** Fetch all available diet types */

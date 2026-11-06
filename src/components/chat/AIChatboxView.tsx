@@ -74,7 +74,7 @@ function PromptSuggestions({ disabled, onSelect }: { disabled: boolean; onSelect
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         {SAMPLE_PROMPTS.map(prompt => (
           <button key={prompt} type="button" disabled={disabled} onClick={() => onSelect(ui(prompt))}
-            className="rounded-xl border border-[#EFEEEB] bg-white p-3 text-left text-xs font-medium text-[#07241A] shadow-xs transition-colors duration-200 hover:border-[#1E3A2F] hover:bg-[#F5F3F0] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none">
+            className="vm-button rounded-2xl border border-[#DDE7D8] bg-white p-4 text-left text-sm leading-6 font-medium text-[#07241A] shadow-xs transition-colors duration-200 hover:border-[#1E3A2F] hover:bg-[#F5F3F0] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none">
             {ui(prompt)}
           </button>
         ))}
@@ -118,12 +118,14 @@ function AIChatConversation() {
   const signupRequired = !user && (serverSignupRequired || remainingGuestMessages === 0);
 
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const messageStreamRef = useRef<HTMLDivElement>(null);
+  const followLatestRef = useRef(true);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto scroll to latest message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const stream = messageStreamRef.current;
+    if (stream && followLatestRef.current) stream.scrollTop = stream.scrollHeight;
   }, [messages, isThinking]);
 
   // Load chat history for authenticated user
@@ -236,6 +238,7 @@ function AIChatConversation() {
     setIsLoadingSession(true);
     setError(null);
     setSignupRequired(false);
+    followLatestRef.current = true;
     setIsMobileSidebarOpen(false);
 
     try {
@@ -273,7 +276,7 @@ function AIChatConversation() {
         setSessions((prev) => [newSession, ...prev]);
       }
       setTimeout(() => {
-        inputRef.current?.focus();
+        inputRef.current?.focus({ preventScroll: true });
       }, 100);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Không thể tạo hội thoại mới";
@@ -299,6 +302,7 @@ function AIChatConversation() {
     }
 
     // Add optimistic USER message
+    followLatestRef.current = true;
     const optimisticMsg: ChatMessageItem = {
       sender: "USER",
       content,
@@ -383,13 +387,13 @@ function AIChatConversation() {
   const isLoggedIn = !authLoading && (!!user || !!getStoredToken());
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="relative flex h-[calc(100vh-140px)] min-h-[640px] max-h-[850px] gap-6">
+    <div className="mx-auto h-full max-w-[1440px] p-2 sm:p-4 lg:px-6">
+      <div className="relative flex h-full min-h-0 gap-4">
         {/* ========================================================================= */}
         {/* Left Sidebar: Chat History */}
         {/* ========================================================================= */}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-72 transform bg-[#F5F3F0] p-5 shadow-lg transition-transform duration-300 md:static md:z-auto md:w-72 md:translate-x-0 md:rounded-2xl md:border md:border-[#EFEEEB] md:shadow-xs flex flex-col justify-between shrink-0 ${
+          className={`fixed inset-y-0 left-0 z-40 w-72 transform bg-[#EFF4EC] p-4 shadow-lg transition-transform duration-200 motion-reduce:transition-none md:static md:z-auto md:w-72 md:translate-x-0 md:rounded-3xl md:border md:border-[#DFE7DA] md:shadow-xs flex flex-col justify-between shrink-0 ${
             isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -401,7 +405,7 @@ function AIChatConversation() {
               <button
                 type="button"
                 onClick={() => setIsMobileSidebarOpen(false)}
-                className="rounded-lg p-1 text-[#727974] hover:bg-black/5"
+                aria-label="Đóng lịch sử hội thoại" className="rounded-lg p-1 text-[#727974] hover:bg-black/5"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -433,7 +437,7 @@ function AIChatConversation() {
             </button>
 
             {/* History Groupings List */}
-            <div className="mt-5 flex-1 overflow-y-auto pr-1 space-y-4">
+            <div className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 space-y-4">
               {isLoggedIn ? (
                 isLoadingHistory && sessions.length === 0 ? (
                   <div className="space-y-2 pt-2">
@@ -546,9 +550,9 @@ function AIChatConversation() {
         {/* ========================================================================= */}
         {/* Right Main Chat Area */}
         {/* ========================================================================= */}
-        <section className="flex flex-1 flex-col overflow-hidden rounded-2xl bg-white border border-[#EFEEEB] shadow-xs">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl bg-white border border-[#E2E9DF] shadow-[0_8px_32px_#173C2D08]">
           {/* ── Chat Header ─────────────────────────────────────────────── */}
-          <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#EFEEEB] bg-[#F5F3F0] px-5 sm:px-6">
+          <header className="flex min-h-16 shrink-0 items-center justify-between gap-2 border-b border-[#E2E9DF] bg-[#F0F6EE] px-3 py-3 sm:px-6">
             <div className="flex items-center gap-3">
               {/* Mobile Sidebar toggle button */}
               <button
@@ -628,7 +632,7 @@ function AIChatConversation() {
           </header>
 
           {/* ── Message Stream Canvas ───────────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto bg-[#FBF9F6] p-5 sm:p-6 space-y-6">
+          <div ref={messageStreamRef} onScroll={event => { const el = event.currentTarget; followLatestRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100; }} role="region" aria-label="Nội dung cuộc trò chuyện" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#FDFCF9] p-3 sm:p-6 space-y-6 [scrollbar-gutter:stable]">
             {isLoadingSession && messages.length === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-[#727974]">
                 <div className="flex items-center gap-2">
@@ -638,7 +642,7 @@ function AIChatConversation() {
               </div>
             ) : messages.length === 0 ? (
               /* Welcome screen when empty */
-              <div className="flex flex-col items-center justify-center py-10 max-w-xl mx-auto text-center space-y-6">
+              <div className="flex min-h-full flex-col items-center justify-center py-6 max-w-2xl mx-auto text-center space-y-5">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#07241A] text-white shadow-md">
                   <span className="text-3xl"><ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                 </div>
@@ -657,10 +661,10 @@ function AIChatConversation() {
 
                 if (isUser) {
                   return (
-                    <div key={msg.chatMessageId || `user-${index}`} className="flex justify-end gap-3">
-                      <div className="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
+                    <div key={msg.chatMessageId || `user-${index}`} className="vm-chat-message flex justify-end gap-3">
+                      <div className="flex min-w-0 flex-col items-end max-w-[85%] sm:max-w-[75%]">
                         <div className="rounded-[16px_2px_16px_16px] bg-[#07241A] px-5 py-3.5 text-sm leading-relaxed text-white shadow-xs">
-                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          <p className="whitespace-pre-wrap wrap-break-word">{msg.content}</p>
                         </div>
                         <span className="mt-1 px-1 text-[11px] text-[#727974]">
                           {formatMessageTime(msg.createdAt)}
@@ -675,12 +679,12 @@ function AIChatConversation() {
 
                 // AI Message
                 return (
-                  <div key={msg.chatMessageId || `ai-${index}`} className="flex items-start gap-3">
+                  <div key={msg.chatMessageId || `ai-${index}`} className="vm-chat-message flex items-start gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#07241A] text-white text-sm shadow-xs">
                       <ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                     </div>
-                    <div className="flex flex-col items-start max-w-[88%] sm:max-w-[78%] space-y-2">
-                      <div className="rounded-[2px_16px_16px_16px] bg-[#F5F3F0] border border-[#EFEEEB] px-5 py-4 text-sm leading-relaxed text-[#1B1C1A] shadow-xs space-y-3">
+                    <div className="flex min-w-0 flex-1 flex-col items-start sm:max-w-[88%] space-y-2">
+                      <div className="rounded-[2px_16px_16px_16px] bg-white border border-[#E5EBE0] px-4 py-4 sm:px-5 text-sm leading-7 text-[#1B1C1A] shadow-xs space-y-3">
                         <AIMessageText content={msg.content} />
 
                         {/* Related Recipes if present */}
@@ -740,7 +744,7 @@ function AIChatConversation() {
 
             {/* Thinking status */}
             {isThinking && (
-              <div className="flex items-start gap-3">
+              <div className="vm-chat-message flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#07241A] text-white text-sm shadow-xs">
                   <ContentIcon name="bot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                 </div>
@@ -765,7 +769,7 @@ function AIChatConversation() {
             {/* Signup required card matching Figma node 2:4570 */}
             {signupRequired && (
               <div className="rounded-2xl bg-[#EFEEEB] border border-[#E4E2DF] p-6 shadow-sm space-y-4">
-                <div className="flex items-start gap-3">
+                <div className="vm-chat-message flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#07241A] text-white">
                     <ContentIcon name="lock" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                   </div>
@@ -787,16 +791,17 @@ function AIChatConversation() {
               </div>
             )}
 
-            <div ref={messagesEndRef} />
           </div>
 
           {/* ── Footer Sticky Bottom Input Bar & Disclaimer ─────────────── */}
-          <footer className="border-t border-[#EFEEEB] bg-[#F5F3F0] p-4 sm:p-5">
+          <footer className="shrink-0 border-t border-[#E2E9DF] bg-white p-3 sm:p-4">
             <form onSubmit={handleFormSubmit} className="space-y-2">
               <div className="flex items-center gap-2 rounded-2xl bg-white border border-[#EFEEEB] px-4 py-1.5 shadow-xs transition focus-within:border-[#1E3A2F] focus-within:ring-1 focus-within:ring-[#1E3A2F]">
-                <input
+                <textarea
                   ref={inputRef}
-                  type="text"
+                  rows={2}
+                  aria-label="Tin nhắn cho VeggieAI"
+                  onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void handleSendMessage(); } }}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   disabled={isThinking || isLoadingSession || authLoading || signupRequired}
@@ -806,7 +811,7 @@ function AIChatConversation() {
                       ? ui("Vui lòng đăng nhập để tiếp tục trò chuyện...")
                       : ui("Ask VeggieAI about nutrition, substitutions, or recipes...")
                   }
-                  className="flex-1 bg-transparent py-2 text-sm text-[#07241A] placeholder-[#727974] outline-none disabled:opacity-60"
+                  className="min-w-0 flex-1 resize-none bg-transparent py-2 text-sm leading-6 text-[#07241A] placeholder-[#727974] outline-none disabled:opacity-60"
                 />
 
                 {/* Character Counter if typing much */}

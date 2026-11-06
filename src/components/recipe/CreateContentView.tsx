@@ -7,6 +7,7 @@ import ImageManager from "@/components/ui/ImageManager";
 import { uploadPostImage, deletePostImage, imageError, ImageRequestError } from "@/lib/image-api";
 import UploadProgress from "@/components/ui/UploadProgress";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { deletePost } from "@/lib/post-api";
 import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -125,10 +126,33 @@ function RecipeContentView() {
     text: string;
   } | null>(null);
   const [publishedResult, setPublishedResult] = useState<RecipeResponse | null>(null);
+  const [confirmDeletePost, setConfirmDeletePost] = useState(false);
+  const deleteLock = useRef(false);
+  const createdPost = useRef<RecipeResponse | null>(null);
+
+  async function deleteCreatedPost() {
+    if (!publishedResult || deleteLock.current || isSubmitting) return;
+    deleteLock.current = true;
+    setIsSubmitting(true);
+    try {
+      await deletePost(publishedResult.postId);
+      createdPost.current = null;
+      setPublishedResult(null);
+      setConfirmDeletePost(false);
+      setStatusMessage({ type: "success", text: t("Post deleted.", "Đã xóa bài viết.") });
+      router.replace(isAdmin ? "/admin/content" : "/my-content");
+    } catch (error) {
+      setConfirmDeletePost(false);
+      setStatusMessage({ type: "error", text: error instanceof Error ? error.message : t("Could not delete this post.", "Không thể xóa bài viết.") });
+    } finally {
+      deleteLock.current = false;
+      setIsSubmitting(false);
+    }
+  }
   const [imageFailed, setImageFailed] = useState(false);
   const [imageConflict, setImageConflict] = useState(false);
   const publishLock = useRef(false);
-  const createdPost = useRef<RecipeResponse | null>(null);
+
 
   async function refreshPublishedImage() {
     const saved = createdPost.current;
@@ -975,13 +999,13 @@ function RecipeContentView() {
                         {videoFile?.name || "Video đã tải lên"}
                       </span>
                       {isUploading || draftStatus === "UPLOADING" ? (
-                        <span role="status" className="shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">{t("Uploading video...", "Đang tải video...")}</span>
+                        <span role="status" className="shrink-0 rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#254B38]">{t("Uploading video...", "Đang tải video...")}</span>
                       ) : draftStatus === "READY" ? (
                         <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#07241A]">
                           {t("Analysis complete", "Đã phân tích")}
                         </span>
                       ) : draftStatus === "PROCESSING" ? (
-                        <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700 animate-pulse">
+                        <span className="rounded-full bg-[#D9E6DC] px-2.5 py-0.5 text-[10px] font-bold text-[#254B38]">
                           {t("Analyzing...", "Đang phân tích...")}
                         </span>
                       ) : draftStatus === "PENDING" ? (
@@ -1007,16 +1031,6 @@ function RecipeContentView() {
                     )}
 
                     {/* Status descriptions */}
-                    {draftStatus === "PROCESSING" && (
-                      <div className="space-y-1 pt-1">
-                        <div className="flex items-center justify-between text-[11px] text-[#727974]">
-                          <span>{t("Speech and cooking step analysis", "Phân tích lời nói và bước nấu")}</span>
-                        </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#EFEEEB]">
-                          <div className="h-full w-2/3 animate-pulse rounded-full bg-[#1E3A2F]" />
-                        </div>
-                      </div>
-                    )}
 
                     {draftErrorMessage && (
                       <p role="alert" className="whitespace-pre-wrap break-words text-xs text-red-600 font-medium">
@@ -1075,13 +1089,18 @@ function RecipeContentView() {
               </span>
             </div>
           </div>
-          {(isUploading || draftStatus === "PENDING" || draftStatus === "PROCESSING") && <UploadProgress percent={uploadPercent} processing={!isUploading} onCancel={() => uploadAbort.current?.abort()} />}
+          {(isUploading || draftStatus === "PENDING" || draftStatus === "PROCESSING") && <UploadProgress percent={uploadPercent} processing={!isUploading && draftStatus === "PROCESSING"} queued={!isUploading && draftStatus === "PENDING"} onCancel={() => uploadAbort.current?.abort()} />}
+          {draftStatus === "READY" && <div role="status" aria-live="polite" className="vm-feedback mt-5 flex items-start gap-3 rounded-2xl border border-[#BDD4BF] bg-[#EDF5E9] p-5 text-[#254B38]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#254B38] text-white"><ContentIcon name="check" /></span>
+            <div><p className="font-semibold">{t("Your AI recipe draft is ready!", "AI đã tạo xong bản nháp công thức!")}</p><p className="mt-1 text-sm leading-6">{t("Review the ingredients and cooking steps below before publishing.", "Bạn có thể kiểm tra nguyên liệu và các bước nấu bên dưới trước khi gửi bài.")}</p></div>
+          </div>}
         </section>
       )}
 
       <div className="my-8 rounded-3xl border border-[#C5D9C9] bg-[#F0F5ED] p-5 shadow-xs sm:p-6">
         {!publishedResult ? <ImageFilePicker prominent file={imageFile} onChange={setImageFile} disabled={isSubmitting || isUploading} /> : <div className="flex flex-wrap items-center gap-3">
           <Link href={publishedResult.status === "PUBLISHED" ? `/view-detail/post-${publishedResult.postId}` : "/my-content"} className="text-sm underline">{publishedResult.status === "PUBLISHED" ? "Xem bài" : "Xem bản nháp"} #{publishedResult.postId}</Link>
+          <button type="button" disabled={isSubmitting} onClick={() => setConfirmDeletePost(true)} className="vm-button rounded-xl border border-red-200 px-4 py-2 text-sm text-red-700 disabled:opacity-50">{t("Delete post", "Xóa bài viết")}</button>
           <button type="button" disabled={isSubmitting} onClick={() => { createdPost.current = null; setServerRecipeDraftId(null); setPublishedResult(null); setImageUrl(""); setImageFile(null); setImageFailed(false); setImageConflict(false); setHasReviewed(false); setStatusMessage(null); }} className="vm-button text-sm underline disabled:opacity-40">Tạo bài khác</button>
           {imageFailed && imageFile && <button type="button" disabled={isSubmitting || imageConflict} onClick={() => void retryPublishedImage()} className="vm-button rounded-xl bg-[#254B38] px-4 py-2 text-sm text-white disabled:opacity-40">{isSubmitting ? "Đang tải ảnh…" : "Thử tải ảnh lại"}</button>}
           <ImageManager imageUrl={publishedResult.imageUrl ?? publishedResult.thumbnailUrl} disabled={isSubmitting} requiresRefresh={imageConflict}
@@ -1324,6 +1343,15 @@ function RecipeContentView() {
             </button>
           </div>
         </div>
+      <ConfirmDialog
+        open={confirmDeletePost}
+        title={t("Delete this post?", "Xóa bài viết này?")}
+        description={t("This removes the saved post from your account. This action cannot be undone here.", "Bài viết đã tạo sẽ bị xóa khỏi tài khoản. Bạn không thể hoàn tác thao tác này tại đây.")}
+        confirmLabel={t("Delete post", "Xóa bài viết")}
+        busy={isSubmitting}
+        onClose={() => { if (!isSubmitting) setConfirmDeletePost(false); }}
+        onConfirm={() => void deleteCreatedPost()}
+      />
       <ConfirmDialog
         open={showCancelConfirmation}
         title={ui("Hủy các thay đổi?")}

@@ -2,6 +2,7 @@
 
 import ContentIcon from "@/components/content/ContentIcon";
 
+import CardSkeleton from "@/components/ui/CardSkeleton";
 import FeedImage from "@/components/ui/FeedImage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -55,11 +56,10 @@ export default function PopularRecipes() {
     return () => { active = false; source.close(); };
   }, []);
 
+  if (loading) return <CardSkeleton count={4} compact />;
+
   return (
-    <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {loading && Array.from({ length: 4 }, (_, index) => (
-        <div key={index} className="h-[330px] animate-pulse rounded-2xl bg-white/70 shadow-sm" />
-      ))}
+    <div className="vm-stagger mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {!loading && posts.length === 0 && (
         <div className="col-span-full rounded-2xl border border-dashed border-[#CCD5C6] bg-white/70 px-6 py-12 text-center text-sm text-[#727974]">
           {t("No recipe posts have been published yet.", "Chưa có bài công thức nào được đăng.")}
@@ -69,7 +69,7 @@ export default function PopularRecipes() {
         const localFallback = fallbackImages[post.postId % fallbackImages.length];
         const storedImage = post.imageUrl ?? post.thumbnailUrl;
         const imageSource = storedImage ? getMediaUrl(storedImage) : localFallback;
-        return <Link key={post.postId} href={`/view-detail/${post.postId}`} className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+        return <Link key={post.postId} href={`/view-detail/${post.postId}`} className="vm-card vm-enter group overflow-hidden rounded-2xl bg-white shadow-sm">
           <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
             <FeedImage key={imageSource} src={imageSource} alt={post.title} compact />
             {post.videoUrl && (

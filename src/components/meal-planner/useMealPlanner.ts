@@ -8,7 +8,7 @@ import { useMealImagePolling, hasPendingImages } from "./useMealImagePolling";
 import type { ImageMutationResponse } from "@/lib/image-api";
 import { getMediaUrl } from "@/lib/api";
 import { deleteMealPlan, generateMealPlan, getMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
-import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
+import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, updateProfile, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
 import { getBookmarks } from "@/lib/post-api";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { formatDietTypeName } from "@/lib/diet-type-display";
@@ -46,6 +46,7 @@ export function useMealPlanner() {
   const [goalContext, setGoalContext] = useState<PlanningProfile | null>(null);
   const [goalOwner, setGoalOwner] = useState<string | null>(null);
   const [inputProblems, setInputProblems] = useState<string[]>([]);
+  const [profileProblems, setProfileProblems] = useState<string[]>([]);
   const lock = useRef(false);
 
   const applyPolledPlan = useCallback((fresh: MealPlanResponse) => {
@@ -141,11 +142,13 @@ export function useMealPlanner() {
     finally { lock.current = false; setWorking(false); }
   }
   function validateGenerationInputs(context: PlanningProfile) {
-    const problems = [...context.missing];
+    const healthProblems = [...context.missing];
+    if (context.age !== null && (context.age < 18 || context.age > 120)) healthProblems.push("Hồ sơ chưa đủ điều kiện tạo thực đơn theo calo cho độ tuổi này");
+    if (!healthProblems.length && !context.energy) healthProblems.push("Thông tin sức khỏe chưa tính được nhu cầu năng lượng");
+    setProfileProblems(healthProblems);
+    const problems = [...healthProblems];
     if (!pantryIngredients.length) problems.push("Thêm ít nhất một nguyên liệu sẵn có");
     if (!allergensReady) problems.push("Tải lại danh sách dị ứng trước khi tạo thực đơn");
-    if (context.age !== null && (context.age < 18 || context.age > 120)) problems.push("Hồ sơ chưa đủ điều kiện tạo thực đơn theo calo cho độ tuổi này");
-    if (!problems.length && !context.energy) problems.push("Thông tin sức khỏe chưa tính được nhu cầu năng lượng");
     if (!parseMealPlanDate(startDate)) problems.push("Chọn ngày bắt đầu hợp lệ theo dd/mm/yyyy");
     setInputProblems(problems);
     return problems.length === 0;
@@ -253,7 +256,10 @@ export function useMealPlanner() {
   }
   function handleAddPantry(event: FormEvent) {
     event.preventDefault();
-    if (newPantryItem.trim()) setPantryIngredients(items => [...new Set([...items, newPantryItem.trim()])]);
+    if (newPantryItem.trim()) {
+      setPantryIngredients(items => [...new Set([...items, newPantryItem.trim()])]);
+      setInputProblems(items => items.filter(item => item !== "Thêm ít nhất một nguyên liệu sẵn có"));
+    }
     setNewPantryItem("");
   }
   function setImageBusy(busy: boolean) {
@@ -328,11 +334,28 @@ export function useMealPlanner() {
     if (!profile?.weightKg || !profile.goalWeightKg || !displayAdjustment || inferredNutritionGoal === "MAINTAIN") return null;
     return Math.round((Math.abs(profile.goalWeightKg - profile.weightKg) * 7700 / (displayAdjustment * 7)) * 10) / 10;
   }, [profile, displayAdjustment, inferredNutritionGoal]);
+  async function saveWeeklyWeight(weightKg: number) {
+    if (lock.current) throw new Error("Vui lòng chờ thao tác hiện tại hoàn tất.");
+    const session = getStoredToken();
+    if (!user || !session) throw new Error("Vui lòng đăng nhập lại.");
+    lock.current = true; setWorking(true);
+    try {
+      const fresh = await getProfile();
+      if (session !== getStoredToken()) throw new Error("Phiên đăng nhập đã thay đổi.");
+      const { fullName, sex, birthYear, birthDate, heightCm, activityLevel, goalWeightKg, dietTypeId, latitude, longitude } = fresh;
+      const updated = await updateProfile({ fullName, sex, birthYear, birthDate, heightCm, weightKg, activityLevel, goalWeightKg, dietTypeId, latitude, longitude });
+      if (session !== getStoredToken()) throw new Error("Phiên đăng nhập đã thay đổi. Vui lòng tải lại trang.");
+      setProfile(updated);
+      setToastMessage("Đã cập nhật cân nặng. Thông tin mới sẽ được dùng khi tạo thực đơn tiếp theo.");
+    } finally { lock.current = false; setWorking(false); }
+  }
   return {
+    profileProblems, saveWeeklyWeight, currentWeightKg: profile?.weightKg, weightOwner: user?.uid,
     goalContext: goalOwner === user?.uid ? goalContext : null,
     inputProblems, confirmGeneration, closeGoalDialog: () => { if (!lock.current) setGoalContext(null); },
     selectedWeekRange: mealPlanWeekRange(parseMealPlanDate(startDate), locale),
     savedWeekRange: mealPlanWeekRange(plan?.startDate ?? null, locale),
+    savedStartDate: plan?.startDate ?? null,
     planNutrition: plan?.tdee && plan?.targetCaloriesPerDay && plan?.nutritionGoal
       ? { tdee: plan.tdee, target: plan.targetCaloriesPerDay, goal: plan.nutritionGoal } : null,
     imagePollingNotice, imagesPending: hasPendingImages(plan), reloadMealImages: () => run(refreshMealImages),

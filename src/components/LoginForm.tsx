@@ -329,7 +329,7 @@ export default function LoginForm() {
       </div>
 
       {/* Form Fields */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="vm-form-fields space-y-4">
         <div>
           <label
             htmlFor="email"
