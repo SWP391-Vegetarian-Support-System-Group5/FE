@@ -139,7 +139,7 @@ function getAllergenBadgeAndNotes(item: AdminAllergen, t: (en: string, vi: strin
   return {
     statusType: "valid" as const,
     badgeText: `${t("Valid item - Suggested category:", "Mục hợp lệ - Phân loại gợi ý:")} ${category}`,
-    //note: `${t("AI confidence score 94% - matches", "Điểm tin cậy AI 94% - khớp với nhóm")} ${category}. ${t("Clean submission without typos.", "Bản gửi sạch không lỗi chính tả.")}`,
+    note: `${t("AI confidence score 94% - matches", "Điểm tin cậy AI 94% - khớp với nhóm")} ${category}. ${t("Clean submission without typos.", "Bản gửi sạch không lỗi chính tả.")}`,
     noteIcon: "wand" as const,
   };
 }
@@ -496,8 +496,8 @@ export default function AdminAllergensPage() {
             type="button"
             onClick={() => setActiveTab("pending")}
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${activeTab === "pending"
-                ? "bg-[#0F2F24] text-white shadow-sm"
-                : "bg-white text-[#727974] border border-[#EFEEEB] hover:text-[#07241A]"
+              ? "bg-[#0F2F24] text-white shadow-sm"
+              : "bg-white text-[#727974] border border-[#EFEEEB] hover:text-[#07241A]"
               }`}
           >
             <span>{t("All Pending", "Tất cả đang chờ")}</span>
@@ -513,8 +513,8 @@ export default function AdminAllergensPage() {
             type="button"
             onClick={() => setActiveTab("approved")}
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${activeTab === "approved"
-                ? "bg-[#0F2F24] text-white shadow-sm"
-                : "bg-white text-[#727974] border border-[#EFEEEB] hover:text-[#07241A]"
+              ? "bg-[#0F2F24] text-white shadow-sm"
+              : "bg-white text-[#727974] border border-[#EFEEEB] hover:text-[#07241A]"
               }`}
           >
             <span>{t("Approved", "Đã phê duyệt")}</span>
@@ -825,8 +825,8 @@ export default function AdminAllergensPage() {
                           disabled={busy || isApproved}
                           onClick={() => handleApprove(item)}
                           className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95 shadow-sm ${isApproved
-                              ? "bg-[#EAF5EE] text-[#1E7E51] border border-[#D5EBDC]"
-                              : "bg-[#0F2F24] text-white hover:bg-[#164234]"
+                            ? "bg-[#EAF5EE] text-[#1E7E51] border border-[#D5EBDC]"
+                            : "bg-[#0F2F24] text-white hover:bg-[#164234]"
                             }`}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
