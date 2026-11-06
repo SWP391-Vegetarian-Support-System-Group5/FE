@@ -393,7 +393,7 @@ export default function AdminRestaurantsPage() {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>{t("+ Add New Restaurant", "+ Thêm nhà hàng mới")}</span>
+            <span>{t("Add New Restaurant", "Thêm nhà hàng mới")}</span>
           </button>
         </div>
       </div>
@@ -493,8 +493,8 @@ export default function AdminRestaurantsPage() {
                 {loc.id === "All"
                   ? t("Location: All Localities", "Địa điểm: Tất cả khu vực")
                   : locale.startsWith("vi")
-                  ? loc.labelVi
-                  : loc.labelEn}
+                    ? loc.labelVi
+                    : loc.labelEn}
               </option>
             ))}
           </select>
@@ -713,16 +713,14 @@ export default function AdminRestaurantsPage() {
                   {/* STATUS & ROW ACTIONS */}
                   <div className="col-span-1 flex items-center justify-between md:justify-end gap-2">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                        status === "Public"
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${status === "Public"
                           ? "bg-[#EAF5EE] text-[#1E7E51]"
                           : "bg-[#F3F4F6] text-[#6B7280]"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          status === "Public" ? "bg-[#1E7E51]" : "bg-[#9CA3AF]"
-                        }`}
+                        className={`h-1.5 w-1.5 rounded-full ${status === "Public" ? "bg-[#1E7E51]" : "bg-[#9CA3AF]"
+                          }`}
                       />
                       <span>{t(status, status === "Public" ? "Công khai" : "Riêng tư")}</span>
                     </span>
@@ -789,11 +787,10 @@ export default function AdminRestaurantsPage() {
                     key={idx}
                     type="button"
                     onClick={() => setPage(p)}
-                    className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition ${
-                      safePage === p
+                    className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition ${safePage === p
                         ? "bg-[#07241A] text-white"
                         : "border border-transparent hover:border-[#EFEEEB] hover:bg-[#F9F8F6] text-[#424844]"
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>
@@ -924,11 +921,10 @@ export default function AdminRestaurantsPage() {
                     {dietTypes.map((type) => (
                       <label
                         key={type.id}
-                        className={`flex items-center gap-2 rounded-xl border p-2.5 font-normal cursor-pointer transition ${
-                          form.dietTypeIds.includes(type.id)
+                        className={`flex items-center gap-2 rounded-xl border p-2.5 font-normal cursor-pointer transition ${form.dietTypeIds.includes(type.id)
                             ? "border-[#1E3A2F] bg-[#EAF5EE]/40 text-[#1E3A2F]"
                             : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
-                        }`}
+                          }`}
                       >
                         <input
                           type="checkbox"

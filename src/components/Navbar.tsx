@@ -13,7 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAdminModeration } from "@/context/AdminModerationContext";
 import { useLanguage } from "@/context/LanguageContext";
 import NotificationBell from "@/components/NotificationBell";
-import { CATEGORY_TYPES, categoryName, getRecipeCategories, type RecipeCategory } from "@/lib/recipe-categories";
+import { categoryName, getRecipeCategories, type RecipeCategory } from "@/lib/recipe-categories";
 
 function getInitials(name?: string | null, email?: string | null): string {
   if (name && name.trim().length > 0) {
@@ -28,8 +28,6 @@ function getInitials(name?: string | null, email?: string | null): string {
   }
   return "U";
 }
-
-const preferredRecipeCategoryOrder = ["mon-tu-ngu-coc", "banh", "mon-an-sang", "banh-mi-banh-kep", "trang-mieng", "mi", "salad-mon-an-kem", "nuoc-sot", "an-nhe", "sup-mon-ham"];
 
 interface NavbarProps {
   initialSearchQuery?: string;
@@ -57,11 +55,7 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
     getRecipeCategories()
       .then(categories => {
         if (active) {
-          setRecipeCategories(categories.filter(category => category.isActive && CATEGORY_TYPES.some(type => type === category.type)).sort((a, b) => {
-            const left = preferredRecipeCategoryOrder.indexOf(a.slug);
-            const right = preferredRecipeCategoryOrder.indexOf(b.slug);
-            return (left < 0 ? preferredRecipeCategoryOrder.length : left) - (right < 0 ? preferredRecipeCategoryOrder.length : right) || a.name.localeCompare(b.name, "vi");
-          }));
+          setRecipeCategories(categories.filter(category => category.isActive).sort((a, b) => a.name.localeCompare(b.name, "vi")));
           setRecipeMenuError(false);
         }
       })

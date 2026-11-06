@@ -27,6 +27,11 @@ EGG|Trứng
 HONEY|Mật ong
 UNVERIFIED|Chưa xác minh
 Available ingredients|Nguyên liệu sẵn có
+e.g. Vietnamese cuisine|Ví dụ: Ẩm thực Việt Nam
+e.g. Plant-based, Fruits, Mushrooms...|Ví dụ: Thực vật, Rau củ, Nấm...
+e.g. Fresh vegetables, root vegetables, fiber-rich leafy greens...|Ví dụ: Rau củ tươi, rau ăn lá, củ quả giàu chất xơ...
+e.g. Vegetarian pho, gentle Hue noodles, crispy pancakes, mushroom spring rolls...|Ví dụ: Phở chay, bún bò Huế thanh tịnh, bánh xèo giòn, chả giò nấm...
+Description & Highlights|Mô tả và đặc điểm nổi bật
 Category code|Mã danh mục
 Create Category|Tạo danh mục
 Dietary group|Nhóm thực phẩm
@@ -920,6 +925,11 @@ Dietary group|Nhóm thực phẩm
 Category Classification|Phân loại danh mục
 Recipe Category|Danh mục công thức
 Ingredient Group|Nhóm nguyên liệu
+e.g. Vietnamese cuisine|Ví dụ: Ẩm thực Việt Nam
+e.g. Plant-based, Fruits, Mushrooms...|Ví dụ: Thực vật, Rau củ, Nấm...
+e.g. Fresh vegetables, root vegetables, fiber-rich leafy greens...|Ví dụ: Rau củ tươi, rau ăn lá, củ quả giàu chất xơ...
+e.g. Vegetarian pho, gentle Hue noodles, crispy pancakes, mushroom spring rolls...|Ví dụ: Phở chay, bún bò Huế thanh tịnh, bánh xèo giòn, chả giò nấm...
+Description & Highlights|Mô tả và đặc điểm nổi bật
 Category code|Mã danh mục
 URL Slug|Đường dẫn rút gọn
 Item Count|Số lượng

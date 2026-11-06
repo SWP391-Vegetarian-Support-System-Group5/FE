@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -7,6 +9,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { locationApi } from "@/lib/location-api";
 import { readLivingLocation } from "@/lib/living-location";
 import { getProfile } from "@/lib/profile-api";
+import { getMediaUrl } from "@/lib/api";
+import { displayPlaceCategory } from "@/hooks/useNearbyPlaces";
 import type { Coordinates, Restaurant } from "@/types/location";
 import CardSkeleton from "@/components/ui/CardSkeleton";
 
@@ -168,14 +172,16 @@ function NearbyRestaurants({ signedIn, authLoading, onRetry }: { signedIn: boole
               className="group overflow-hidden rounded-2xl border border-[#EFEEEB] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E8EDE4]">
-                <div className="absolute inset-0 bg-[linear-gradient(135deg,#EDF3E9_0%,#F8F4ED_52%,#D9E6DC_100%)]" />
-                <div className="absolute inset-x-0 top-1/2 h-px bg-[#1E3A2F]/10" />
-                <div className="absolute inset-y-0 left-1/2 w-px bg-[#1E3A2F]/10" />
-                <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-white/90 text-[#1E3A2F] shadow-md">
+                {place.imageUrl ? <Image src={getMediaUrl(place.imageUrl)} alt={place.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" unoptimized className="object-cover" /> : <>
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,#EDF3E9_0%,#F8F4ED_52%,#D9E6DC_100%)]" />
+                  <div className="absolute inset-x-0 top-1/2 h-px bg-[#1E3A2F]/10" />
+                  <div className="absolute inset-y-0 left-1/2 w-px bg-[#1E3A2F]/10" />
+                  <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-white/90 text-[#1E3A2F] shadow-md">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                </div>
+                  </div>
+                </>}
                 <span className="absolute left-3 top-3 rounded-full bg-[#1E3A2F] px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
-                  {place.category || "Ăn chay"}
+                  {displayPlaceCategory(place.category, t)}
                 </span>
                 <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#1E3A2F] shadow-sm">
                   VeggieMate · {place.distanceKm != null ? `${place.distanceKm.toFixed(1)} km` : t("Nearby", "Gần bạn")}

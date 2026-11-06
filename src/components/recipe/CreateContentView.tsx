@@ -11,7 +11,6 @@ import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 
 import RecipeCategoryPicker from "./RecipeCategoryPicker";
-import BmiTypePicker from "./BmiTypePicker";
 import { getRecipeCategories, type RecipeCategory } from "@/lib/recipe-categories";
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from "react";
@@ -91,9 +90,9 @@ function RecipeContentView() {
   const [prepMinutes, setPrepMinutes] = useState<string>("20");
   const [cookMinutes, setCookMinutes] = useState<string>("15");
   const [servings, setServings] = useState<string>("2");
+  const [caloriesPerServing, setCaloriesPerServing] = useState<string>("");
   const [content, setContent] = useState("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
-  const [selectedBmiTypeIds, setSelectedBmiTypeIds] = useState<number[]>([]);
   const isAdmin = user?.role === "ADMIN";
 
   // Ingredients
@@ -199,10 +198,10 @@ function RecipeContentView() {
       setPrepMinutes(draft.prepMinutes);
       setCookMinutes(draft.cookMinutes);
       setServings(draft.servings);
+      setCaloriesPerServing(draft.caloriesPerServing || "");
       setIngredients(draft.ingredients);
       setSteps(draft.steps);
       setSelectedCategoryIds(draft.selectedCategoryIds || []);
-      setSelectedBmiTypeIds(draft.selectedBmiTypeIds || []);
     });
     return () => { cancelled = true; };
   }, [authLoading, contentOwner]);
@@ -227,10 +226,10 @@ function RecipeContentView() {
       setPrepMinutes(recipe.prepMinutes?.toString() || "");
       setCookMinutes(recipe.cookMinutes?.toString() || "");
       setServings(recipe.servings?.toString() || "");
+      setCaloriesPerServing(recipe.caloriesPerServing?.toString() || "");
       setIngredients(recipe.ingredients);
       setSteps(recipe.steps);
       setSelectedCategoryIds(recipe.categories.map(category => category.id));
-      setSelectedBmiTypeIds(recipe.bmiTypes?.map(type => type.id) || []);
        setStatusMessage({ type: "info", text: recipe.moderationReason || (isAdmin ? "Đã mở công thức để quản trị viên chỉnh sửa." : "Đã mở bản nháp trên máy chủ. Chỉnh sửa rồi gửi kiểm duyệt lại.") });
     }).catch(error => { if (!cancelled) setStatusMessage({ type: "error", text: error instanceof Error ? error.message : "Không mở được bản nháp." }); });
     return () => { cancelled = true; };
@@ -304,6 +303,7 @@ function RecipeContentView() {
           if (res.estimatedPrepMinutes !== null && res.estimatedPrepMinutes !== undefined) {
             setPrepMinutes(String(res.estimatedPrepMinutes));
           }
+          if (res.caloriesPerServing != null) setCaloriesPerServing(String(res.caloriesPerServing));
           if (res.transcript) setTranscript(res.transcript);
           if (res.ingredients && res.ingredients.length > 0) {
             setIngredients(res.ingredients);
@@ -365,6 +365,7 @@ function RecipeContentView() {
       setContent(draft.description || "");
       setTranscript(draft.transcript);
       if (draft.estimatedPrepMinutes != null) setPrepMinutes(String(draft.estimatedPrepMinutes));
+      if (draft.caloriesPerServing != null) setCaloriesPerServing(String(draft.caloriesPerServing));
       if (draft.ingredients.length) setIngredients(draft.ingredients);
       if (draft.steps.length) setSteps(draft.steps.map((step, index) => ({ stepNumber: index + 1, instruction: step.instruction })));
       if (["PENDING", "UPLOADING", "PROCESSING"].includes(draft.status)) {
@@ -579,6 +580,7 @@ function RecipeContentView() {
           description: content.trim(),
           transcript: transcript,
           estimatedPrepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
+          caloriesPerServing: caloriesPerServing ? Number(caloriesPerServing) : null,
           ingredients,
           steps,
         });
@@ -599,8 +601,8 @@ function RecipeContentView() {
         const savedImageUrl = imageFile ? await uploadImage(imageFile, "recipes") : imageUrl;
         if (imageFile) { setImageUrl(savedImageUrl); setImageFile(null); }
         const manualDraft = {
-          title, recipeName, imageUrl: savedImageUrl, content, prepMinutes, cookMinutes, servings,
-          ingredients, steps, selectedCategoryIds, selectedBmiTypeIds, savedAt: new Date().toISOString(),
+          title, recipeName, imageUrl: savedImageUrl, content, prepMinutes, cookMinutes, servings, caloriesPerServing,
+          ingredients, steps, selectedCategoryIds, savedAt: new Date().toISOString(),
         };
         localStorage.setItem("veggie_manual_recipe_draft", JSON.stringify(manualDraft));
         saveManualContent(contentOwner, manualDraft);
@@ -635,6 +637,10 @@ function RecipeContentView() {
         type: "error",
         text: t("Enter both the post title and dish name.", "Vui lòng nhập cả tiêu đề bài viết và tên món ăn."),
       });
+      return;
+    }
+    if (creationMode === "manual" && (!caloriesPerServing || Number(caloriesPerServing) <= 0)) {
+      setStatusMessage({ type: "error", text: "Vui lòng nhập calories ước lượng cho một khẩu phần." });
       return;
     }
 
@@ -682,13 +688,13 @@ function RecipeContentView() {
           description: content.trim(),
           transcript: transcript,
           estimatedPrepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
+          caloriesPerServing: caloriesPerServing ? Number(caloriesPerServing) : null,
           ingredients,
           steps,
         });
 
         // Step 2: Publish via POST /api/video-recipe-drafts/{id}/publish
         const published = await publishVideoRecipeDraft(draftId, {
-          ...(isAdmin ? { bmiTypeIds: selectedBmiTypeIds } : {}),
           recipeName: recipeName.trim(),
           categoryIds: selectedCategoryIds,
         });
@@ -700,7 +706,6 @@ function RecipeContentView() {
       } else {
         // Manual mode: POST /api/recipes
         const payload = {
-          ...(isAdmin ? { bmiTypeIds: selectedBmiTypeIds } : {}),
           title: title.trim(),
           recipeName: recipeName.trim(),
           content: content.trim(),
@@ -709,6 +714,7 @@ function RecipeContentView() {
           prepMinutes: prepMinutes ? parseInt(prepMinutes, 10) : null,
           cookMinutes: cookMinutes ? parseInt(cookMinutes, 10) : null,
           servings: servings ? parseInt(servings, 10) : null,
+          caloriesPerServing: caloriesPerServing ? Number(caloriesPerServing) : null,
           ingredients,
           steps,
           categoryIds: selectedCategoryIds,
@@ -875,10 +881,17 @@ function RecipeContentView() {
                 </span>
               </div>
             </div>}
+            <div>
+              <label className="block text-xs font-semibold text-[#07241A]">Calories ước lượng / khẩu phần {creationMode === "manual" && <span className="text-red-500">*</span>}</label>
+              <div className="relative mt-1.5">
+                <input type="number" min="1" max="10000" value={caloriesPerServing} onChange={(event) => setCaloriesPerServing(event.target.value)} placeholder={creationMode === "ai" ? "AI sẽ ước lượng sau khi phân tích" : "Ví dụ: 350"} className="w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-4 py-2.5 pr-12 text-xs text-[#07241A] outline-none transition focus:border-[#1E3A2F]" />
+                <span className="absolute right-3 top-3 text-xs text-[#727974]">kcal</span>
+              </div>
+              {creationMode === "ai" && <p className="mt-1 text-[10px] text-[#727974]">AI chỉ đưa ra số ước lượng; bạn có thể chỉnh lại trước khi đăng.</p>}
+            </div>
           </div>
 
           <RecipeCategoryPicker categories={recipeCategories} selected={selectedCategoryIds} onChange={setSelectedCategoryIds} loading={isLoadingMasterData} />
-          {isAdmin && <div className="mt-5"><BmiTypePicker selected={selectedBmiTypeIds} onChange={setSelectedBmiTypeIds} disabled={isSubmitting} /></div>}
 
           {/* Story & flavor profile */}
           <div>

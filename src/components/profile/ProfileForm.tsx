@@ -42,7 +42,7 @@ import { getStoredToken, getStoredUser } from "@/lib/auth";
 import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
 import { saveLivingLocation } from "@/lib/living-location";
 import { useLanguage } from "@/context/LanguageContext";
-import { ACTIVITY_LEVELS, birthYearFromDate, birthDateForYear, validBirthYear, isActivityLevel, type ActivityLevel } from "@/lib/profile-energy";
+import { ACTIVITY_LEVELS, birthYearFromDate, birthDateForYear, validBirthYear, isActivityLevel } from "@/lib/profile-energy";
 
 const ProfileLeafletMap = dynamic(() => import("@/components/profile/ProfileLeafletMap"), {
   ssr: false,
@@ -59,10 +59,10 @@ interface ProfileDraft {
   sex: "MALE" | "FEMALE" | null;
   birthYear: string;
   birthDate: string | null;
-  goalWeightKg: number | null;
-  activityLevel: ActivityLevel | null;
   heightCm: string; // kept as string for controlled input
   weightKg: string;
+  activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE" | "VERY_ACTIVE" | null;
+  goalWeightKg: string;
   dietTypeId: number | null;
 }
 
@@ -122,10 +122,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     sex: null,
     birthYear: "",
     birthDate: null,
-    goalWeightKg: null,
-    activityLevel: null,
     heightCm: "",
     weightKg: "",
+    activityLevel: null,
+    goalWeightKg: "",
     dietTypeId: null,
   });
   const [savedDraft, setSavedDraft] = useState<ProfileDraft>({ ...draft });
@@ -206,10 +206,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
           sex: profile.sex ?? null,
           birthYear: profile.birthYear != null ? String(profile.birthYear) : birthYearFromDate(profile.birthDate),
           birthDate: profile.birthDate ?? null,
-          goalWeightKg: profile.goalWeightKg ?? null,
-          activityLevel: isActivityLevel(profile.activityLevel) ? profile.activityLevel : null,
           heightCm: profile.heightCm != null ? String(profile.heightCm) : "",
           weightKg: profile.weightKg != null ? String(profile.weightKg) : "",
+          activityLevel: profile.activityLevel ?? null,
+          goalWeightKg: profile.goalWeightKg != null ? String(profile.goalWeightKg) : "",
           dietTypeId: profile.dietTypeId ?? null,
         };
 
@@ -422,10 +422,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         sex: draft.sex,
         birthDate: birthDateForYear(draft.birthYear, draft.birthDate),
         birthYear: draft.birthYear ? Number(draft.birthYear) : null,
-        goalWeightKg: draft.goalWeightKg,
-        activityLevel: draft.activityLevel,
         heightCm: draft.heightCm ? parseFloat(draft.heightCm) : null,
         weightKg: draft.weightKg ? parseFloat(draft.weightKg) : null,
+        activityLevel: draft.activityLevel,
+        goalWeightKg: draft.goalWeightKg ? parseFloat(draft.goalWeightKg) : null,
         dietTypeId: draft.dietTypeId,
         latitude: selectedCoords?.lat ?? null,
         longitude: selectedCoords?.lng ?? null,
@@ -442,8 +442,6 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         sex: updatedProfile.sex ?? null,
         birthYear: updatedProfile.birthYear != null ? String(updatedProfile.birthYear) : birthYearFromDate(updatedProfile.birthDate),
         birthDate: updatedProfile.birthDate ?? null,
-        goalWeightKg: updatedProfile.goalWeightKg ?? null,
-        activityLevel: isActivityLevel(updatedProfile.activityLevel) ? updatedProfile.activityLevel : null,
         heightCm:
           updatedProfile.heightCm != null
             ? String(updatedProfile.heightCm)
@@ -452,6 +450,8 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
           updatedProfile.weightKg != null
             ? String(updatedProfile.weightKg)
             : "",
+        activityLevel: updatedProfile.activityLevel ?? null,
+        goalWeightKg: updatedProfile.goalWeightKg != null ? String(updatedProfile.goalWeightKg) : "",
         dietTypeId: updatedProfile.dietTypeId ?? null,
       };
 
@@ -786,7 +786,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="profile-birth-year" className="text-xs font-semibold tracking-[0.02em] text-[#424844]">Năm sinh</label>
             <input id="profile-birth-year" type="text" inputMode="numeric" autoComplete="bday-year" maxLength={4}
@@ -809,6 +809,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
               ? `${selectedActivity.detail}. Hệ số: ×${selectedActivity.factor.toLocaleString(locale)}.`
               : "Chọn theo sinh hoạt và tập luyện thực tế của bạn."}</p>
           </div>
+          <label className="flex flex-col gap-1.5 text-xs font-semibold text-[#424844]">
+            Cân nặng mục tiêu
+            <div className="relative"><input type="text" inputMode="decimal" value={draft.goalWeightKg} disabled={saving} onChange={event => updateField("goalWeightKg", event.target.value)} placeholder="Ví dụ: 60" className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 pr-10 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20" /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#727974]">kg</span></div>
+          </label>
         </div>
 
         {/* Row 2: Vegetarian Diet Type (full-width dropdown from API) */}

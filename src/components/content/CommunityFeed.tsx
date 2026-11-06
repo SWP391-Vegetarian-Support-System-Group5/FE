@@ -149,6 +149,9 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
                 : <span className="text-[#B45309]">Chưa xác minh từ nguyên liệu</span>}
             </div>
           )}
+          {post.postType === "RECIPE" && post.caloriesPerServing != null && post.caloriesPerServing > 0 && (
+            <p className={`mt-2 text-xs font-medium text-[#59635C] ${gallery ? "text-center" : ""}`}>~ {Math.round(post.caloriesPerServing)} kcal/khẩu phần</p>
+          )}
           <p className={`mt-4 border-t border-[#EFEEEB] pt-3 text-xs font-medium text-[#59635C] ${gallery ? "text-center" : ""}`}>Đăng bởi {post.authorName}</p>
         </div>
       </article>)}

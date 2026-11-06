@@ -19,10 +19,10 @@ export interface BackendUserProfile {
   sex: "MALE" | "FEMALE" | null;
   birthDate?: string | null;
   birthYear?: number | null;
-  goalWeightKg?: number | null;
-  activityLevel?: ActivityLevel | null;
   heightCm: number | null;
   weightKg: number | null;
+  activityLevel: ActivityLevel | null;
+  goalWeightKg: number | null;
   dietTypeId: number | null;
   latitude: number | null;
   longitude: number | null;
@@ -33,12 +33,12 @@ export interface BackendUserProfile {
 export interface UpdateProfilePayload {
   fullName: string;
   sex: "MALE" | "FEMALE" | null;
-  birthDate: string | null;
+  birthDate?: string | null;
   birthYear?: number | null;
-  goalWeightKg?: number | null;
-  activityLevel: ActivityLevel | null;
   heightCm: number | null;
   weightKg: number | null;
+  activityLevel: ActivityLevel | null;
+  goalWeightKg: number | null;
   dietTypeId: number | null;
   latitude: number | null;
   longitude: number | null;

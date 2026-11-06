@@ -3,8 +3,10 @@
 @layer base {
   :root {
     color-scheme: light;
-    --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
-    --font-serif: var(--font-newsreader), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    /* Use system fonts with full Vietnamese glyph coverage.  A locally installed
+       partial Newsreader font was splitting Vietnamese combining marks. */
+    --font-sans: "Segoe UI", Arial, Helvetica, sans-serif;
+    --font-serif: "Segoe UI", Arial, Helvetica, sans-serif;
     --background: #FBF9F6;
     --foreground: #07241A;
   }
@@ -18,7 +20,10 @@
 }
 
 .font-serif {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans) !important;
+  font-kerning: normal;
+  letter-spacing: normal;
+  font-variant-ligatures: none;
 }
 
 .font-sans {
