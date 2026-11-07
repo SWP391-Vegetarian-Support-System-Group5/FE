@@ -29,19 +29,13 @@ function getInitials(name?: string | null, email?: string | null): string {
   return "U";
 }
 
-interface NavbarProps {
-  initialSearchQuery?: string;
-  onSearch?: (query: string) => void;
-}
-
-export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProps) {
+export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const { flaggedCount } = useAdminModeration();
   const { t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
 
-  const [searchValue, setSearchValue] = useState(initialSearchQuery);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [recipeCategories, setRecipeCategories] = useState<RecipeCategory[]>([]);
@@ -88,15 +82,6 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (onSearch) {
-      onSearch(searchValue);
-    } else if (searchValue.trim()) {
-      router.push(`/community?q=${encodeURIComponent(searchValue.trim())}`);
-    }
-  };
 
   const handleSignOut = async () => {
     setShowProfileMenu(false);
@@ -192,35 +177,8 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
           </nav>
         </div>
 
-        {/* Right Section: Search, Language, Auth */}
+        {/* Right Section: Account actions */}
         <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
-          {/* Quick Search Field */}
-          <form
-            onSubmit={handleSearchSubmit}
-            className="relative hidden w-48 min-[1450px]:w-64 min-[1450px]:block"
-          >
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              placeholder={t("Search recipes, foods, places...", "Tìm công thức, món ăn, địa điểm...")}
-              aria-label={t("Search VeggieMate", "Tìm kiếm trên VeggieMate")}
-              className="w-full rounded-full border border-[#EFEEEB] bg-[#F5F3F0] py-2 pl-9 pr-4 text-sm text-[#07241A] placeholder-[#727974] transition focus:border-[#1E3A2F] focus:bg-white focus:outline-none"
-            />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#727974]"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </form>
-
           {/* Auth State Actions */}
           {loading ? (
             <div className="h-9 w-9 animate-pulse rounded-xl bg-[#EFEEEB] sm:w-24" />
@@ -580,31 +538,6 @@ export default function Navbar({ initialSearchQuery = "", onSearch }: NavbarProp
               </Link>
             </div>
           )}
-
-          <div className="pt-2">
-            <form onSubmit={handleSearchSubmit} className="relative w-full">
-              <input
-                type="text"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                placeholder={t("Search recipes, foods, places", "Tìm công thức, món ăn, địa điểm")}
-                aria-label={t("Search VeggieMate", "Tìm kiếm trên VeggieMate")}
-                className="w-full rounded-full border border-[#EFEEEB] bg-[#F5F3F0] py-2 pl-9 pr-4 text-xs text-[#07241A]"
-              />
-              <svg
-                className="absolute left-3.5 top-2.5 text-[#727974]"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-            </form>
-          </div>
         </div>
       )}
     </header>

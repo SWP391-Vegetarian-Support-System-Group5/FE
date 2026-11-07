@@ -34,7 +34,9 @@ import {
   type AreaItem,
   type AddressSuggestion,
   type UpdateProfilePayload,
+  updateLivingLocation,
 } from "@/lib/profile-api";
+import { locationApi } from "@/lib/location-api";
 import { getMediaUrl } from "@/lib/api";
 import { getStoredToken, getStoredUser } from "@/lib/auth";
 import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
@@ -123,7 +125,7 @@ function ProfileFields() {
   const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
   const [areas, setAreas] = useState<AreaItem[]>([]);
 
-  // Location state (local-only, backend doesn't persist province/area text)
+  // Administrative selectors help geocoding; the normalized address and coordinates are persisted.
   const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>("");
   const [selectedAreaCode, setSelectedAreaCode] = useState<string>("");
   const [addressQuery, setAddressQuery] = useState("");
@@ -199,6 +201,18 @@ function ProfileFields() {
         setSavedDraft({ ...d });
         if (profile.latitude != null && profile.longitude != null) {
           setSelectedCoords({ lat: profile.latitude, lng: profile.longitude });
+        }
+        if (profile.livingAddress) setAddressQuery(profile.livingAddress);
+        else if (profile.latitude != null && profile.longitude != null) {
+          try {
+            const location = await locationApi.reverseGeocode(profile.latitude, profile.longitude);
+            if (!cancelled && location?.formattedAddress) {
+              setAddressQuery(location.formattedAddress);
+              void updateLivingLocation(profile.latitude, profile.longitude, location.formattedAddress).catch(() => undefined);
+            }
+          } catch {
+            // Coordinates still render on the map when reverse geocoding is unavailable.
+          }
         }
 
         // userAllergens may come as array or wrapped object — normalize
@@ -413,6 +427,7 @@ function ProfileFields() {
         dietTypeId: draft.dietTypeId,
         latitude: selectedCoords?.lat ?? null,
         longitude: selectedCoords?.lng ?? null,
+        livingAddress: addressQuery.trim() || null,
       };
 
       const [updatedProfile] = await Promise.all([
@@ -1074,7 +1089,7 @@ function ProfileFields() {
             {t("Your location helps VeggieMate recommend vegetarian places near you in the Vegan Places Guide and filter neighborhood community dining tables.", "Vị trí của bạn giúp VeggieMate gợi ý địa điểm chay gần bạn trong Cẩm nang địa điểm chay và lọc các gợi ý ăn uống quanh khu vực.")}
             <br />
             <span className="text-[11px] italic">
-              {t("Note: Province/area selections are used to find coordinates only; the backend does not store address text.", "Lưu ý: lựa chọn tỉnh/khu vực chỉ dùng để tìm tọa độ; backend không lưu nội dung địa chỉ.")}
+              {t("Your selected address and coordinates are saved to help find nearby restaurants.", "Địa chỉ và tọa độ đã chọn sẽ được lưu để tìm nhà hàng gần bạn.")}
             </span>
           </p>
         </div>

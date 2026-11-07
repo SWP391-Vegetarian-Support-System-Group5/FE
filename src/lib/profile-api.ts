@@ -24,6 +24,7 @@ export interface BackendUserProfile {
   dietTypeId: number | null;
   latitude: number | null;
   longitude: number | null;
+  livingAddress: string | null;
   isActive: boolean;
 }
 
@@ -39,6 +40,7 @@ export interface UpdateProfilePayload {
   dietTypeId: number | null;
   latitude: number | null;
   longitude: number | null;
+  livingAddress?: string | null;
 }
 
 /** Single diet type from GET /api/diet-types */
@@ -100,6 +102,11 @@ export function getProfile() {
 /** Update the authenticated user's profile */
 export function updateProfile(payload: UpdateProfilePayload) {
   return apiPut<BackendUserProfile>("/api/users/me/profile", payload);
+}
+
+/** Persists the map location without overwriting the rest of a user's health profile. */
+export function updateLivingLocation(latitude: number, longitude: number, livingAddress?: string) {
+  return apiPut<BackendUserProfile>("/api/users/me/location", { latitude, longitude, livingAddress });
 }
 
 /** Fetch all available diet types */

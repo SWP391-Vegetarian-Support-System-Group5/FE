@@ -1,6 +1,6 @@
 "use client";
 
-import UiText, { useUiText } from "@/components/UiText";
+import UiText from "@/components/UiText";
 
 
 import { useState } from "react";
@@ -8,6 +8,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useNearbyPlaces, displayPlaceCategory } from "@/hooks/useNearbyPlaces";
 import Image from "next/image";
 import { getMediaUrl } from "@/lib/api";
+import RestaurantDetailsModal from "@/components/RestaurantDetailsModal";
 
 interface VeganPlace {
   id: string;
@@ -26,9 +27,8 @@ interface VeganPlace {
 }
 
 export default function CuratedVeganPlaces() {
-  const ui = useUiText();
   const { t } = useLanguage();
-  const { places: nearby, loading, message } = useNearbyPlaces();
+  const { places: nearby, loading, message, origin } = useNearbyPlaces();
   const places: VeganPlace[] = nearby.map(place => ({
     id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude,
     image: place.imageUrl ? getMediaUrl(place.imageUrl) : "/images/hero_slide.png",
@@ -39,6 +39,7 @@ export default function CuratedVeganPlaces() {
     distance: place.distanceKm != null ? `${place.distanceKm.toFixed(1)} km` : t("Nearby", "Gần đây"),
   }));
   const [selectedPlace, setSelectedPlace] = useState<VeganPlace | null>(null);
+  const selectedRestaurant = selectedPlace ? nearby.find(item => item.id === selectedPlace.id) : undefined;
 
   return (
     <div className="mx-auto max-w-7xl px-5 pb-16 lg:px-12">
@@ -127,87 +128,7 @@ export default function CuratedVeganPlaces() {
         <p className="mt-4 text-[11px] font-semibold tracking-widest uppercase text-[#727974]"><UiText text={"Cẩm nang VeggieMate · Sài Gòn"} /></p>
       </section>
 
-      {/* 4. RESTAURANT DETAIL MODAL */}
-      {selectedPlace && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-[#EFEEEB] bg-[#FAF8F5] shadow-2xl">
-            <div className="relative aspect-[16/9] w-full bg-[#EFEEEB]">
-              <Image
-                src={selectedPlace.image}
-                alt={selectedPlace.name}
-                fill
-                unoptimized
-                className="object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => setSelectedPlace(null)}
-                className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#07241A] shadow-lg backdrop-blur-md hover:bg-white"
-                title={ui("Close modal")}
-              >
-                ✕
-              </button>
-              <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
-                  {selectedPlace.dietTag}
-                </span>
-              </div>
-            </div>
-
-            <div className="p-6 sm:p-8">
-              <div>
-                <span className="text-xs font-semibold text-[#8B5A3C] uppercase tracking-wide">
-                  {selectedPlace.district} · {selectedPlace.distance}
-                </span>
-                <h2 className="mt-1 font-serif text-2xl font-bold text-[#07241A] sm:text-3xl">
-                  {selectedPlace.name}
-                </h2>
-              </div>
-
-              <p className="mt-3 text-sm leading-relaxed text-[#424844]">
-                {selectedPlace.description}
-              </p>
-
-              <div className="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 border border-[#EFEEEB] text-xs sm:grid-cols-2">
-                <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]"><UiText text={"📍 Địa chỉ:"} /></span>
-                  <span>{selectedPlace.address}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]"><UiText text={"🚶 Khoảng cách:"} /></span>
-                  <span>{selectedPlace.distance}</span>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#727974]"><UiText text={"Món đặc trưng & gợi ý"} /></h4>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  {selectedPlace.signatureDishes.map((dish) => (
-                    <span
-                      key={dish}
-                      className="rounded-full border border-[#D9E6DC] bg-[#E8EFEA] px-3 py-1 text-xs font-medium text-[#1E3A2F]"
-                    >
-                      🌿 {dish}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setSelectedPlace(null)}
-                  className="rounded-xl border border-[#EFEEEB] bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] hover:bg-[#F5F3F0] transition"
-                ><UiText text={"Đóng"} /></button>
-                <a
-                  href={`https://www.openstreetmap.org/?mlat=${selectedPlace.latitude}&mlon=${selectedPlace.longitude}#map=18/${selectedPlace.latitude}/${selectedPlace.longitude}`} target="_blank" rel="noreferrer"
-                  className="rounded-xl bg-[#07241A] px-6 py-2.5 text-center text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F] transition"
-                >{t("Open in OpenStreetMap", "Mở trong OpenStreetMap")}</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {selectedRestaurant && origin && <RestaurantDetailsModal restaurant={selectedRestaurant} origin={origin} onClose={() => setSelectedPlace(null)} />}
     </div>
   );
 }

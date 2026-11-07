@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import UiText, { useUiText } from "@/components/UiText";
+import UiText from "@/components/UiText";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
@@ -16,7 +16,6 @@ import HeroRecipeCarousel from "@/components/HeroRecipeCarousel";
 
 export default function HomePage() {
   const { t } = useLanguage();
-  const ui = useUiText();
   const { user, loading } = useAuth();
   const router = useRouter();
   const isAdmin = user?.role?.toLowerCase() === "admin";
@@ -49,34 +48,10 @@ export default function HomePage() {
               <h1 className="mt-5 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl lg:text-[56px] lg:leading-[64px]"><UiText text={"Khám phá cuộc sống"} />{" "}<br /><UiText text={"chay tốt đẹp hơn"} /></h1>
 
               {/* Subtitle */}
-              <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg"><UiText text={"Tìm công thức, video nấu ăn và đánh giá nhà hàng cho hành trình ăn chay mỗi ngày."} /></p>
-
-              {/* Search Bar Input Form */}
-              <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                <form
-                  action="/community"
-                  className="flex w-full items-center rounded-2xl bg-[#F5F3F0] p-1.5 shadow-sm border border-[#EFEEEB]"
-                >
-                  <div className="flex items-center pl-3 text-[#727974]">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8" />
-                      <path d="m21 21-4.3-4.3" />
-                    </svg>
-                  </div>
-                  <input
-                    name="q" type="text"
-                    placeholder={ui("Search recipes, foods, restaurants...")}
-                    className="w-full bg-transparent px-3 py-2 text-sm text-[#07241A] placeholder-[#727974] focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold tracking-wide text-white transition hover:bg-[#1E3A2F] shrink-0"
-                  ><UiText text={"Tìm kiếm"} /></button>
-                </form>
-              </div>
+              <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg"><UiText text={"Tìm công thức, video nấu ăn và nhà hàng chay cho hành trình ăn chay mỗi ngày."} /></p>
 
               {/* Primary CTA Link */}
-              <div className="mt-6">
+              <div className="mt-8">
                 <Link
                   href="/community"
                   className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-3 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"

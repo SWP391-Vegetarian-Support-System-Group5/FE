@@ -6,6 +6,7 @@ export const metadata = { title: "Công thức | VeggieMate" };
 
 export default async function CommunityPage({ searchParams }: { searchParams: Promise<{ q?: string; category?: string }> }) {
   const { q, category } = await searchParams;
+
   const categoryId = category && /^[1-9]\d*$/.test(category) ? Number(category) : undefined;
   return <div className="flex min-h-screen flex-col bg-[#FBF9F6]"><Navbar /><main className="mx-auto w-full max-w-7xl flex-1 px-6 py-10 lg:px-12"><CommunityFeed keyword={q || ""} categoryId={categoryId} /></main><Footer /></div>;
 }

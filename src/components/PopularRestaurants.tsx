@@ -7,6 +7,7 @@ import { readLivingLocation } from "@/lib/living-location";
 import { getProfile } from "@/lib/profile-api";
 import { getMediaUrl } from "@/lib/api";
 import { displayPlaceCategory } from "@/hooks/useNearbyPlaces";
+import RestaurantDetailsModal from "@/components/RestaurantDetailsModal";
 import type { Coordinates, Restaurant } from "@/types/location";
 
 function getBrowserLocation(): Promise<Coordinates | null> {
@@ -31,6 +32,8 @@ export default function PopularRestaurants() {
   const [places, setPlaces] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [origin, setOrigin] = useState<Coordinates | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<Restaurant | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +75,7 @@ export default function PopularRestaurants() {
         }
         return;
       }
+      setOrigin(center);
 
       const nextPlaces = nearestThree(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId));
       if (cancelled) return;
@@ -113,11 +117,10 @@ export default function PopularRestaurants() {
           )}
 
           {places.map((place) => (
-            <a
+            <button
               key={place.id}
-              href={`https://www.openstreetmap.org/?mlat=${place.latitude}&mlon=${place.longitude}#map=18/${place.latitude}/${place.longitude}`}
-              target="_blank"
-              rel="noreferrer"
+              type="button"
+              onClick={() => setSelectedPlace(place)}
               className="group overflow-hidden rounded-2xl border border-[#EFEEEB] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#E8EDE4]">
@@ -147,10 +150,11 @@ export default function PopularRestaurants() {
                 </div>
                 {place.foods?.length ? <p className="mt-3 line-clamp-2 text-xs text-[#727974]">{place.foods.join(" · ")}</p> : null}
               </div>
-            </a>
+            </button>
           ))}
         </div>
       </div>
+      {selectedPlace && origin && <RestaurantDetailsModal restaurant={selectedPlace} origin={origin} onClose={() => setSelectedPlace(null)} />}
     </section>
   );
 }
