@@ -89,6 +89,15 @@ function validateDraft(d: ProfileDraft, currentYear: number): ProfileErrors {
   return errors;
 }
 
+function normalizeLocationName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(thanh pho|tp|tinh|phuong|xa|dac khu|khu vuc)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function ProfileForm() {
@@ -262,6 +271,37 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
       cancelled = true;
     };
   }, []);
+
+  // Old accounts already have a saved address/coordinates but no saved
+  // administrative codes. Infer the two selectors from that address instead
+  // of making the user choose the same place again.
+  useEffect(() => {
+    if (!addressQuery.trim() || provinces.length === 0 || selectedProvinceCode) return;
+
+    const normalizedAddress = normalizeLocationName(addressQuery);
+    const matchingProvince = provinces.find((item) =>
+      normalizedAddress.includes(normalizeLocationName(item.name)),
+    );
+    if (!matchingProvince) return;
+
+    let active = true;
+    setSelectedProvinceCode(matchingProvince.code);
+    void getAreas(matchingProvince.code)
+      .then((areaList) => {
+        if (!active) return;
+        const matchingArea = areaList.find((item) =>
+          item.code !== "all" && normalizedAddress.includes(normalizeLocationName(item.name)),
+        );
+        setAreas(areaList);
+        setSelectedAreaCode(matchingArea?.code ?? "");
+      })
+      .catch(() => {
+        // Province remains selected even when the ward list is temporarily unavailable.
+        if (active) setAreas([]);
+      });
+
+    return () => { active = false; };
+  }, [addressQuery, provinces, selectedProvinceCode]);
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
