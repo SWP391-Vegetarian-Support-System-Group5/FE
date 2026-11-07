@@ -11,7 +11,8 @@ import SearchableLocationSelect from "@/components/SearchableLocationSelect";
 import { useLanguage } from "@/context/LanguageContext";
 import { readLivingLocation, saveLivingLocation } from "@/lib/living-location";
 import { locationApi } from "@/lib/location-api";
-import { getProfile } from "@/lib/profile-api";
+import { getProfile, updateLivingLocation } from "@/lib/profile-api";
+import RestaurantDetailsModal from "@/components/RestaurantDetailsModal";
 import { displayPlaceCategory } from "@/hooks/useNearbyPlaces";
 import { getMediaUrl } from "@/lib/api";
 import { provinceCenters } from "@/lib/location-data";
@@ -43,7 +44,10 @@ export default function LocationExplorer() {
   const [center, setCenter] = useState<Coordinates>(defaultCenter);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selected, setSelected] = useState<Restaurant>();
+  const [detailRestaurant, setDetailRestaurant] = useState<Restaurant>();
   const [message, setMessage] = useState("");
+  const [dishQuery, setDishQuery] = useState("");
+  const [activeDishQuery, setActiveDishQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [initialLocationReady, setInitialLocationReady] = useState(false);
   const skipNextFilterReload = useRef(false);
@@ -54,23 +58,59 @@ export default function LocationExplorer() {
 
   useEffect(() => { locationApi.provinces().then(setProvinces); }, []);
 
+  // Existing accounts may only have coordinates. Once their normalized address is available,
+  // infer the two administrative selects as well instead of leaving them blank.
+  useEffect(() => {
+    if (!initialLocationReady || !address || provinces.length === 0) return;
+    const normalizedAddress = normalizeLocationName(address);
+    const matchedProvince = provinces.find(item => normalizedAddress.includes(normalizeLocationName(item.name)));
+    if (!matchedProvince) return;
+    let active = true;
+    void locationApi.areas(matchedProvince.code).then(candidateAreas => {
+      if (!active) return;
+      const matchedArea = candidateAreas.find(item => item.code !== "all" && normalizedAddress.includes(normalizeLocationName(item.name)));
+      const nextAreaCode = matchedArea?.code ?? "all";
+      if (provinceCode !== matchedProvince.code) setProvinceCode(matchedProvince.code);
+      setAreas(candidateAreas);
+      if (areaCode !== nextAreaCode) setAreaCode(nextAreaCode);
+    });
+    return () => { active = false; };
+  }, [address, areaCode, initialLocationReady, provinceCode, provinces]);
+
   useEffect(() => {
     const saved = readLivingLocation();
     let active = true;
-    void getProfile().catch(() => null).then(profile => {
+    void getProfile().catch(() => null).then(async profile => {
       if (!active) return;
       if (saved) {
         setProvinceCode(saved.provinceCode);
         setAreaCode(saved.areaCode);
         setAddress(saved.address);
       }
-      setCenter(profile?.latitude != null && profile.longitude != null
+      const profileCenter = profile?.latitude != null && profile.longitude != null
         ? { lat: profile.latitude, lng: profile.longitude }
-        : saved?.center ?? defaultCenter);
+        : null;
+      if ((!saved?.address || saved.address === "") && profile?.livingAddress) setAddress(profile.livingAddress);
+      if ((!saved?.address || saved.address === "") && !profile?.livingAddress && profileCenter) {
+        try {
+          const result = await locationApi.reverseGeocode(profileCenter.lat, profileCenter.lng);
+          if (!active || !result?.formattedAddress) return;
+          setAddress(result.formattedAddress);
+          saveLivingLocation({ provinceCode: saved?.provinceCode || "hochiminh", areaCode: saved?.areaCode || "all", address: result.formattedAddress, center: profileCenter });
+          void updateLivingLocation(profileCenter.lat, profileCenter.lng, result.formattedAddress).catch(() => undefined);
+        } catch {
+          // Existing coordinates remain usable even if reverse geocoding is unavailable.
+        }
+      }
+      setCenter(profileCenter ?? saved?.center ?? defaultCenter);
       setInitialLocationReady(true);
     });
     return () => { active = false; };
   }, []);
+
+  const persistLocation = (nextCenter: Coordinates, nextAddress: string) => {
+    void updateLivingLocation(nextCenter.lat, nextCenter.lng, nextAddress).catch(() => undefined);
+  };
 
   useEffect(() => {
     locationApi.areas(provinceCode).then(setAreas);
@@ -79,12 +119,20 @@ export default function LocationExplorer() {
   const loadRestaurants = useCallback(async (
     coordinates = center,
     filters = { provinceCode, areaCode },
+    keyword = "",
   ) => {
     const request = ++requestSequence.current;
     setLoading(true);
     try {
       const profile = await getProfile().catch(() => null);
-      const data = await locationApi.restaurants(filters.provinceCode, filters.areaCode, coordinates.lat, coordinates.lng, profile?.dietTypeId);
+      const data = await locationApi.restaurants(
+        filters.provinceCode,
+        filters.areaCode,
+        coordinates.lat,
+        coordinates.lng,
+        profile?.dietTypeId,
+        keyword,
+      );
       if (request !== requestSequence.current) return;
       setRestaurants(data);
       setSelected(data[0]);
@@ -99,6 +147,25 @@ export default function LocationExplorer() {
       if (request === requestSequence.current) setLoading(false);
     }
   }, [areaCode, center, provinceCode, t]);
+
+  const searchRestaurantsByDish = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const keyword = dishQuery.trim();
+    setActiveDishQuery(keyword);
+    if (await loadRestaurants(center, { provinceCode, areaCode }, keyword)) {
+      setMessage(keyword
+        ? `Đã tìm nhà hàng gần bạn có món hoặc nguyên liệu liên quan đến “${keyword}”.`
+        : "Đã hiển thị lại tất cả nhà hàng gần bạn.");
+    }
+  };
+
+  const clearDishSearch = async () => {
+    setDishQuery("");
+    setActiveDishQuery("");
+    if (await loadRestaurants(center, { provinceCode, areaCode })) {
+      setMessage("Đã hiển thị lại tất cả nhà hàng gần bạn.");
+    }
+  };
 
   const syncAdministrativeSelection = async (formattedAddress: string) => {
     const normalizedAddress = normalizeLocationName(formattedAddress);
@@ -145,6 +212,7 @@ export default function LocationExplorer() {
       : provinceCenters[nextProvinceCode] ?? center;
     setCenter(nextCenter);
     saveLivingLocation({ provinceCode: nextProvinceCode, areaCode: "all", address: "", center: nextCenter });
+    persistLocation(nextCenter, "");
     await loadRestaurants(nextCenter, { provinceCode: nextProvinceCode, areaCode: "all" });
   };
 
@@ -173,6 +241,7 @@ export default function LocationExplorer() {
       }
     }
     saveLivingLocation({ provinceCode, areaCode: nextAreaCode, address, center: nextCenter });
+    persistLocation(nextCenter, address);
     await loadRestaurants(nextCenter, { provinceCode, areaCode: nextAreaCode });
   };
 
@@ -190,6 +259,7 @@ export default function LocationExplorer() {
       setAddress(result.formattedAddress);
       setCenter(nextCenter);
       saveLivingLocation({ ...filters, address: result.formattedAddress, center: nextCenter });
+      persistLocation(nextCenter, result.formattedAddress);
       if (await loadRestaurants(nextCenter, filters)) setMessage(t("Updated places near this address.", "Đã cập nhật các địa điểm chay gần địa chỉ này."));
     } catch {
       setMessage("Không tìm thấy địa chỉ. Hãy nhập thêm số nhà, tên đường hoặc phường/xã.");
@@ -202,6 +272,7 @@ export default function LocationExplorer() {
     setAddress(result.formattedAddress);
     setCenter(nextCenter);
     saveLivingLocation({ ...filters, address: result.formattedAddress, center: nextCenter });
+    persistLocation(nextCenter, result.formattedAddress);
     if (await loadRestaurants(nextCenter, filters)) setMessage(t("Selected the address and updated nearby places.", "Đã chọn địa chỉ và cập nhật các địa điểm gần đó."));
   };
 
@@ -220,6 +291,7 @@ export default function LocationExplorer() {
     }
     const filters = await syncAdministrativeSelection(nextAddress);
     saveLivingLocation({ ...filters, address: nextAddress, center: nextCenter });
+    persistLocation(nextCenter, nextAddress);
     if (await loadRestaurants(nextCenter, filters)) setMessage(t("Updated the selected location.", "Đã cập nhật vị trí được chọn trên bản đồ."));
   };
 
@@ -245,6 +317,7 @@ export default function LocationExplorer() {
         }
         const filters = await syncAdministrativeSelection(nextAddress);
         saveLivingLocation({ ...filters, address: nextAddress, center: nextCenter });
+        persistLocation(nextCenter, nextAddress);
         if (await loadRestaurants(nextCenter, filters)) setMessage(t("Using your current location.", "Đã dùng vị trí hiện tại của bạn."));
       },
       () => setMessage("Không thể truy cập vị trí. Hãy cấp quyền định vị cho trình duyệt."),
@@ -307,7 +380,21 @@ export default function LocationExplorer() {
         </div>
 
         <div className="grid border-t border-[#edeae5] lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
-          <LeafletRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
+          <div className="min-w-0">
+            <form onSubmit={(event) => void searchRestaurantsByDish(event)} className="border-b border-[#edeae5] bg-[#fbfaf8] p-5 sm:px-6">
+              <label className="block text-sm font-semibold text-[#173f2d]">
+                Tìm món tại nhà hàng gần bạn
+                <span className="mt-2 flex items-center gap-2 rounded-xl border border-[#d9e5dc] bg-white p-1.5 focus-within:border-[#356d54] focus-within:ring-2 focus-within:ring-[#dcebe1]">
+                  <svg className="ml-2 shrink-0 text-[#6d8175]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                  <input value={dishQuery} onChange={(event) => setDishQuery(event.target.value)} placeholder="Ví dụ: bánh mì, mì Ý, cơm rau củ..." className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm outline-none placeholder:text-[#9aa39d]" />
+                  {activeDishQuery && <button type="button" onClick={() => void clearDishSearch()} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#567064] hover:bg-[#edf3ee]">Xóa lọc</button>}
+                  <button type="submit" className="rounded-lg bg-[#143f2e] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0a2d20]">Tìm món</button>
+                </span>
+              </label>
+              <p className="mt-2 text-xs text-[#728078]">Chỉ hiển thị nhà hàng trong bán kính 5 km có món hoặc nguyên liệu khớp với từ khóa.</p>
+            </form>
+            <LeafletRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
+          </div>
           <aside className="max-h-[510px] overflow-y-auto bg-[#fbfaf8] p-5">
             <div className="mb-4 flex items-end justify-between">
               <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">{t("Places nearby", "Địa điểm gần đây")}</h3><p className="mt-1 text-xs text-[#788079]">{t("Within a maximum radius of 5 km", "Trong bán kính tối đa 5 km")}</p></div>
@@ -315,7 +402,7 @@ export default function LocationExplorer() {
             </div>
             {loading ? <p className="py-10 text-center text-sm text-[#788079]">{t("Searching for places...", "Đang tìm địa điểm...")}</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">{t("No matching VeggieMate restaurants were found within 5 km of this address.", "Không tìm thấy nhà hàng VeggieMate phù hợp trong bán kính 5 km quanh địa chỉ này.")}</p> : (
               <div className="space-y-3">{restaurants.map((restaurant) => (
-                <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setCenter({ lat: restaurant.latitude, lng: restaurant.longitude }); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
+                <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setDetailRestaurant(restaurant); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
                   {restaurant.imageUrl && <Image src={getMediaUrl(restaurant.imageUrl)} alt={restaurant.name} width={320} height={120} unoptimized className="mb-3 h-28 w-full rounded-xl object-cover" />}
                   <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{displayPlaceCategory(restaurant.category, t)}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.distanceKm != null ? `${restaurant.distanceKm.toFixed(1)} km` : ""}</span></div>
                   <p className="mt-2 text-xs leading-5 text-[#677069]">{restaurant.address}</p>
@@ -326,6 +413,7 @@ export default function LocationExplorer() {
           </aside>
         </div>
       </section>
+      {detailRestaurant && <RestaurantDetailsModal restaurant={detailRestaurant} origin={center} onClose={() => setDetailRestaurant(undefined)} />}
     </div>
   );
 }

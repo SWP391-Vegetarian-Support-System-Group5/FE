@@ -16,6 +16,12 @@ type BackendRestaurant = {
   ingredientNames: string[];
 };
 
+export type RestaurantRoute = {
+  distanceKm: number;
+  durationMinutes: number;
+  coordinates: Array<{ latitude: number; longitude: number }>;
+};
+
 type AddressSuggestion = {
   id: string;
   label: string;
@@ -74,7 +80,7 @@ export const locationApi = {
       `/locations/reverse-geocode?${new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) })}`,
       null,
     ),
-  restaurants: async (provinceCode: string, areaCode: string, latitude?: number, longitude?: number, dietTypeId?: number | null): Promise<Restaurant[]> => {
+  restaurants: async (provinceCode: string, areaCode: string, latitude?: number, longitude?: number, dietTypeId?: number | null, keyword?: string): Promise<Restaurant[]> => {
     if (latitude === undefined || longitude === undefined) return Promise.resolve([]);
 
     const params = new URLSearchParams({
@@ -83,6 +89,7 @@ export const locationApi = {
       radius: String(nearbyRadiusKm),
     });
     if (dietTypeId != null) params.set("dietTypeId", String(dietTypeId));
+    if (keyword?.trim()) params.set("keyword", keyword.trim());
     const [items, dietTypes] = await Promise.all([
       getJson<BackendRestaurant[]>(`/restaurants/nearby?${params}`, [], 15000, true),
       getJson<Array<{ id: number; name: string }>>("/diet-types", [], 8000, true),
@@ -98,4 +105,6 @@ export const locationApi = {
       ingredientNames: item.ingredientNames,
     }));
   },
+  restaurantRoute: (restaurantId: string | number, latitude: number, longitude: number) =>
+    getJson<RestaurantRoute>(`/restaurants/${restaurantId}/route?${new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) })}`, { distanceKm: 0, durationMinutes: 0, coordinates: [] }, 15000, true),
 };

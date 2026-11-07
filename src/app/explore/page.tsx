@@ -1,8 +1,6 @@
 "use client";
 
-import ContentIcon from "@/components/content/ContentIcon";
-
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import RecipeBrowser from "@/components/recipe/RecipeBrowser";
@@ -19,6 +17,7 @@ import { displayPlaceCategory } from "@/hooks/useNearbyPlaces";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import type { Coordinates, Restaurant } from "@/types/location";
+import RestaurantDetailsModal from "@/components/RestaurantDetailsModal";
 
 interface RestaurantItem {
   id: string;
@@ -57,6 +56,20 @@ function toRestaurantItem(place: Restaurant): RestaurantItem {
   };
 }
 
+/**
+ * Restaurant names and menu items are Vietnamese. Search must work whether a
+ * visitor types the accented or unaccented spelling ("bánh mì" / "banh mi").
+ */
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .toLocaleLowerCase("vi-VN")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getBrowserLocation(): Promise<Coordinates | null> {
   if (!navigator.geolocation) return Promise.resolve(null);
   return new Promise((resolve) => {
@@ -81,7 +94,7 @@ export default function ExplorePage() {
   const [restaurantMessage, setRestaurantMessage] = useState("");
   const [locationLabel, setLocationLabel] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantItem | null>(null);
-  const [, startTransition] = useTransition();
+  const [origin, setOrigin] = useState<Coordinates | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -145,6 +158,7 @@ export default function ExplorePage() {
       const places = await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId);
       if (cancelled) return;
       setRestaurants(places.map(toRestaurantItem));
+      setOrigin(center);
       setSelectedRestaurant((current) => current && places.some((place) => place.id === current.id) ? current : null);
       setLocationLabel(label);
       setRestaurantMessage(places.length > 0
@@ -172,13 +186,18 @@ export default function ExplorePage() {
   };
 
   const filteredRestaurants = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(searchQuery);
+    if (!normalizedQuery) return restaurants;
+
+    const matches = (value: string) => normalizeSearchText(value).includes(normalizedQuery);
     return restaurants.filter((place) => {
       const matchQuery =
-        place.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        place.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        place.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        place.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        place.ingredientNames.some(name => name.toLowerCase().includes(searchQuery.toLowerCase()));
+        matches(place.name) ||
+        matches(place.address) ||
+        matches(place.type) ||
+        matches(place.description) ||
+        place.signatureDishes.some(matches) ||
+        place.ingredientNames.some(matches);
 
       return matchQuery;
     });
@@ -190,12 +209,7 @@ export default function ExplorePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FBF9F6] text-[#07241A] font-sans antialiased selection:bg-[#D9E6DC] selection:text-[#07241A]">
-      <Navbar
-        initialSearchQuery={searchQuery}
-        onSearch={(query) => {
-          startTransition(() => setSearchQuery(query));
-        }}
-      />
+      <Navbar />
 
       <main className="flex-1">
         <div className="mx-auto max-w-7xl px-6 py-8 sm:py-12 lg:px-12">
@@ -249,12 +263,12 @@ export default function ExplorePage() {
                   className="w-full bg-transparent text-sm text-[#07241A] placeholder-[#727974] focus:outline-none"
                 />
                 {searchQuery && (
-                  <button aria-label={t("Clear search", "Xóa tìm kiếm")}
+                  <button
                     type="button"
                     onClick={() => setSearchQuery("")}
                     className="ml-2 text-xs text-[#727974] hover:text-[#07241A]"
                   >
-                    <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
+                    ✕
                   </button>
                 )}
               </div>
@@ -498,103 +512,11 @@ export default function ExplorePage() {
         </div>
       </main>
 
-      {/* RESTAURANT DETAIL MODAL */}
-      {selectedRestaurant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-[#EFEEEB] bg-[#FAF8F5] shadow-2xl">
-            {/* Header image */}
-            <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#E8EDE4]">
-              <div className="absolute inset-0 bg-[linear-gradient(135deg,#EDF3E9_0%,#F8F4ED_52%,#D9E6DC_100%)]" />
-              <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 rounded-2xl bg-white/90 px-5 py-4 text-center text-[#1E3A2F] shadow-md">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                <span className="text-xs font-semibold">{t("Restaurant location", "Vị trí nhà hàng")}</span>
-                <span className="text-[11px] text-[#68766A]">{selectedRestaurant.latitude.toFixed(5)}, {selectedRestaurant.longitude.toFixed(5)}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedRestaurant(null)}
-                className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#07241A] shadow-lg backdrop-blur-md hover:bg-white"
-                title="Close modal"
-              >
-                <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
-              </button>
-              <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                <span className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white">
-                  {displayPlaceCategory(selectedRestaurant.type, t)}
-                </span>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 sm:p-8">
-              <h2 className="font-serif text-2xl font-bold text-[#07241A] sm:text-3xl">
-                {selectedRestaurant.name}
-              </h2>
-
-              <p className="mt-2 text-sm leading-relaxed text-[#424844]">
-                {selectedRestaurant.description}
-              </p>
-
-              {/* Meta details list */}
-              <div className="mt-6 grid grid-cols-1 gap-3 rounded-2xl bg-white p-4 border border-[#EFEEEB] text-xs sm:grid-cols-2">
-                <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]"><ContentIcon name="pin" width="1em" height="1em" className="inline-block align-[-0.125em]" /> {t("Address:", "Địa chỉ:")}</span>
-                  <span>{selectedRestaurant.address}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">⌖ {t("Coordinates:", "Tọa độ:")}</span>
-                  <span>{selectedRestaurant.latitude.toFixed(5)}, {selectedRestaurant.longitude.toFixed(5)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">{t("Diet type:", "Loại ăn chay:")}</span>
-                  <span>{displayPlaceCategory(selectedRestaurant.type, t)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#424844]">
-                  <span className="font-semibold text-[#07241A]">{t("Distance:", "Khoảng cách:")}</span>
-                  <span>{selectedRestaurant.distanceKm != null ? `${selectedRestaurant.distanceKm.toFixed(1)} km` : t("Nearby", "Gần bạn")}</span>
-                </div>
-              </div>
-
-              {/* Signature Dishes */}
-              {selectedRestaurant.signatureDishes.length > 0 && <div className="mt-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#727974]">
-                  {t("Signature Dishes & Recommendations", "Món nổi bật & gợi ý")}
-                </h4>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  {selectedRestaurant.signatureDishes.map((dish) => (
-                    <span
-                      key={dish}
-                      className="rounded-full border border-[#D9E6DC] bg-[#E8EFEA] px-3 py-1 text-xs font-medium text-[#1E3A2F]"
-                    >
-                      <ContentIcon name="leaf" width="1em" height="1em" className="inline-block align-[-0.125em]" /> {dish}
-                    </span>
-                  ))}
-                </div>
-              </div>}
-              {selectedRestaurant.ingredientNames.length > 0 && <p className="mt-4 text-sm text-[#424844]">{t("Ingredients:", "Nguyên liệu:")} {selectedRestaurant.ingredientNames.join(", ")}</p>}
-
-              {/* Action buttons */}
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={(e) => toggleSave(selectedRestaurant.id, e)}
-                  className="rounded-xl border border-[#EFEEEB] bg-white px-5 py-2.5 text-xs font-semibold text-[#07241A] hover:bg-[#F5F3F0] transition"
-                >
-                  {savedIds[selectedRestaurant.id] ? t("Saved in Bookmarks", "Đã lưu") : t("Save Place", "Lưu địa điểm")}
-                </button>
-                <a
-                  href={`https://www.openstreetmap.org/?mlat=${selectedRestaurant.latitude}&mlon=${selectedRestaurant.longitude}#map=18/${selectedRestaurant.latitude}/${selectedRestaurant.longitude}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-xl bg-[#07241A] px-6 py-2.5 text-center text-xs font-semibold text-white shadow-xs hover:bg-[#1E3A2F] transition"
-                >
-                  {t("Open map", "Mở bản đồ")}
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {selectedRestaurant && origin && <RestaurantDetailsModal restaurant={{
+        id: selectedRestaurant.id, name: selectedRestaurant.name, category: selectedRestaurant.type, address: selectedRestaurant.address,
+        provinceCode: "hochiminh", areaCode: selectedRestaurant.district, latitude: selectedRestaurant.latitude, longitude: selectedRestaurant.longitude,
+        rating: 0, reviewCount: 0, distanceKm: selectedRestaurant.distanceKm, foods: selectedRestaurant.signatureDishes, ingredientNames: selectedRestaurant.ingredientNames,
+      }} origin={origin} onClose={() => setSelectedRestaurant(null)} />}
 
       {/* FLOATING VEGGIEAI WIDGET */}
       <VeggieAIWidget />
