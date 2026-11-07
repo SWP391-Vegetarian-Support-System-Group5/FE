@@ -8,31 +8,41 @@ export default function InteractionEffects() {
     const pointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     let target: HTMLElement | null = null;
     let decoration: HTMLDivElement | null = null;
-    const clear = () => { decoration?.remove(); decoration = null; target = null; };
+    let frame = 0;
+    const clear = () => {
+      cancelAnimationFrame(frame);
+      decoration?.remove();
+      decoration = null;
+      target = null;
+    };
     const enter = (event: PointerEvent | FocusEvent) => {
       if (!pointer.matches || !(event.target instanceof Element)) return;
       const next = event.target.closest<HTMLElement>('button, a[href], [role="button"], summary, .vm-card, [data-ripple]');
       if (next === target) return;
       clear();
-      if (!next || next.closest(':disabled, [aria-disabled="true"], [inert], .leaflet-container')) return;
+      if (!next || next.closest(':disabled, [aria-disabled="true"], [inert], .leaflet-container, [data-vine="off"]')) return;
       const rect = next.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       target = next;
       decoration = document.createElement("div");
       decoration.className = "vm-hover-foliage";
+      if (Math.min(rect.width, rect.height) < 36) decoration.dataset.compact = "true";
       decoration.setAttribute("aria-hidden", "true");
       Object.assign(decoration.style, { left: `${rect.left}px`, top: `${rect.top}px`, width: `${rect.width}px`, height: `${rect.height}px` });
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       const width = rect.width + 10;
       const height = rect.height + 10;
-      const radius = Math.min(parseFloat(getComputedStyle(next).borderTopLeftRadius) + 3 || 14, rect.height / 2);
+      const radiusValue = getComputedStyle(next).borderTopLeftRadius;
+      const radiusPixels = radiusValue.includes("%") ? Math.min(rect.width, rect.height) * parseFloat(radiusValue) / 100 : parseFloat(radiusValue);
+      const radius = Math.min(radiusPixels + 3 || 14, Math.min(rect.width, rect.height) / 2);
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
       svg.setAttribute("width", String(width));
       svg.setAttribute("height", String(height));
       const branch = document.createElementNS(svg.namespaceURI, "g");
       const stem = document.createElementNS(svg.namespaceURI, "path");
       const reach = Math.max(radius + 12, Math.min(90, width * .45));
-      stem.setAttribute("d", `M ${reach} 5 H ${radius + 5} Q 5 5 5 ${radius + 5} V ${Math.max(radius + 12, height * .65)}`);
+      const verticalReach = Math.max(radius + 12, Math.min(80, height * .65));
+      stem.setAttribute("d", `M ${reach} 5 H ${radius + 5} Q 5 5 5 ${radius + 5} V ${verticalReach}`);
       stem.setAttribute("class", "vm-vine-stem");
       branch.append(stem);
       const leaf = "M0 0C-3-8 3-11 9-9 8-3 4 0 0 0Z";
@@ -42,7 +52,7 @@ export default function InteractionEffects() {
         const x = radius + 5 + (reach - radius - 8) * i / Math.max(1, leafCount - 1);
         leaves.push([x, 5, i % 2 === 0 ? -10 : 155]);
       }
-      leaves.push([8, radius, -65], [5, radius + 9, -90], [5, Math.max(radius + 14, height * .6), 85]);
+      leaves.push([8, radius, -65], [5, radius + 9, -90], [5, verticalReach - 3, 85]);
       for (const [x, y, angle] of leaves) {
         const path = document.createElementNS(svg.namespaceURI, "path");
         path.setAttribute("d", leaf);
@@ -60,6 +70,16 @@ export default function InteractionEffects() {
       svg.append(opposite);
       decoration.append(svg);
       document.body.append(decoration);
+      // Track the same small transform as the control, rather than leaving
+      // foliage behind while a button rises or a card changes size.
+      const follow = () => {
+        if (!target?.isConnected || !decoration || document.hidden || target.closest(':disabled, [aria-disabled="true"], [inert]')) { clear(); return; }
+        const bounds = target.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) { clear(); return; }
+        decoration.style.transform = `translate(${bounds.left - rect.left}px, ${bounds.top - rect.top}px) scale(${bounds.width / rect.width}, ${bounds.height / rect.height})`;
+        frame = requestAnimationFrame(follow);
+      };
+      frame = requestAnimationFrame(follow);
     };
     const leave = (event: PointerEvent | FocusEvent) => {
       if (target && event.relatedTarget instanceof Node && target.contains(event.relatedTarget)) return;
@@ -71,6 +91,9 @@ export default function InteractionEffects() {
     document.addEventListener("focusout", leave);
     window.addEventListener("scroll", clear, true);
     window.addEventListener("resize", clear);
+    window.addEventListener("blur", clear);
+    document.addEventListener("click", clear, true);
+    document.addEventListener("visibilitychange", clear);
     pointer.addEventListener("change", clear);
     return () => {
       clear();
@@ -80,6 +103,9 @@ export default function InteractionEffects() {
       document.removeEventListener("focusout", leave);
       window.removeEventListener("scroll", clear, true);
       window.removeEventListener("resize", clear);
+      window.removeEventListener("blur", clear);
+      document.removeEventListener("click", clear, true);
+      document.removeEventListener("visibilitychange", clear);
       pointer.removeEventListener("change", clear);
     };
   }, []);

@@ -82,7 +82,7 @@
   background-size: 240% 100%;
   animation: vm-shimmer 1.6s linear infinite;
 }
-.vm-card { transition: translate 300ms cubic-bezier(.22,1.6,.36,1), scale 240ms ease-out, box-shadow 220ms ease-out, border-color 180ms ease-out; }
+.vm-card { transition: translate 250ms cubic-bezier(.22,1.15,.36,1), scale 220ms ease-out, box-shadow 220ms ease-out, border-color 180ms ease-out; }
 .vm-feed-image { transition: opacity 240ms ease-out, scale 350ms ease-out; }
 .vm-button { transition: scale 150ms ease-out, background-color 180ms ease-out, box-shadow 180ms ease-out; }
 .vm-button:active:not(:disabled):not([aria-disabled="true"]) { scale: .98; }
@@ -100,8 +100,8 @@
 .vm-upload-indeterminate { animation: vm-upload-travel 1.4s ease-in-out infinite; }
 
 @media (hover: hover) and (pointer: fine) {
-  .vm-card:hover { translate: 0 -8px; scale: 1.012; box-shadow: 0 18px 38px #1e3a2f25; border-color: #9db595; }
-  .vm-card:hover .vm-feed-image { scale: 1.065; }
+  .vm-card:hover { translate: 0 -4px; scale: 1.003; box-shadow: 0 14px 30px #1e3a2f18; border-color: #9db595; }
+  .vm-card:hover .vm-feed-image { scale: 1.035; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -115,15 +115,6 @@
   .vm-card:hover { translate: none; scale: 1; }
   .vm-feed-image, .vm-button:active { scale: 1 !important; }
 }
-@keyframes hero-recipe-slide {
-  from { opacity: 0; transform: translateX(8%); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-.hero-recipe-slide {
-  animation: hero-recipe-slide 650ms ease-out;
-}
-
 /* Botanical accents are decorative, scoped to the landing page. */
 .vm-home {
   background-image: radial-gradient(ellipse 45% 460px at 75% 160px, #e8efde90, transparent),
@@ -179,15 +170,15 @@
   to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  button:not(:disabled), a.vm-button {
-    transition: translate 240ms cubic-bezier(.22,1.6,.36,1), scale 160ms ease-out, background-color 180ms ease-out, box-shadow 200ms ease-out, color 180ms ease-out;
+  .vm-button:not(:disabled):not([aria-disabled="true"]) {
+    transition: translate 220ms ease-out, scale 160ms ease-out, background-color 180ms ease-out, box-shadow 200ms ease-out, color 180ms ease-out;
   }
-  button:active:not(:disabled), a.vm-button:active { scale: .95; translate: 0 1px; }
+  .vm-button:active:not(:disabled):not([aria-disabled="true"]) { scale: .98; translate: 0 1px; }
   a.vm-card:active { scale: .985; translate: 0 -2px; transition-duration: 100ms; }
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  button:hover:not(:disabled):not([aria-disabled="true"]), a.vm-button:hover { translate: 0 -2px; }
-  button:active:hover:not(:disabled), a.vm-button:active:hover { translate: 0 1px; }
+  .vm-button:hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 -2px; }
+  .vm-button:active:hover:not(:disabled):not([aria-disabled="true"]) { translate: 0 1px; }
 }
 @media (prefers-reduced-motion: reduce) { .vm-ripple-layer { display: none; } }
 
@@ -211,8 +202,10 @@
 /* Native leaf cursor applies across the page, including nested icon elements. */
 @media (hover: hover) and (pointer: fine) {
   html, body, body * { cursor: url('/cursors/leaf.svg') 4 3, auto !important; }
-  :is(input, textarea, [contenteditable="true"]), :is(input, textarea, [contenteditable="true"]) * { cursor: text !important; }
-  :is(button, input, select):disabled, [aria-disabled="true"] { cursor: not-allowed !important; }
+  :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]), textarea, [contenteditable="true"]) { cursor: text !important; }
+  :is(button, input, select, textarea):disabled, :is(button, input, select, textarea):disabled *, [aria-disabled="true"], [aria-disabled="true"] * { cursor: not-allowed !important; }
+  .leaflet-grab, .leaflet-grab * { cursor: grab !important; }
+  .leaflet-container :is(a, button), .leaflet-container :is(a, button) * { cursor: pointer !important; }
   .leaflet-dragging, .leaflet-dragging * { cursor: grabbing !important; }
 }
 .vm-home-hero { border-bottom: 1px solid #254b3810; }
@@ -225,15 +218,13 @@
   padding: 10px 20px; background: #f5f9f1; color: #254b38;
   font-size: 14px; font-weight: 500; box-shadow: 0 4px 16px #254b3814;
 }
-/* Mirrored hero branches move within a six-pixel envelope. */
+/* Both hero branches use the same rhythm and stay inside the hero section. */
 @media (prefers-reduced-motion: no-preference) {
   .vm-botanical.vm-hero-foliage { transform-origin: 50% 90%; animation: vm-corner-sway 4.5s ease-in-out infinite; }
 }
 
 
-/* Clear photo caption: no dark panel or gradient covering the food. */
-.vm-hero-caption { background: transparent; text-shadow: 0 2px 5px #07241acc, 0 0 14px #07241a99; }
-.vm-hero-gallery .hero-recipe-slide { transition: scale 700ms ease; }
+.vm-hero-gallery .hero-recipe-slide { transition: opacity 600ms ease, scale 700ms ease; }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .vm-hero-gallery:hover .hero-recipe-slide { scale: 1.025; }
 }
@@ -248,8 +239,9 @@
 }
 
 
-/* Vines follow the full top and bottom edges at the actual control dimensions. */
-.vm-hover-foliage { position: fixed; z-index: 10001; pointer-events: none; }
+/* Mirrored vines wrap the top-left and bottom-right corners without blocking input. */
+.vm-hover-foliage { position: fixed; z-index: 10001; pointer-events: none; transform-origin: top left; }
+.vm-hover-foliage[data-compact="true"] { opacity: .55; }
 .vm-hover-foliage > svg { position: absolute; left: -5px; top: -5px; overflow: visible; pointer-events: none; }
 .vm-vine-stem { fill: none; stroke: #527244; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .vm-vine-leaf { fill: #8da576; stroke: #527244; stroke-width: .7; }
