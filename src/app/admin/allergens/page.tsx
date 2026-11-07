@@ -131,10 +131,10 @@ function getAllergenBadgeAndNotes(item: AdminAllergen, t: (en: string, vi: strin
     (lower.includes("nut") || lower.includes("hạt") || lower.includes("cashew")
       ? t("Tree Nuts", "Hạt vỏ cứng")
       : lower.includes("soy") || lower.includes("đậu")
-      ? t("Soybeans", "Đậu nành")
-      : lower.includes("milk") || lower.includes("sữa")
-      ? t("Dairy", "Sữa")
-      : t("General Allergen", "Chất dị ứng chung"));
+        ? t("Soybeans", "Đậu nành")
+        : lower.includes("milk") || lower.includes("sữa")
+          ? t("Dairy", "Sữa")
+          : t("General Allergen", "Chất dị ứng chung"));
 
   return {
     statusType: "valid" as const,
@@ -495,17 +495,15 @@ export default function AdminAllergensPage() {
           <button
             type="button"
             onClick={() => setActiveTab("pending")}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
-              activeTab === "pending"
-                ? "bg-[#0F2F24] text-white shadow-sm"
-                : "bg-white text-[#727974] border border-[#EFEEEB] hover:text-[#07241A]"
-            }`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${activeTab === "pending"
+              ? "bg-[#0F2F24] text-white shadow-sm"
+              : "bg-white text-[#727974] border border-[#EFEEEB] hover:text-[#07241A]"
+              }`}
           >
             <span>{t("All Pending", "Tất cả đang chờ")}</span>
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                activeTab === "pending" ? "bg-[#EA580C] text-white" : "bg-[#F2EFE9] text-[#727974]"
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${activeTab === "pending" ? "bg-[#EA580C] text-white" : "bg-[#F2EFE9] text-[#727974]"
+                }`}
             >
               {pendingCount}
             </span>
@@ -514,11 +512,10 @@ export default function AdminAllergensPage() {
           <button
             type="button"
             onClick={() => setActiveTab("approved")}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
-              activeTab === "approved"
-                ? "bg-[#0F2F24] text-white shadow-sm"
-                : "bg-white text-[#727974] border border-[#EFEEEB] hover:text-[#07241A]"
-            }`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${activeTab === "approved"
+              ? "bg-[#0F2F24] text-white shadow-sm"
+              : "bg-white text-[#727974] border border-[#EFEEEB] hover:text-[#07241A]"
+              }`}
           >
             <span>{t("Approved", "Đã phê duyệt")}</span>
             <span className="text-[11px] font-bold text-[#727974]">
@@ -653,9 +650,8 @@ export default function AdminAllergensPage() {
                     {/* Tên chất dị ứng & Badge */}
                     <div className="flex flex-wrap items-center gap-2.5">
                       <h2
-                        className={`font-serif text-base sm:text-lg font-bold tracking-tight ${
-                          meta.statusType === "alert" ? "text-[#B91C1C]" : "text-[#07241A]"
-                        }`}
+                        className={`font-serif text-base sm:text-lg font-bold tracking-tight ${meta.statusType === "alert" ? "text-[#B91C1C]" : "text-[#07241A]"
+                          }`}
                       >
                         &ldquo;{item.name}&rdquo;
                       </h2>
@@ -706,9 +702,8 @@ export default function AdminAllergensPage() {
                       </div>
                     ) : (
                       <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-2xs ${
-                          userObj.avatarPalette || "bg-[#E8F5E9] text-[#1E3A2F]"
-                        }`}
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-2xs ${userObj.avatarPalette || "bg-[#E8F5E9] text-[#1E3A2F]"
+                          }`}
                       >
                         {userObj.initials}
                       </div>
@@ -829,11 +824,10 @@ export default function AdminAllergensPage() {
                           type="button"
                           disabled={busy || isApproved}
                           onClick={() => handleApprove(item)}
-                          className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95 shadow-sm ${
-                            isApproved
-                              ? "bg-[#EAF5EE] text-[#1E7E51] border border-[#D5EBDC]"
-                              : "bg-[#0F2F24] text-white hover:bg-[#164234]"
-                          }`}
+                          className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95 shadow-sm ${isApproved
+                            ? "bg-[#EAF5EE] text-[#1E7E51] border border-[#D5EBDC]"
+                            : "bg-[#0F2F24] text-white hover:bg-[#164234]"
+                            }`}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                             <circle cx="12" cy="12" r="10" />

@@ -7,14 +7,15 @@ import { getStoredToken } from "@/lib/auth";
 import { useMealImagePolling, hasPendingImages } from "./useMealImagePolling";
 import type { ImageMutationResponse } from "@/lib/image-api";
 import { getMediaUrl } from "@/lib/api";
-import { deleteMealPlan, generateMealPlan, getMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, MealPlanRequestError, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
-import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
+import { deleteMealPlan, generateMealPlan, getMealPlan, getMealPlans, regenerateMealPlan, replaceMeal, type MealPlanResponse, type MealPlanNutritionGoal } from "@/lib/meal-plan-api";
+import { getAllAllergens, getDietTypes, getProfile, getUserAllergens, updateUserAllergens, updateProfile, type BackendUserProfile, type DietTypeItem } from "@/lib/profile-api";
 import { getBookmarks } from "@/lib/post-api";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { formatDietTypeName } from "@/lib/diet-type-display";
 import { localizeAmount, localizeIngredient, localizeRecipeTitle, localizeText } from "@/lib/localized-content";
 import type { DayPlan, MealItem } from "./MealPlannerView";
-import { initialMealPlanDate, mealPlanDay, parseMealPlanDate } from "@/lib/meal-plan-dates";
+import { initialMealPlanDate, mealPlanDay, parseMealPlanDate, mealPlanWeekRange } from "@/lib/meal-plan-dates";
+import { planningProfile, goalAllowed, goalLimits, normalizeGoal, type PlanningProfile, type NutritionGoal } from "@/lib/meal-plan-goals";
 
 export function useMealPlanner() {
   const { t, language, locale } = useLanguage();
@@ -41,9 +42,11 @@ export function useMealPlanner() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRegenerating, setWorking] = useState(false);
-  const [replacementLimitReached, setReplacementLimitReached] = useState(false);
-  const [showGoalMenu, setShowGoalMenu] = useState(false);
   const [startDate, setStartDate] = useState(() => initialMealPlanDate());
+  const [goalContext, setGoalContext] = useState<PlanningProfile | null>(null);
+  const [goalOwner, setGoalOwner] = useState<string | null>(null);
+  const [inputProblems, setInputProblems] = useState<string[]>([]);
+  const [profileProblems, setProfileProblems] = useState<string[]>([]);
   const lock = useRef(false);
 
   const applyPolledPlan = useCallback((fresh: MealPlanResponse) => {
@@ -138,14 +141,55 @@ export function useMealPlanner() {
     catch (failure) { setError(failure instanceof Error ? failure.message : "Could not update meal plan."); }
     finally { lock.current = false; setWorking(false); }
   }
-  async function handleRegenerate(nutritionGoal?: MealPlanNutritionGoal, calorieAdjustment: number | null = null) {
+  function validateGenerationInputs(context: PlanningProfile) {
+    const healthProblems = [...context.missing];
+    if (context.age !== null && (context.age < 18 || context.age > 120)) healthProblems.push("Hồ sơ chưa đủ điều kiện tạo thực đơn theo calo cho độ tuổi này");
+    if (!healthProblems.length && !context.energy) healthProblems.push("Thông tin sức khỏe chưa tính được nhu cầu năng lượng");
+    setProfileProblems(healthProblems);
+    const problems = [...healthProblems];
+    if (!pantryIngredients.length) problems.push("Thêm ít nhất một nguyên liệu sẵn có");
+    if (!allergensReady) problems.push("Tải lại danh sách dị ứng trước khi tạo thực đơn");
+    if (!parseMealPlanDate(startDate)) problems.push("Chọn ngày bắt đầu hợp lệ theo dd/mm/yyyy");
+    setInputProblems(problems);
+    return problems.length === 0;
+  }
+  async function handleRegenerate() {
+    if (lock.current || loading) return;
+    setGoalContext(null);
+    setInputProblems([]);
     await run(async () => {
+      const session = getStoredToken();
+      if (!user || !session) throw new Error("Vui lòng đăng nhập để tạo thực đơn.");
+      const fresh = await getProfile();
+      if (getStoredToken() !== session) throw new Error("Phiên đăng nhập đã thay đổi. Vui lòng tải lại trang.");
+      setProfile(fresh);
+      const context = planningProfile(fresh, new Date().getFullYear());
+      if (validateGenerationInputs(context)) { setGoalOwner(user.uid); setGoalContext(context); }
+    });
+  }
+  async function confirmGeneration(goal: NutritionGoal, adjustment: number) {
+    if (!goalContext || goalOwner !== user?.uid) return;
+    await run(async () => {
+      const session = getStoredToken();
+      if (!user || !session) throw new Error("Vui lòng đăng nhập để tạo thực đơn.");
+      const fresh = await getProfile();
+      if (getStoredToken() !== session) throw new Error("Phiên đăng nhập đã thay đổi. Vui lòng tải lại trang.");
+      setProfile(fresh);
+      const context = planningProfile(fresh, new Date().getFullYear());
+      if (!validateGenerationInputs(context)) { setGoalContext(null); return; }
+      setGoalContext(context);
+      const limits = goalLimits(context, goal);
+      if (!goalAllowed(context.bmi, goal) || !Number.isInteger(adjustment) || adjustment < 0 || adjustment > limits.maxAdjustment ||
+        (adjustment !== 0 && (adjustment < 500 || adjustment % 50 !== 0)))
+        throw new Error("Mục tiêu không còn phù hợp với hồ sơ hiện tại. Vui lòng chọn lại mức điều chỉnh.");
+      const target = (limits.tdee ?? 0) + (goal === "LOSE" ? -adjustment : goal === "GAIN" ? adjustment : 0);
+      if (target < limits.minimumIntake) throw new Error("Mức năng lượng mục tiêu quá thấp cho chế độ tạo thực đơn này. Vui lòng chọn lại mục tiêu hoặc kiểm tra hồ sơ.");
       const parsedDate = parseMealPlanDate(startDate);
       if (!parsedDate) throw new Error(t("Enter a valid start date as dd/mm/yy (2000-2099).", "Nhập ngày bắt đầu hợp lệ theo dd/mm/yy (năm 2000–2099)."));
-      const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", ") || null, nutritionGoal, calorieAdjustment };
+      const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", "), ...normalizeGoal(goal, adjustment) };
       const next = plan ? await regenerateMealPlan(plan.mealPlanId, payload) : await generateMealPlan(payload);
-      setPlan(next); setReplacementLimitReached(false); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
-      setShowGoalMenu(false);
+      if (getStoredToken() !== session) return;
+      setPlan(next); setPlanOwner(user?.uid); setGoalContext(null); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
     });
   }
   async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"], recipeId?: number) {
@@ -165,7 +209,6 @@ export function useMealPlanner() {
       setPlan(null);
       setRecipeData({});
       setSelectedMealForView(null);
-      setReplacementLimitReached(false);
       setToastMessage(t("Meal plan deleted.", "Đã xóa thực đơn."));
       deleted = true;
     });
@@ -213,7 +256,10 @@ export function useMealPlanner() {
   }
   function handleAddPantry(event: FormEvent) {
     event.preventDefault();
-    if (newPantryItem.trim()) setPantryIngredients(items => [...new Set([...items, newPantryItem.trim()])]);
+    if (newPantryItem.trim()) {
+      setPantryIngredients(items => [...new Set([...items, newPantryItem.trim()])]);
+      setInputProblems(items => items.filter(item => item !== "Thêm ít nhất một nguyên liệu sẵn có"));
+    }
     setNewPantryItem("");
   }
   function setImageBusy(busy: boolean) {
@@ -256,7 +302,7 @@ export function useMealPlanner() {
     if (!profile || !profile.heightCm || !profile.weightKg || profile.heightCm <= 0 || profile.weightKg <= 0) return null;
     const heightInMeters = profile.heightCm / 100;
     const value = Math.round((profile.weightKg / (heightInMeters * heightInMeters)) * 100) / 100;
-    const category = value < 18.5 ? "Underweight" : value < 25 ? "Normal" : "Obese";
+    const category = value < 18.5 ? "Thiếu cân" : value < 25 ? "Trong khoảng tham chiếu" : value < 30 ? "Thừa cân" : "BMI cao";
     return { value, category };
   }, [profile]);
   const inferredNutritionGoal = useMemo<MealPlanNutritionGoal>(() => {
@@ -264,7 +310,7 @@ export function useMealPlanner() {
     if (profile.goalWeightKg < profile.weightKg) return "LOSE";
     if (profile.goalWeightKg > profile.weightKg) return "GAIN";
     return "MAINTAIN";
-  }, [profile?.goalWeightKg, profile?.weightKg]);
+  }, [profile]);
   const profileTdee = useMemo(() => {
     if (!profile?.weightKg || !profile.heightCm || !profile.sex || !profile.birthYear || !profile.activityLevel) return null;
     const today = new Date();
@@ -287,8 +333,31 @@ export function useMealPlanner() {
   const inferredWeeksToGoal = useMemo(() => {
     if (!profile?.weightKg || !profile.goalWeightKg || !displayAdjustment || inferredNutritionGoal === "MAINTAIN") return null;
     return Math.round((Math.abs(profile.goalWeightKg - profile.weightKg) * 7700 / (displayAdjustment * 7)) * 10) / 10;
-  }, [profile?.goalWeightKg, profile?.weightKg, displayAdjustment, inferredNutritionGoal]);
+  }, [profile, displayAdjustment, inferredNutritionGoal]);
+  async function saveWeeklyWeight(weightKg: number) {
+    if (lock.current) throw new Error("Vui lòng chờ thao tác hiện tại hoàn tất.");
+    const session = getStoredToken();
+    if (!user || !session) throw new Error("Vui lòng đăng nhập lại.");
+    lock.current = true; setWorking(true);
+    try {
+      const fresh = await getProfile();
+      if (session !== getStoredToken()) throw new Error("Phiên đăng nhập đã thay đổi.");
+      const { fullName, sex, birthYear, birthDate, heightCm, activityLevel, goalWeightKg, dietTypeId, latitude, longitude } = fresh;
+      const updated = await updateProfile({ fullName, sex, birthYear, birthDate, heightCm, weightKg, activityLevel, goalWeightKg, dietTypeId, latitude, longitude });
+      if (session !== getStoredToken()) throw new Error("Phiên đăng nhập đã thay đổi. Vui lòng tải lại trang.");
+      setProfile(updated);
+      setToastMessage("Đã cập nhật cân nặng. Thông tin mới sẽ được dùng khi tạo thực đơn tiếp theo.");
+    } finally { lock.current = false; setWorking(false); }
+  }
   return {
+    profileProblems, saveWeeklyWeight, currentWeightKg: profile?.weightKg, weightOwner: user?.uid,
+    goalContext: goalOwner === user?.uid ? goalContext : null,
+    inputProblems, confirmGeneration, closeGoalDialog: () => { if (!lock.current) setGoalContext(null); },
+    selectedWeekRange: mealPlanWeekRange(parseMealPlanDate(startDate), locale),
+    savedWeekRange: mealPlanWeekRange(plan?.startDate ?? null, locale),
+    savedStartDate: plan?.startDate ?? null,
+    planNutrition: plan?.tdee && plan?.targetCaloriesPerDay && plan?.nutritionGoal
+      ? { tdee: plan.tdee, target: plan.targetCaloriesPerDay, goal: plan.nutritionGoal } : null,
     imagePollingNotice, imagesPending: hasPendingImages(plan), reloadMealImages: () => run(refreshMealImages),
     planId: plan?.mealPlanId, applyMealImage, refreshMealImages, setImageBusy,
     days, allergens: selectedAllergens.map(item => item.name), newAllergen,
@@ -306,7 +375,6 @@ export function useMealPlanner() {
     dietName: formatDietTypeName(currentDiet?.name, language), savedCount: savedIds.length,
     tdee: displayTdee, targetCalories: displayTargetCalories, nutritionGoal: displayGoal, calorieAdjustment: displayAdjustment,
     inferredNutritionGoal, goalWeightKg: profile?.goalWeightKg ?? plan?.goalWeightKg ?? null, estimatedWeeksToGoal: profileHasDirection ? inferredWeeksToGoal : plan?.estimatedWeeksToGoal ?? inferredWeeksToGoal,
-    showGoalMenu, setShowGoalMenu,
     loading, error: localizeText(error, language), startDate, setStartDate,
   };
 }

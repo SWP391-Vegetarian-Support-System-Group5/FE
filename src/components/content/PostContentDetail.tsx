@@ -157,7 +157,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E5E7DF] py-5">
           <div className="flex flex-wrap items-center gap-4 text-sm">
-            <span className="text-[#CB8520]">★ <strong className="text-[#07241A]">{post.averageRating ? post.averageRating.toFixed(1) : t("New", "Mới")} / 5</strong><span className="ml-2 text-[#727974]">· {post.ratingCount} {t("ratings", "đánh giá")}</span></span>
+            <span className="text-[#CB8520]"><ContentIcon name="star" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" fill="currentColor" /> <strong className="text-[#07241A]">{post.averageRating ? post.averageRating.toFixed(1) : t("New", "Mới")} / 5</strong><span className="ml-2 text-[#727974]">· {post.ratingCount} {t("ratings", "đánh giá")}</span></span>
           </div>
           <a href="#comments" className="text-sm hover:text-[#BC4B22]">{post.commentCount} {t("Comments", "bình luận")}</a>
         </div>

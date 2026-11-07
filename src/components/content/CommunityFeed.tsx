@@ -1,4 +1,6 @@
 "use client";
+
+import ContentIcon from "@/components/content/ContentIcon";
 import UiText from "@/components/UiText";
 
 
@@ -130,8 +132,8 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
           <Link href={`/view-detail/post-${post.postId}`} className="absolute inset-0 flex items-center justify-center">
             {(post.imageUrl ?? post.thumbnailUrl) ? <FeedImage key={(post.imageUrl ?? post.thumbnailUrl)} src={getMediaUrl((post.imageUrl ?? post.thumbnailUrl))} alt={post.title} compact={compact} /> : <span className="font-serif text-xl text-[#658266]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</span>}
           </Link>
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs">★ {post.averageRating.toFixed(1)} / 5</span>
-          <button type="button" aria-label={bookmarks?.includes(post.postId) ? "Bỏ lưu bài" : "Lưu bài"} aria-pressed={bookmarks?.includes(post.postId) || false} disabled={pending.includes(post.postId) || authLoading || (!!user && !!getStoredToken() && bookmarks === null)} onClick={() => toggleBookmark(post.postId)} className="vm-button absolute right-3 top-3 rounded-full bg-white/90 px-3 py-2 text-sm disabled:opacity-40">{pending.includes(post.postId) ? "…" : bookmarks?.includes(post.postId) ? "🔖" : "♡"}</button>
+          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs"><ContentIcon name="star" width="1em" height="1em" className="inline-block align-[-0.125em]" fill="currentColor" /> {post.averageRating.toFixed(1)} / 5</span>
+          <button type="button" aria-label={bookmarks?.includes(post.postId) ? "Bỏ lưu bài" : "Lưu bài"} aria-pressed={bookmarks?.includes(post.postId) || false} disabled={pending.includes(post.postId) || authLoading || (!!user && !!getStoredToken() && bookmarks === null)} onClick={() => toggleBookmark(post.postId)} className="vm-button absolute right-3 top-3 rounded-full bg-white/90 px-3 py-2 text-sm disabled:opacity-40">{pending.includes(post.postId) ? "…" : <ContentIcon name="bookmark" fill={bookmarks?.includes(post.postId) ? "currentColor" : "none"} />}</button>
         </div>
         <div className={gallery ? "px-4 py-5 text-center" : "p-5"}>
           {!gallery && <p className="text-xs text-[#727974]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</p>}

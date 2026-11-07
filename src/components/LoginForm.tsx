@@ -1,5 +1,7 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import UiText, { useUiText } from "@/components/UiText";
 
 
@@ -188,7 +190,7 @@ export default function LoginForm() {
       {/* Verified Success Banner */}
       {verifiedSuccess && (
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#CAEADA] bg-[#F0F9F5] p-3 text-xs text-[#07241A]">
-          <span className="text-sm font-bold text-emerald-700">✓</span>
+          <span className="text-sm font-bold text-emerald-700"><ContentIcon name="check" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
           <div className="flex-1 leading-relaxed">
             <p className="font-semibold"><UiText text={"Xác minh email thành công. Vui lòng đăng nhập."} /></p>
             <p className="text-[11px] text-[#526359] mt-0.5"><UiText text={"Tài khoản của bạn đã được kích hoạt thành công. Hãy nhập mật khẩu để đăng nhập."} /></p>
@@ -199,7 +201,7 @@ export default function LoginForm() {
             className="text-[#07241A]/60 hover:text-[#07241A]"
             title={ui("Đóng thông báo")}
           >
-            ✕
+            <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
           </button>
         </div>
       )}
@@ -257,7 +259,7 @@ export default function LoginForm() {
             className="text-[#99462A]/60 hover:text-[#99462A]"
             title={ui("Đóng thông báo")}
           >
-            ✕
+            <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
           </button>
         </div>
       )}
@@ -327,7 +329,7 @@ export default function LoginForm() {
       </div>
 
       {/* Form Fields */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="vm-form-fields space-y-4">
         <div>
           <label
             htmlFor="email"

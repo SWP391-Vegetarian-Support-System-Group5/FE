@@ -1,5 +1,12 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
+import MealGoalDialog from "./MealGoalDialog";
+import MealWeekTimeline from "./MealWeekTimeline";
+import WeeklyWeightCheckIn from "./WeeklyWeightCheckIn";
+import { GOAL_LABELS } from "@/lib/meal-plan-goals";
+
 import { useLanguage } from "@/context/LanguageContext";
 import UiText, { useUiText } from "@/components/UiText";
 
@@ -11,7 +18,7 @@ import { useMealPlanner } from "./useMealPlanner";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { getMealReplacementOptions, type MealPlanNutritionGoal, type MealPlanRecipeOptionResponse } from "@/lib/meal-plan-api";
+import { getMealReplacementOptions, type MealPlanRecipeOptionResponse } from "@/lib/meal-plan-api";
 
 export interface MealItem {
   id: string;
@@ -221,14 +228,14 @@ export const ALTERNATIVE_DISHES: Record<string, Partial<MealItem>> = {
 export default function MealPlannerView() {
   const ui = useUiText();
   const { t } = useLanguage();
-  const [adjustment, setAdjustment] = useState(500);
-  const [selectedGoal, setSelectedGoal] = useState<MealPlanNutritionGoal>("MAINTAIN");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [mealPicker, setMealPicker] = useState<{ dayIndex: number; meal: MealItem } | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
   const [pickerOptions, setPickerOptions] = useState<MealPlanRecipeOptionResponse[]>([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const {
+    profileProblems, saveWeeklyWeight, currentWeightKg, weightOwner,
+    goalContext, inputProblems, confirmGeneration, closeGoalDialog, selectedWeekRange, savedWeekRange, savedStartDate, planNutrition,
     imagePollingNotice, imagesPending, reloadMealImages,
     planId, applyMealImage, refreshMealImages, setImageBusy,
     days, allergens, newAllergen, setNewAllergen, showAddAllergen, setShowAddAllergen,
@@ -236,14 +243,9 @@ export default function MealPlannerView() {
     pantryIngredients, newPantryItem, setNewPantryItem, selectedMealForView, setSelectedMealForView,
     toastMessage, isRegenerating, handleRemoveAllergen, handleAddAllergen, handleRemovePantry,
     handleAddPantry, handleReplaceMeal, handleDeletePlan, handleRegenerate, viewMeal, profileName, bmi, bmiCategory,
-    dietName, savedCount, loading, error, startDate, setStartDate, tdee, targetCalories, nutritionGoal, calorieAdjustment, inferredNutritionGoal,
-    goalWeightKg, estimatedWeeksToGoal, showGoalMenu, setShowGoalMenu,
+    dietName, savedCount, loading, error, startDate, tdee, targetCalories, nutritionGoal, calorieAdjustment,
+    goalWeightKg, estimatedWeeksToGoal,
   } = useMealPlanner();
-  const openGoalMenu = () => {
-    setSelectedGoal(inferredNutritionGoal);
-    setAdjustment(calorieAdjustment ?? 500);
-    setShowGoalMenu(true);
-  };
   const openMealPicker = (dayIndex: number, meal: MealItem) => {
     setPickerQuery("");
     setPickerOptions([]);
@@ -262,11 +264,11 @@ export default function MealPlannerView() {
     return () => { active = false; window.clearTimeout(timer); };
   }, [mealPicker, planId, pickerQuery]);
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
       {/* Toast */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-[#07241A] px-5 py-3 text-xs font-semibold text-white shadow-xl transition-all animate-fade-in flex items-center gap-2">
-          <span>🌿</span>
+          <span><ContentIcon name="leaf" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
           <span>{<UiText text={toastMessage} />}</span>
         </div>
       )}
@@ -277,14 +279,14 @@ export default function MealPlannerView() {
       </div>}
 
       {/* ── Top Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-[#EFEEEB] pb-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-[#EFEEEB] pb-3">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#727974]">
             <span className="h-2 w-2 rounded-full bg-[#16a34a]" />
             <span className="rounded-full bg-[#EFEEEB] px-3 py-0.5 text-[11px] font-bold text-[#07241A]">{ui("Weekly meal plan")}</span>
           </div>
 
-          <h1 className="mt-2.5 font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#07241A]"><UiText text={"Lên thực đơn tuần"} /></h1>
+          <h1 className="mt-1 font-serif text-2xl sm:text-2xl lg:text-2xl font-bold tracking-tight text-[#07241A]"><UiText text={"Lên thực đơn tuần"} /></h1>
           <p className="mt-1.5 text-sm text-[#424844] max-w-2xl">{t("Meals selected for your vegetarian type, allergies and calorie goal.", "Thực đơn phù hợp với kiểu ăn chay, dị ứng và mục tiêu calories của bạn.")}</p>
         </div>
 
@@ -292,12 +294,12 @@ export default function MealPlannerView() {
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
           <button
             type="button"
-            onClick={openGoalMenu}
+            onClick={() => void handleRegenerate()}
             disabled={isRegenerating || loading}
             className="flex items-center gap-2 rounded-xl bg-white border border-[#EFEEEB] px-4 py-2.5 text-xs font-semibold text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition cursor-pointer"
           >
-            <span>✨</span>
-            <span>{isRegenerating ? t("Generating…", "Đang tạo…") : days.length ? "Tạo thực đơn mới" : t("Generate My 7-Day Plan", "Tạo thực đơn 7 ngày")}</span>
+            <span><ContentIcon name="sparkles" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
+            <span>{isRegenerating ? t("Generating…", "Đang tạo…") : days.length ? t("Generate a new plan", "Tạo thực đơn mới") : t("Generate My 7-Day Plan", "Tạo thực đơn 7 ngày")}</span>
           </button>
 
           {planId && <button
@@ -311,47 +313,49 @@ export default function MealPlannerView() {
             <span className="sr-only">Xóa thực đơn</span>
           </button>}
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            title={ui("In thực đơn")}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-[#EFEEEB] text-[#07241A] shadow-xs hover:bg-[#F5F3F0] transition cursor-pointer"
-          >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="6 9 6 2 18 2 18 9" />
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-              <rect width="12" height="8" x="6" y="14" />
-            </svg>
-          </button>
+
         </div>
       </div>
 
       {loading && <p role="status" className="py-4">{ui("Loading...")}</p>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
       {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
-      <label className="mt-4 block text-sm">{ui("Start date")} <input type="text" inputMode="numeric" placeholder="dd/mm/yy" maxLength={10} value={startDate} onChange={e => setStartDate(e.target.value)} className="ml-3 w-36 rounded-lg border p-2" /></label>
-      {(tdee || targetCalories || goalWeightKg) && <div className="mt-4 grid gap-3 rounded-2xl border border-[#D9E6DC] bg-[#EDF4ED] p-4 text-sm text-[#07241A] sm:grid-cols-3">
+      <section className="mt-3 rounded-2xl border border-[#E5E7DF] bg-white p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><p className="text-[11px] font-medium uppercase tracking-wider text-[#727974]">{savedWeekRange ? "Tuần đang xem" : "Tuần dự kiến"}</p>
+            <p className="font-serif text-base text-[#07241A]">{savedWeekRange || selectedWeekRange || "Chọn ngày bắt đầu"}</p>
+            {planNutrition && <p className="text-xs text-[#254B38]">{GOAL_LABELS[planNutrition.goal]} · {Math.round(planNutrition.target).toLocaleString("vi-VN")} kcal/ngày</p>}
+          </div>
+        </div>
+        {savedWeekRange && selectedWeekRange && savedWeekRange !== selectedWeekRange && <p className="mt-3 text-xs text-[#727974]">Tuần sẽ tạo mới: {selectedWeekRange}</p>}
+        <MealWeekTimeline savedStartDate={savedStartDate} draftStartDate={startDate} />
+      </section>
+      {!loading && <WeeklyWeightCheckIn key={`${weightOwner}:${planId}:${savedStartDate}`} owner={weightOwner} planId={planId} startDate={savedStartDate} weightKg={currentWeightKg} busy={isRegenerating} onSave={saveWeeklyWeight} />}
+      {goalContext && selectedWeekRange && <MealGoalDialog context={goalContext} weekRange={selectedWeekRange} busy={isRegenerating}
+        error={error} onClose={closeGoalDialog} onConfirm={(goal, adjustment) => void confirmGeneration(goal, adjustment)} />}
+      {(tdee || targetCalories || goalWeightKg) && <div className="mt-3 grid gap-2 rounded-xl border border-[#D9E6DC] bg-[#EDF4ED] px-3 py-2 text-xs text-[#07241A] sm:grid-cols-3">
         <p><span className="text-xs text-[#727974]">TDEE ước lượng</span><strong className="block">{tdee ? `~ ${Math.round(tdee)} kcal/ngày` : "Cần hoàn thiện hồ sơ"}</strong></p>
         <p><span className="text-xs text-[#727974]">Mục tiêu thực đơn</span><strong className="block">{targetCalories ? `~ ${Math.round(targetCalories)} kcal/ngày` : "Cần hoàn thiện hồ sơ"}</strong><span className="text-xs">{nutritionGoal === "LOSE" ? `Giảm ${calorieAdjustment} kcal/ngày` : nutritionGoal === "GAIN" ? `Tăng ${calorieAdjustment} kcal/ngày` : "Duy trì cân nặng"}</span></p>
         <p><span className="text-xs text-[#727974]">Mục tiêu cân nặng</span><strong className="block">{goalWeightKg ? `${goalWeightKg} kg` : "Chưa thiết lập"}</strong>{estimatedWeeksToGoal ? <span className="text-xs">~ {estimatedWeeksToGoal} tuần để {nutritionGoal === "LOSE" ? "giảm" : "tăng"} đến mục tiêu (ước lượng)</span> : goalWeightKg ? <span className="text-xs">Cần hoàn thiện hồ sơ để ước tính thời gian</span> : null}</p>
       </div>}
       {/* ── Main Two-Column Layout ─────────────────────────────────────── */}
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
+      <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
         {/* =============================================================== */}
         {/* Left Column: Profile & Allergies (4 cols)      */}
         {/* =============================================================== */}
-        <div className="space-y-6 lg:col-span-4">
+        <div className="space-y-4 lg:col-span-4">
+      {inputProblems.length > 0 && <div role="alert" className="vm-feedback rounded-2xl border border-[#E6CFBB] bg-[#FFF8F0] p-3">
+        <h2 className="text-sm font-medium text-[#754624]">Cập nhật đầu vào trước khi tạo thực đơn</h2>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#754624]">{inputProblems.map(problem => <li key={problem}>{problem}</li>)}</ul>
+        {profileProblems.length > 0 && <Link href="/profile" className="vm-button mt-3 inline-block text-sm font-medium text-[#254B38] underline underline-offset-4">Cập nhật hồ sơ sức khỏe →</Link>}
+        {inputProblems.includes("Tải lại danh sách dị ứng trước khi tạo thực đơn") && <button type="button" onClick={retryAllergens} className="vm-button mt-3 text-sm text-[#254B38] underline">Tải lại danh sách dị ứng</button>}
+        {inputProblems.includes("Thêm ít nhất một nguyên liệu sẵn có") && <a href="#meal-pantry" className="vm-button ml-4 mt-3 inline-block text-sm font-medium text-[#254B38] underline underline-offset-4">Thêm nguyên liệu →</a>}
+      </div>}
+
+
+
           {/* Card 1: User Profile & Goals */}
-          <div className="rounded-3xl bg-white p-6 border border-[#EFEEEB] shadow-xs space-y-5">
+          <div className="rounded-3xl bg-white p-5 border border-[#EFEEEB] shadow-xs space-y-5">
             {/* User Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -440,7 +444,7 @@ export default function MealPlannerView() {
                       aria-label={t(`Remove allergy ${alg}`, `Gỡ dị ứng ${alg}`)}
                       title={ui("Gỡ dị ứng")}
                     >
-                      ✕
+                      <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                     </button>
                   </span>
                 ))}
@@ -453,43 +457,53 @@ export default function MealPlannerView() {
               className="flex items-center justify-between rounded-2xl bg-[#E8F1EC] p-3 text-xs font-semibold text-[#07241A] transition hover:bg-[#D9E6DC]"
             >
               <div className="flex items-center gap-2">
-                <span>🔖</span>
+                <span><ContentIcon name="bookmark" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                 <span>{savedCount} {ui("Saved recipes")}</span>
               </div>
               <span>→</span>
             </Link>
           </div>
 
-          <section className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-xs">
+          <section id="meal-pantry" className="scroll-mt-24 rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-serif text-lg font-bold text-[#07241A]">Nguyên liệu sẵn có</h2>
               <span className="text-xs text-[#727974]">{pantryIngredients.length}</span>
             </div>
+            <p className="mt-2 text-sm leading-6 text-[#727974]">Bạn đang có gì trong bếp? Chọn gợi ý hoặc nhập nguyên liệu, rồi nhấn Thêm để xác nhận.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {pantryIngredients.map(item => (
                 <span key={item} className="inline-flex items-center gap-2 rounded-md border border-[#D9E6DC] bg-[#E8F1EC] px-3 py-1.5 text-xs text-[#07241A]">
                   {item}
-                  <button type="button" onClick={() => handleRemovePantry(item)} aria-label={`Xóa nguyên liệu ${item}`} title="Xóa nguyên liệu" className="text-[#59635C] hover:text-red-700">×</button>
+                  <button type="button" disabled={isRegenerating} onClick={() => handleRemovePantry(item)} aria-label={`Xóa nguyên liệu ${item}`} title="Xóa nguyên liệu" className="text-[#59635C] hover:text-red-700 disabled:opacity-40">×</button>
                 </span>
               ))}
             </div>
             <form onSubmit={handleAddPantry} className="mt-4 flex gap-2">
-              <input type="text" value={newPantryItem} onChange={event => setNewPantryItem(event.target.value)} placeholder="Thêm nguyên liệu (ví dụ: sả)" aria-label="Tên nguyên liệu" className="min-w-0 flex-1 rounded-md border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-sm outline-none focus:border-[#1E3A2F]" />
-              <button type="submit" className="rounded-md bg-[#07241A] px-4 py-2 text-sm font-semibold text-white">Thêm</button>
+              <input id="pantry-ingredient-input" type="text" disabled={isRegenerating} value={newPantryItem} onChange={event => setNewPantryItem(event.target.value)} placeholder="Thêm nguyên liệu (ví dụ: sả)" aria-label="Tên nguyên liệu" className="min-w-0 flex-1 rounded-md border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-sm outline-none focus:border-[#1E3A2F] disabled:opacity-40" />
+              <button type="submit" disabled={isRegenerating || !newPantryItem.trim()} className="rounded-md bg-[#07241A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Thêm</button>
             </form>
+            <div className="mt-5 border-t border-[#EFEEEB] pt-4">
+              <p className="mb-3 flex items-center gap-2 text-xs font-medium text-[#254B38]"><ContentIcon name="salad" width="18" height="18" />Gợi ý để bạn bắt đầu</p>
+              <div className="flex flex-wrap gap-2">
+                {["Cà rốt", "Bí đỏ", "Nấm", "Cải thìa", "Khoai lang", "Gạo", "Sả", "Cà chua"].filter(item => !pantryIngredients.some(selected => selected.toLocaleLowerCase("vi") === item.toLocaleLowerCase("vi"))).map(item => (
+                  <button key={item} type="button" disabled={isRegenerating} onClick={() => { setNewPantryItem(item); document.getElementById("pantry-ingredient-input")?.focus(); }} className="vm-button rounded-full border border-[#D9E6DC] bg-[#F4F8F2] px-3 py-2 text-xs text-[#254B38] hover:bg-[#E2EEDD] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#254B38] disabled:opacity-40">+ {item}</button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs leading-5 text-[#727974]">Gợi ý chưa được thêm vào danh sách. Chỉ xác nhận nguyên liệu bạn có và phù hợp với dị ứng của mình.</p>
+            </div>
           </section>
         </div>
 
         {/* =============================================================== */}
         {/* Right Column: Daily Plans & Cards (8 cols)                      */}
         {/* =============================================================== */}
-        <div className="space-y-8 lg:col-span-8">
+        <div className="space-y-6 lg:col-span-8">
           {days.map((day, dIdx) => (
-            <section key={day.dayName} className="space-y-4">
+            <section key={day.dayName} id={`meal-day-${dIdx + 1}`} className="scroll-mt-24 space-y-3">
               {/* Day Header */}
               <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-2.5">
                 <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                  <h2 className="font-serif text-2xl font-bold text-[#07241A]">
+                  <h2 className="font-serif text-xl font-bold text-[#07241A]">
                     {<UiText text={day.dayName} />}
                   </h2>
                   <span className="text-sm text-[#727974]">
@@ -507,11 +521,11 @@ export default function MealPlannerView() {
                 {day.meals.map((meal) => (
                   <div
                     key={meal.id}
-                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-3xl bg-white p-4 sm:p-5 border border-[#EFEEEB] shadow-xs transition hover:border-[#1E3A2F]"
+                    className="vm-meal-card flex min-w-0 flex-col gap-3 rounded-2xl bg-white p-3 sm:p-3.5 xl:flex-row xl:items-center xl:justify-between border border-[#EFEEEB] shadow-xs transition hover:border-[#1E3A2F]"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
                       {/* Dish Photo */}
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-[#EFEEEB]">
+                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#EFEEEB]">
                         {meal.image ? <Image
                           src={meal.image}
                           alt={meal.title}
@@ -525,7 +539,7 @@ export default function MealPlannerView() {
                       </div>
 
                       {/* Content */}
-                      <div className="space-y-1">
+                      <div className="min-w-0 space-y-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-[#727974]">
                             {<UiText text={meal.slot} />}
@@ -541,7 +555,7 @@ export default function MealPlannerView() {
                         </div>
 
                         <MealImageStatus status={meal.imageGenerationStatus} error={meal.imageGenerationError} compact />
-                        <h3 className="font-serif text-base font-bold text-[#07241A]">
+                        <h3 className="line-clamp-2 font-serif text-base font-bold text-[#07241A]">
                           {<UiText text={meal.title} />}
                         </h3>
                         <p className="text-xs text-[#727974] line-clamp-1 max-w-md">
@@ -551,7 +565,7 @@ export default function MealPlannerView() {
                     </div>
 
                     {/* Meal actions */}
-                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 self-end xl:self-center">
                       {planId && meal.mealPlanMealId && <ImageManager
                         label={meal.image ? t("Change image", "Đổi ảnh") : t("Add image", "Thêm ảnh")}
                         imageUrl={meal.image} disabled={isRegenerating}
@@ -577,7 +591,7 @@ export default function MealPlannerView() {
                         title={t("Replace meal", "Thay món")}
                         className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <span>🔄</span>
+                        <span><ContentIcon name="refresh" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                         <span><UiText text={"Thay món"} /></span>
                       </button>
                     </div>
@@ -591,25 +605,10 @@ export default function MealPlannerView() {
         </div>
       </div>
 
-      {showGoalMenu && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowGoalMenu(false)}>
-        <div role="dialog" aria-modal="true" aria-labelledby="meal-plan-goal-title" className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-          <h2 id="meal-plan-goal-title" className="font-serif text-2xl font-bold text-[#07241A]">Tạo thực đơn mới</h2>
-          <p className="mt-2 text-sm text-[#424844]">Mục tiêu được tự suy ra từ cân nặng hiện tại và cân nặng mong muốn. Bạn vẫn có thể chọn phương án khác. Tất cả số liệu là ước lượng, không thay thế tư vấn y tế.</p>
-          <div className="mt-5 grid gap-3">
-            {inferredNutritionGoal !== "MAINTAIN" && <button type="button" onClick={() => setSelectedGoal(inferredNutritionGoal)} aria-pressed={selectedGoal === inferredNutritionGoal} className={`rounded-2xl border-2 p-4 text-left transition ${selectedGoal === inferredNutritionGoal ? "border-[#1E3A2F] bg-[#EDF4ED] shadow-[0_4px_12px_rgba(30,58,47,0.10)]" : "border-[#D9E6DC] bg-white hover:bg-[#F6FAF5]"}`}><strong>{inferredNutritionGoal === "LOSE" ? "Theo mục tiêu giảm cân của bạn" : "Theo mục tiêu tăng cân của bạn"}</strong><span className="mt-1 block text-xs text-[#424844]">Dùng mức {adjustment} kcal/ngày và tự tính thời gian ước lượng đến cân nặng mục tiêu.</span></button>}
-            <button type="button" onClick={() => setSelectedGoal("MAINTAIN")} aria-pressed={selectedGoal === "MAINTAIN"} className={`rounded-2xl border-2 p-4 text-left transition ${selectedGoal === "MAINTAIN" ? "border-[#1E3A2F] bg-[#EDF4ED] shadow-[0_4px_12px_rgba(30,58,47,0.10)]" : "border-[#D9E6DC] bg-white hover:bg-[#F6FAF5]"}`}><strong>Duy trì cân nặng</strong><span className="mt-1 block text-xs text-[#727974]">Tạo thực đơn gần bằng TDEE mỗi ngày.</span></button>
-            {inferredNutritionGoal !== "LOSE" && (bmi == null || bmi >= 18.5) ? <button type="button" onClick={() => setSelectedGoal("LOSE")} aria-pressed={selectedGoal === "LOSE"} className={`rounded-2xl border-2 p-4 text-left transition ${selectedGoal === "LOSE" ? "border-[#99462A] bg-[#FFF6F4] shadow-[0_4px_12px_rgba(153,70,42,0.08)]" : "border-[#F1D9D1] bg-white hover:bg-[#FFF9F7]"}`}><strong>Hỗ trợ giảm cân</strong><span className="mt-1 block text-xs text-[#727974]">Thâm hụt {adjustment} kcal/ngày.</span></button> : null}
-            {inferredNutritionGoal !== "GAIN" && (bmi == null || bmi < 25) ? <button type="button" onClick={() => setSelectedGoal("GAIN")} aria-pressed={selectedGoal === "GAIN"} className={`rounded-2xl border-2 p-4 text-left transition ${selectedGoal === "GAIN" ? "border-[#1E3A2F] bg-[#EDF4ED] shadow-[0_4px_12px_rgba(30,58,47,0.10)]" : "border-[#D9E6DC] bg-white hover:bg-[#F6FAF5]"}`}><strong>Hỗ trợ tăng cân</strong><span className="mt-1 block text-xs text-[#727974]">Dư {adjustment} kcal/ngày.</span></button> : null}
-          </div>
-          {selectedGoal !== "MAINTAIN" && <label className="mt-5 block text-sm font-semibold text-[#07241A]">{selectedGoal === "LOSE" ? "Mức calories thâm hụt" : "Mức calories dư"}: {adjustment} kcal/ngày<input type="range" min="500" max="1000" step="50" value={adjustment} onChange={(event) => setAdjustment(Number(event.target.value))} className="mt-3 w-full accent-[#1E3A2F]" /></label>}
-          <div className="mt-6 flex items-center justify-end gap-3 border-t border-[#EFEEEB] pt-5"><button type="button" onClick={() => setShowGoalMenu(false)} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0]">Hủy</button><button type="button" disabled={isRegenerating} onClick={() => void handleRegenerate(selectedGoal, selectedGoal === "MAINTAIN" ? null : adjustment)} className="rounded-xl bg-[#173C2D] px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#234A38] disabled:cursor-not-allowed disabled:opacity-50">{isRegenerating ? "Đang tạo…" : "Tạo thực đơn"}</button></div>
-        </div>
-      </div>}
-
       {mealPicker && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => !isRegenerating && setMealPicker(null)}>
         <div role="dialog" aria-modal="true" aria-labelledby="meal-picker-title" className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
           <div className="border-b border-[#EFEEEB] px-6 py-5">
-            <div className="flex items-start justify-between gap-4"><div><h2 id="meal-picker-title" className="font-serif text-2xl font-bold text-[#07241A]">Chọn món thay thế</h2><p className="mt-1 text-xs leading-5 text-[#647068]">Chỉ hiển thị món phù hợp với kiểu ăn chay, dị ứng và nguyên liệu hiện có của bạn.</p></div><button type="button" onClick={() => setMealPicker(null)} className="rounded-lg p-2 text-[#727974] hover:bg-[#F5F3F0]" aria-label="Đóng">×</button></div>
+            <div className="flex items-start justify-between gap-4"><div><h2 id="meal-picker-title" className="font-serif text-xl font-bold text-[#07241A]">Chọn món thay thế</h2><p className="mt-1 text-xs leading-5 text-[#647068]">Chỉ hiển thị món phù hợp với kiểu ăn chay, dị ứng và nguyên liệu hiện có của bạn.</p></div><button type="button" onClick={() => setMealPicker(null)} className="rounded-lg p-2 text-[#727974] hover:bg-[#F5F3F0]" aria-label="Đóng">×</button></div>
             <input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} placeholder="Tìm món muốn ăn..." className="mt-4 h-11 w-full rounded-xl border border-[#D9E6DC] bg-[#FBF9F6] px-4 text-sm outline-none transition focus:border-[#1E3A2F] focus:ring-2 focus:ring-[#1E3A2F]/10" />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -621,7 +620,7 @@ export default function MealPlannerView() {
 
       {showDeleteConfirm && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => !isRegenerating && setShowDeleteConfirm(false)}>
         <div role="dialog" aria-modal="true" aria-labelledby="delete-meal-plan-title" className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-          <h2 id="delete-meal-plan-title" className="font-serif text-2xl font-bold text-[#07241A]">Xóa thực đơn này?</h2>
+          <h2 id="delete-meal-plan-title" className="font-serif text-xl font-bold text-[#07241A]">Xóa thực đơn này?</h2>
           <p className="mt-3 text-sm leading-6 text-[#424844]">Toàn bộ 21 bữa trong thực đơn hiện tại sẽ bị xóa. Thao tác này không ảnh hưởng công thức, hồ sơ, dị ứng hoặc món đã lưu của bạn.</p>
           <div className="mt-6 flex justify-end gap-3 border-t border-[#EFEEEB] pt-5">
             <button type="button" disabled={isRegenerating} onClick={() => setShowDeleteConfirm(false)} className="rounded-xl border border-[#E5E7DF] px-4 py-2.5 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0] disabled:opacity-50">Giữ lại</button>
@@ -649,12 +648,12 @@ export default function MealPlannerView() {
                 className="object-cover"
                 unoptimized
               /> : <div className="flex h-full items-center justify-center text-sm text-[#727974]">Chưa có ảnh</div>}
-              <button
+              <button aria-label={t("Close", "Đóng")}
                 type="button"
                 onClick={() => { if (!isRegenerating) setSelectedMealForView(null); }}
                 className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-md transition hover:bg-white"
               >
-                ✕
+                <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
               </button>
             </div>
 
@@ -664,7 +663,7 @@ export default function MealPlannerView() {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#99462A]">
                   {<UiText text={selectedMealForView.slot} />} · {<UiText text={selectedMealForView.durationCalories} />}
                 </span>
-                <h3 className="mt-1 font-serif text-2xl font-bold text-[#07241A]">
+                <h3 className="mt-1 font-serif text-xl font-bold text-[#07241A]">
                   {<UiText text={selectedMealForView.title} />}
                 </h3>
                 <p className="mt-1 text-xs text-[#727974] leading-relaxed">
@@ -682,7 +681,7 @@ export default function MealPlannerView() {
 
               {/* Ingredients */}
               <div className="space-y-1.5 border-t border-[#EFEEEB] pt-3">
-                <h4 className="text-xs font-bold text-[#07241A]"><UiText text={"🥗 Nguyên liệu cần chuẩn bị:"} /></h4>
+                <h4 className="text-xs font-bold text-[#07241A]"><><ContentIcon name="salad" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /> <UiText text={"Nguyên liệu cần chuẩn bị:"} /></></h4>
                 <ul className="list-disc pl-5 text-xs text-[#424844] space-y-1">
                   {selectedMealForView.ingredients.map((ing, i) => (
                     <li key={i}>{<UiText text={ing} />}</li>
@@ -692,7 +691,7 @@ export default function MealPlannerView() {
 
               {/* Steps */}
               <div className="space-y-1.5 border-t border-[#EFEEEB] pt-3">
-                <h4 className="text-xs font-bold text-[#07241A]"><UiText text={"🍳 Hướng dẫn chế biến:"} /></h4>
+                <h4 className="text-xs font-bold text-[#07241A]"><><ContentIcon name="pot" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /> <UiText text={"Hướng dẫn chế biến:"} /></></h4>
                 <ol className="list-decimal pl-5 text-xs text-[#424844] space-y-1.5">
                   {selectedMealForView.steps.map((st, i) => (
                     <li key={i}>{st}</li>

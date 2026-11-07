@@ -1,5 +1,8 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
+import CardSkeleton from "@/components/ui/CardSkeleton";
 import FeedImage from "@/components/ui/FeedImage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -53,11 +56,10 @@ export default function PopularRecipes() {
     return () => { active = false; source.close(); };
   }, []);
 
+  if (loading) return <CardSkeleton count={4} compact />;
+
   return (
-    <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {loading && Array.from({ length: 4 }, (_, index) => (
-        <div key={index} className="h-[330px] animate-pulse rounded-2xl bg-white/70 shadow-sm" />
-      ))}
+    <div className="vm-stagger mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {!loading && posts.length === 0 && (
         <div className="col-span-full rounded-2xl border border-dashed border-[#CCD5C6] bg-white/70 px-6 py-12 text-center text-sm text-[#727974]">
           {t("No recipe posts have been published yet.", "Chưa có bài công thức nào được đăng.")}
@@ -67,7 +69,7 @@ export default function PopularRecipes() {
         const localFallback = fallbackImages[post.postId % fallbackImages.length];
         const storedImage = post.imageUrl ?? post.thumbnailUrl;
         const imageSource = storedImage ? getMediaUrl(storedImage) : localFallback;
-        return <Link key={post.postId} href={`/view-detail/${post.postId}`} className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+        return <Link key={post.postId} href={`/view-detail/${post.postId}`} className="vm-card vm-enter group overflow-hidden rounded-2xl bg-white shadow-sm">
           <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#EFEEEB]">
             <FeedImage key={imageSource} src={imageSource} alt={post.title} compact />
             {post.videoUrl && (
@@ -82,13 +84,13 @@ export default function PopularRecipes() {
             {post.caloriesPerServing != null && post.caloriesPerServing > 0 && <p className="mt-1 text-xs font-medium text-[#59635C]">~ {Math.round(post.caloriesPerServing)} kcal/khẩu phần</p>}
             <div className="mt-3 flex items-center justify-between border-t border-[#EFEEEB] pt-3 text-xs">
               <div className="flex items-center gap-1 text-[#F59E0B]">
-                <span>★</span>
+                <span><ContentIcon name="star" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" fill="currentColor" /></span>
                 <span className="font-semibold text-[#1B1C1A]">{post.averageRating ? post.averageRating.toFixed(1) : t("New", "Mới")} / 5</span>
                 <span className="text-[#727974]">· {post.ratingCount} {t("ratings", "đánh giá")}</span>
               </div>
             </div>
             <div className="mt-1.5 flex items-center gap-1 text-[11px] text-[#727974]">
-              <span>💬 {post.commentCount} {t("comments", "bình luận")}</span>
+              <span><ContentIcon name="message" width="1em" height="1em" className="inline-block align-[-0.125em]" /> {post.commentCount} {t("comments", "bình luận")}</span>
             </div>
           </div>
         </Link>

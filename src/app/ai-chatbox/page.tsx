@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import AIChatboxView from "@/components/chat/AIChatboxView";
 
 export const metadata: Metadata = {
@@ -11,12 +10,11 @@ export const metadata: Metadata = {
 
 export default function AIChatboxPage() {
   return (
-    <div className="min-h-screen bg-[#FBF9F6] flex flex-col">
-      <Navbar />
-      <main className="flex-1">
+    <div className="h-dvh overflow-hidden bg-[#FBF9F6] flex flex-col">
+      <div className="shrink-0"><Navbar /></div>
+      <main className="min-h-0 flex-1">
         <AIChatboxView />
       </main>
-      <Footer />
     </div>
   );
 }
