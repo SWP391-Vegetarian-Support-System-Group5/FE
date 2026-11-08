@@ -39,6 +39,7 @@ export interface MealItem {
 }
 
 export interface DayPlan {
+  dayNumber?: number;
   dayName: string;
   theme: string;
   totalPrep: string;
@@ -228,6 +229,8 @@ export const ALTERNATIVE_DISHES: Record<string, Partial<MealItem>> = {
 export default function MealPlannerView() {
   const ui = useUiText();
   const { t } = useLanguage();
+  const [viewMode, setViewMode] = useState<"week" | "day">("week");
+  const [selectedDay, setSelectedDay] = useState(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [mealPicker, setMealPicker] = useState<{ dayIndex: number; meal: MealItem } | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
@@ -267,7 +270,7 @@ export default function MealPlannerView() {
     <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-2xl bg-[#07241A] px-5 py-3 text-xs font-semibold text-white shadow-xl transition-all animate-fade-in flex items-center gap-2">
+        <div role="status" aria-live="polite" className="fixed bottom-6 left-4 right-4 z-50 sm:left-auto sm:right-6 sm:max-w-md rounded-2xl bg-[#07241A] px-5 py-3 text-xs font-semibold text-white shadow-xl transition-all animate-fade-in flex items-center gap-2">
           <span><ContentIcon name="leaf" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
           <span>{<UiText text={toastMessage} />}</span>
         </div>
@@ -328,7 +331,15 @@ export default function MealPlannerView() {
           </div>
         </div>
         {savedWeekRange && selectedWeekRange && savedWeekRange !== selectedWeekRange && <p className="mt-3 text-xs text-[#727974]">Tuần sẽ tạo mới: {selectedWeekRange}</p>}
-        <MealWeekTimeline savedStartDate={savedStartDate} draftStartDate={startDate} />
+        {days.length > 0 && <div role="group" aria-label={t("Meal plan view", "Chế độ xem thực đơn")} className="mt-2 inline-flex gap-1 rounded-xl bg-[#F0F3ED] p-1 text-xs">
+          {(["week", "day"] as const).map(mode => <button key={mode} type="button" aria-pressed={viewMode === mode}
+            onClick={() => setViewMode(mode)} className={`rounded-lg px-4 py-2 font-medium transition focus-visible:outline-2 focus-visible:outline-[#254B38] ${viewMode === mode ? "bg-[#254B38] text-white shadow-sm" : "text-[#526359] hover:bg-white"}`}>
+            {mode === "week" ? t("Whole week", "Cả tuần") : t("By day", "Từng ngày")}
+          </button>)}
+        </div>}
+        <MealWeekTimeline savedStartDate={savedStartDate} draftStartDate={startDate}
+          selectedDay={viewMode === "day" ? selectedDay : undefined}
+          onSelectDay={day => { setSelectedDay(day); setViewMode("day"); }} />
       </section>
       {!loading && <WeeklyWeightCheckIn key={`${weightOwner}:${planId}:${savedStartDate}`} owner={weightOwner} planId={planId} startDate={savedStartDate} weightKg={currentWeightKg} busy={isRegenerating} onSave={saveWeeklyWeight} />}
       {goalContext && selectedWeekRange && <MealGoalDialog context={goalContext} weekRange={selectedWeekRange} busy={isRegenerating}
@@ -498,8 +509,9 @@ export default function MealPlannerView() {
         {/* Right Column: Daily Plans & Cards (8 cols)                      */}
         {/* =============================================================== */}
         <div className="space-y-6 lg:col-span-8">
-          {days.map((day, dIdx) => (
-            <section key={day.dayName} id={`meal-day-${dIdx + 1}`} className="scroll-mt-24 space-y-3">
+          {viewMode === "day" && !days.some((day, index) => (day.dayNumber ?? index + 1) === selectedDay) && <p role="status" className="rounded-xl border border-[#E5E7DF] bg-white p-5 text-sm">{t("No meals for this day.", "Chưa có món ăn cho ngày này.")}</p>}
+          {days.map((day, dIdx) => (viewMode === "week" || (day.dayNumber ?? dIdx + 1) === selectedDay) && (
+            <section key={day.dayName} id={`meal-day-${day.dayNumber ?? dIdx + 1}`} className="scroll-mt-24 space-y-3">
               {/* Day Header */}
               <div className="flex items-center justify-between border-b border-[#EFEEEB] pb-2.5">
                 <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
@@ -582,12 +594,12 @@ export default function MealPlannerView() {
                       <button
                         type="button"
                         disabled={isRegenerating}
-                        onClick={() => openMealPicker(dIdx, meal)}
+                        onClick={() => openMealPicker((day.dayNumber ?? dIdx + 1) - 1, meal)}
                         className="rounded-xl border border-[#D9E6DC] bg-[#EDF4ED] px-3 py-1.5 text-xs font-semibold text-[#173C2D] transition hover:bg-[#E1EEE1] disabled:cursor-not-allowed disabled:opacity-50"
                       >Chọn món</button>
                       <button
                         type="button"
-                        disabled={isRegenerating} onClick={() => handleReplaceMeal(dIdx, meal.id, meal.slot)}
+                        disabled={isRegenerating} onClick={() => handleReplaceMeal((day.dayNumber ?? dIdx + 1) - 1, meal.id, meal.slot)}
                         title={t("Replace meal", "Thay món")}
                         className="flex items-center gap-1 rounded-xl bg-white border border-[#EFEEEB] px-3 py-1.5 text-xs font-semibold text-[#727974] hover:text-[#07241A] hover:bg-[#F5F3F0] transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -612,7 +624,7 @@ export default function MealPlannerView() {
             <input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} placeholder="Tìm món muốn ăn..." className="mt-4 h-11 w-full rounded-xl border border-[#D9E6DC] bg-[#FBF9F6] px-4 text-sm outline-none transition focus:border-[#1E3A2F] focus:ring-2 focus:ring-[#1E3A2F]/10" />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            {pickerLoading ? <p className="p-4 text-sm text-[#647068]">Đang tìm món phù hợp...</p> : pickerOptions.length === 0 ? <p className="p-4 text-sm text-[#647068]">Không tìm thấy món phù hợp với từ khóa này.</p> : <div className="space-y-2">{pickerOptions.map(option => <button key={option.recipeId} type="button" disabled={isRegenerating} onClick={() => void handleReplaceMeal(mealPicker.dayIndex, mealPicker.meal.id, mealPicker.meal.slot, option.recipeId).then(() => setMealPicker(null))} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#E5E7DF] p-4 text-left transition hover:border-[#9AB59A] hover:bg-[#F6FAF5] disabled:opacity-50"><span><strong className="block text-sm text-[#07241A]">{option.recipeName}</strong><span className="mt-1 block text-xs text-[#727974]">{[option.prepMinutes && option.cookMinutes ? `${option.prepMinutes + option.cookMinutes} phút` : option.prepMinutes ? `${option.prepMinutes} phút` : "", `~ ${Math.round(option.caloriesPerServing)} kcal/khẩu phần`].filter(Boolean).join(" · ")}</span></span><span className="shrink-0 rounded-lg bg-[#173C2D] px-3 py-2 text-xs font-semibold text-white">Chọn</span></button>)}</div>}
+            {pickerLoading ? <p className="p-4 text-sm text-[#647068]">Đang tìm món phù hợp...</p> : pickerOptions.length === 0 ? <p className="p-4 text-sm text-[#647068]">Không tìm thấy món phù hợp với từ khóa này.</p> : <div className="space-y-2">{pickerOptions.map(option => <button key={option.recipeId} type="button" disabled={isRegenerating} onClick={() => void handleReplaceMeal(mealPicker.dayIndex, mealPicker.meal.id, mealPicker.meal.slot, option.recipeId).then(success => { if (success) setMealPicker(null); })} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#E5E7DF] p-4 text-left transition hover:border-[#9AB59A] hover:bg-[#F6FAF5] disabled:opacity-50"><span><strong className="block text-sm text-[#07241A]">{option.recipeName}</strong><span className="mt-1 block text-xs text-[#727974]">{[option.prepMinutes && option.cookMinutes ? `${option.prepMinutes + option.cookMinutes} phút` : option.prepMinutes ? `${option.prepMinutes} phút` : "", `~ ${Math.round(option.caloriesPerServing)} kcal/khẩu phần`].filter(Boolean).join(" · ")}</span></span><span className="shrink-0 rounded-lg bg-[#173C2D] px-3 py-2 text-xs font-semibold text-white">Chọn</span></button>)}</div>}
           </div>
           <div className="border-t border-[#EFEEEB] px-6 py-4 text-right"><button type="button" onClick={() => setMealPicker(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0]">Hủy</button></div>
         </div>

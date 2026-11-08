@@ -47,9 +47,8 @@ export default function AdminContentPage() {
   const [loading, setLoading] = useState(true);
   const [busyCommentId, setBusyCommentId] = useState<number | null>(null);
   const [busyPostId, setBusyPostId] = useState<number | null>(null);
-  const [typeFilter, setTypeFilter] = useState<"All" | "Video & Recipe" | "Post">("All");
+  const [typeFilter, setTypeFilter] = useState<"All" | "Video & Recipe" | "Deleted" | "Draft">("All");
   const [searchContentQuery, setSearchContentQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
   const [showModerationStream, setShowModerationStream] = useState(true);
   const [commentFilter, setCommentFilter] = useState<"All" | "Flagged" | "Hidden">("All");
   const [selectedContentId, setSelectedContentId] = useState<number | null>(null);
@@ -102,7 +101,6 @@ export default function AdminContentPage() {
     return () => controller.abort();
   }, [loadContent]);
 
-  const selectedPost = posts.find((post) => post.postId === selectedContentId);
   const selectedComments = comments.filter(
     (comment) => comment.postId === selectedContentId && comment.status !== "REMOVED"
   );
@@ -125,12 +123,13 @@ export default function AdminContentPage() {
   );
 
   const filteredPosts = posts.filter((post) => {
-    const type =
-      post.postType === "RECIPE" || post.postType === "VIDEO" ? "Video & Recipe" : "Post";
+    const deleted = ["REMOVED", "DELETED"].includes(post.status);
+    const draft = post.status === "DRAFT";
+    const matchesTab = typeFilter === "Deleted" ? deleted : typeFilter === "Draft" ? draft
+      : !deleted && !draft && (typeFilter === "All" || post.postType === "RECIPE" || post.postType === "VIDEO");
     const query = searchContentQuery.toLowerCase().trim();
     return (
-      (typeFilter === "All" || type === typeFilter) &&
-      (statusFilter === "All" || post.status === statusFilter.toUpperCase()) &&
+      matchesTab &&
       (!query ||
         [post.title, post.authorName, post.content].some((value) =>
           value.toLowerCase().includes(query)
@@ -138,6 +137,7 @@ export default function AdminContentPage() {
     );
   });
 
+  const selectedPost = filteredPosts.find(post => post.postId === selectedContentId);
   const pageCount = Math.max(1, Math.ceil(filteredPosts.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visiblePosts = filteredPosts.slice(
@@ -145,10 +145,10 @@ export default function AdminContentPage() {
     currentPage * PAGE_SIZE
   );
 
-  const recipeCount = posts.filter(
-    (post) => post.postType === "RECIPE" || post.postType === "VIDEO"
-  ).length;
-  const reviewCount = posts.length - recipeCount;
+  const activePosts = posts.filter(post => !["REMOVED", "DELETED", "DRAFT"].includes(post.status));
+  const recipeCount = activePosts.filter(post => post.postType === "RECIPE" || post.postType === "VIDEO").length;
+  const deletedCount = posts.filter(post => ["REMOVED", "DELETED"].includes(post.status)).length;
+  const draftCount = posts.filter(post => post.status === "DRAFT").length;
   const pendingCount = flags.filter((flag) => flag.status === "PENDING").length;
 
   async function handleRefresh() {
@@ -320,22 +320,7 @@ export default function AdminContentPage() {
       </div>
 
       {/* Primary Action Row: Active Tab + Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        {/* Content Badge Button */}
-        <div className="flex items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-2xl bg-[#1E3A2F] px-4 py-2.5 text-xs font-semibold text-white shadow-2xs">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
-              <path d="M6 6h10" />
-              <path d="M6 10h10" />
-            </svg>
-            <span>{t("Content", "Nội dung")}</span>
-            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
-              {posts.length}
-            </span>
-          </div>
-        </div>
-
+      <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
         {/* Create Entry Button */}
         <div className="flex items-center gap-2.5">
 
@@ -354,52 +339,22 @@ export default function AdminContentPage() {
 
       {/* Secondary Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {/* Format Pills */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setTypeFilter("All");
-              setPage(1);
-            }}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${typeFilter === "All"
-              ? "bg-[#07241A] text-white shadow-2xs"
-              : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
-              }`}
-          >
-            {t(`All (${posts.length})`, `Tất cả (${posts.length})`)}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTypeFilter("Video & Recipe");
-              setPage(1);
-            }}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${typeFilter === "Video & Recipe"
-              ? "bg-[#07241A] text-white shadow-2xs"
-              : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
-              }`}
-          >
-            {t(`Video & Recipes (${recipeCount})`, `Video & công thức (${recipeCount})`)}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTypeFilter("Post");
-              setPage(1);
-            }}
-            className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${typeFilter === "Post"
-              ? "bg-[#07241A] text-white shadow-2xs"
-              : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"
-              }`}
-          >
-            {t(`Restaurant Reviews (${reviewCount})`, `Đánh giá nhà hàng (${reviewCount})`)}
-          </button>
+        <div role="group" aria-label={t("Content groups", "Nhóm nội dung")} className="flex flex-wrap items-center gap-2">
+          {([
+            { key: "All", label: t("All", "Tất cả"), count: activePosts.length },
+            { key: "Video & Recipe", label: t("Video & Recipes", "Video & công thức"), count: recipeCount },
+            { key: "Deleted", label: t("Deleted", "Đã xóa"), count: deletedCount },
+            { key: "Draft", label: t("Drafts", "Bản nháp"), count: draftCount },
+          ] as const).map(tab => <button key={tab.key} type="button" aria-pressed={typeFilter === tab.key}
+            onClick={() => { setTypeFilter(tab.key); setPage(1); setSelectedContentId(null); }}
+            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${typeFilter === tab.key ? "bg-[#07241A] text-white shadow-2xs" : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"}`}>
+            {tab.label} ({tab.count.toLocaleString(locale)})
+          </button>)}
         </div>
 
         {/* Search, Status & Refresh */}
-        <div className="flex items-center gap-2.5">
-          <div className="relative">
+        <div className="flex w-full min-w-0 items-center gap-2.5 sm:w-auto">
+          <div className="relative min-w-0 flex-1">
             <svg
               className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#727974]"
               width="14"
@@ -420,36 +375,8 @@ export default function AdminContentPage() {
                 setSearchContentQuery(e.target.value);
                 setPage(1);
               }}
-              className="w-56 rounded-full border border-[#EFEEEB] bg-white py-2 pl-9 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-2xs transition focus:border-[#1E3A2F] focus:outline-none sm:w-64"
+              className="w-full rounded-full border border-[#EFEEEB] bg-white py-2 pl-9 pr-4 text-xs text-[#07241A] placeholder-[#A0A5A1] shadow-2xs transition focus:border-[#1E3A2F] focus:outline-none sm:w-64"
             />
-          </div>
-
-          {/* Status Dropdown */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              aria-label={t("Filter by status", "Lọc theo trạng thái")}
-              className="cursor-pointer appearance-none rounded-2xl border border-[#EFEEEB] bg-white py-2 pl-3.5 pr-8 text-xs font-semibold text-[#07241A] shadow-2xs transition hover:bg-[#FAF9F6] focus:border-[#1E3A2F] focus:outline-none"
-            >
-              <option value="All">{t("Status: All", "Trạng thái: Tất cả")}</option>
-              <option value="Published">{t("Status: Published", "Trạng thái: Đã đăng")}</option>
-              <option value="Draft">{t("Status: Draft", "Trạng thái: Bản nháp")}</option>
-            </select>
-            <svg
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#727974]"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
           </div>
 
           {/* Refresh Button */}
@@ -506,7 +433,7 @@ export default function AdminContentPage() {
                   <line x1="3" y1="18" x2="3.01" y2="18" />
                 </svg>
                 <h2 className="font-serif text-base font-bold text-[#07241A]">
-                  {t("Published Stories & Guides", "Bài viết & Hướng dẫn đã xuất bản")}
+                  {typeFilter === "Deleted" ? t("Deleted content", "Nội dung đã xóa") : typeFilter === "Draft" ? t("Draft content", "Nội dung bản nháp") : t("Active stories & recipes", "Bài viết & công thức đang hoạt động")}
                 </h2>
               </div>
               <span className="text-xs text-[#727974]">

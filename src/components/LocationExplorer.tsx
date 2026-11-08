@@ -20,7 +20,7 @@ import type { Area, Coordinates, Province, Restaurant } from "@/types/location";
 const defaultCenter = { lat: 10.8496, lng: 106.7537 };
 const LeafletRestaurantMap = dynamic(() => import("@/components/LeafletRestaurantMap"), {
   ssr: false,
-  loading: () => <div className="min-h-[390px] bg-[#e8eee9]" />,
+  loading: () => <div className="h-[320px] lg:h-[clamp(300px,43dvh,430px)] bg-[#e8eee9]" />,
 });
 
 function normalizeLocationName(value: string) {
@@ -253,29 +253,24 @@ export default function LocationExplorer() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-10 lg:px-12 lg:py-14">
-      <div className="mb-8 max-w-2xl">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+      <div className="mb-5 max-w-3xl">
         <span className="rounded-full bg-[#dcebe1] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#22513c]">{t("Vegan places guide", "Cẩm nang địa điểm chay")}</span>
-        <h1 className="mt-4 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl">{t("Find vegetarian places near you", "Tìm địa điểm chay gần bạn")}</h1>
-        <p className="mt-3 leading-7 text-[#5c645f]">{t("Discover restaurants, cafes and plant-based places around your living area.", "Khám phá nhà hàng, quán cà phê và địa điểm thuần chay dựa trên khu vực sinh sống của bạn.")}</p>
+        <h1 className="mt-2 font-serif text-2xl font-medium tracking-tight text-[#07241A] sm:text-3xl">{t("Find vegetarian places near you", "Tìm địa điểm chay gần bạn")}</h1>
+        <p className="mt-2 text-sm leading-6 text-[#5c645f]">{t("Discover restaurants, cafes and plant-based places around your living area.", "Khám phá nhà hàng, quán cà phê và địa điểm thuần chay dựa trên khu vực sinh sống của bạn.")}</p>
       </div>
 
       <section className="overflow-hidden rounded-[24px] border border-[#edeae5] bg-white shadow-[0_12px_40px_rgba(27,58,45,0.07)]">
-        <div className="p-5 sm:p-7">
+        <div className="p-4 sm:p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="font-serif text-2xl font-semibold text-[#09281d]">{t("Living Location", "Vị trí sinh sống")}</h2>
+              <h2 className="font-serif text-lg font-semibold text-[#09281d]">{t("Living Location", "Vị trí sinh sống")}</h2>
               <p className="mt-1 text-sm text-[#69706b]">{t("Your home base coordinates for vegetarian restaurants, plant bistros, and nearby places.", "Tọa độ nơi ở của bạn để tìm nhà hàng chay, quán thuần thực vật và địa điểm gần đó.")}</p>
             </div>
             <button type="button" onClick={useCurrentLocation} title={ui("Dùng vị trí hiện tại")} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#f3f1ed] text-[#123f2e] transition hover:bg-[#dcebe1]">⌖</button>
           </div>
 
-          <div className="mt-5 flex gap-3 rounded-2xl bg-[#f1f1ee] p-4 text-xs leading-5 text-[#24342d]">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#cceedd] text-[#006c47]">◎</span>
-            <p>{t("Your location helps VeggieMate recommend vegetarian places near you in the Vegan Places Guide and filter neighborhood community dining tables.", "Vị trí của bạn giúp VeggieMate gợi ý địa điểm chay gần bạn trong Cẩm nang địa điểm chay và lọc các gợi ý ăn uống quanh khu vực.")}</p>
-          </div>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <SearchableLocationSelect
               label={t("City / Province", "Tỉnh / Thành phố")}
               value={provinceCode}
@@ -295,12 +290,12 @@ export default function LocationExplorer() {
             />
           </div>
 
-          <label className="mt-4 block text-xs font-semibold text-[#274537]">
+          <label className="mt-3 block text-xs font-semibold text-[#274537]">
             {t("Living Address", "Địa chỉ sinh sống")}
             <span className="mt-2 flex items-center rounded-xl bg-[#f5f3f0] px-4 ring-[#356d54] focus-within:ring-2">
               <span className="mr-3 text-[#a34d32]">⌖</span>
               <AddressAutocomplete value={address} center={center} onChange={setAddress} onSelect={(result) => void selectAddress(result)} onSearch={() => void searchAddress()} />
-              <button type="button" onClick={searchAddress} className="ml-3 rounded-lg bg-[#143f2e] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0a2d20]"><UiText text={"Tìm kiếm"} /></button>
+              <button type="button" onClick={searchAddress} className="ml-2 shrink-0 rounded-lg bg-[#143f2e] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0a2d20]"><UiText text={"Tìm kiếm"} /></button>
             </span>
           </label>
           {message && <p role="status" className="mt-3 text-xs text-[#8b4a34]">{<UiText text={message} />}</p>}
@@ -308,16 +303,16 @@ export default function LocationExplorer() {
 
         <div className="grid border-t border-[#edeae5] lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
           <LeafletRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
-          <aside className="max-h-[510px] overflow-y-auto bg-[#fbfaf8] p-5">
+          <aside className="max-h-[380px] min-w-0 overflow-y-auto overscroll-contain bg-[#fbfaf8] p-4 lg:max-h-[clamp(300px,43dvh,430px)]">
             <div className="mb-4 flex items-end justify-between">
               <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">{t("Places nearby", "Địa điểm gần đây")}</h3><p className="mt-1 text-xs text-[#788079]">{t("Within a maximum radius of 5 km", "Trong bán kính tối đa 5 km")}</p></div>
               <span className="rounded-full bg-[#e4eee7] px-2.5 py-1 text-xs font-bold text-[#24543d]">{restaurants.length}</span>
             </div>
             {loading ? <p className="py-10 text-center text-sm text-[#788079]">{t("Searching for places...", "Đang tìm địa điểm...")}</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">{t("No matching VeggieMate restaurants were found within 5 km of this address.", "Không tìm thấy nhà hàng VeggieMate phù hợp trong bán kính 5 km quanh địa chỉ này.")}</p> : (
-              <div className="space-y-3">{restaurants.map((restaurant) => (
-                <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setCenter({ lat: restaurant.latitude, lng: restaurant.longitude }); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
-                  {restaurant.imageUrl && <Image src={getMediaUrl(restaurant.imageUrl)} alt={restaurant.name} width={320} height={120} unoptimized className="mb-3 h-28 w-full rounded-xl object-cover" />}
-                  <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{displayPlaceCategory(restaurant.category, t)}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.distanceKm != null ? `${restaurant.distanceKm.toFixed(1)} km` : ""}</span></div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">{restaurants.map((restaurant) => (
+                <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setCenter({ lat: restaurant.latitude, lng: restaurant.longitude }); }} className={`min-w-0 w-full rounded-2xl border p-3 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
+                  {restaurant.imageUrl && <Image src={getMediaUrl(restaurant.imageUrl)} alt={restaurant.name} width={320} height={120} unoptimized className="mb-2 h-24 w-full rounded-xl object-cover" />}
+                  <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{displayPlaceCategory(restaurant.category, t)}</span><h4 className="mt-1 break-words font-serif text-base font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.distanceKm != null ? `${restaurant.distanceKm.toFixed(1)} km` : ""}</span></div>
                   <p className="mt-2 text-xs leading-5 text-[#677069]">{restaurant.address}</p>
                   <p className="mt-2 text-[11px] text-[#8a918c]">{restaurant.reviewCount > 0 ? `${restaurant.reviewCount} ${t("reviews", "đánh giá")}` : t("No reviews yet", "Chưa có đánh giá")}{restaurant.distanceKm != null ? ` · ${restaurant.distanceKm} km` : ""}</p>
                 </button>

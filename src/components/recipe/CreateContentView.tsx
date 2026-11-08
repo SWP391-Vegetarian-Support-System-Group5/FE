@@ -182,9 +182,12 @@ function RecipeContentView() {
       if (creationMode === "manual") setImageUrl(result.imageUrl ?? "");
       setImageFile(null);
       if (published) try { rememberPublishedContent(contentOwner, updated, creationMode === "ai" ? "video" : "recipe"); } catch { /* Server data is already saved. */ }
-      const message = savedMessage + " Đã lưu ảnh." + (result.previousImageDeleted === false ? " Máy chủ chưa dọn xong ảnh cũ." : "");
+      const message = savedMessage + " Đã lưu ảnh bìa.";
       setStatusMessage({ type: messageType, text: message });
-      try { await refreshPublishedImage(); } catch { setStatusMessage({ type: messageType, text: message + " Chưa tải lại được dữ liệu; không cần gửi lại ảnh." }); }
+      try {
+        await refreshPublishedImage();
+        if (createdPost.current?.status !== "PUBLISHED") setStatusMessage({ type: "info", text: createdPost.current?.moderationReason || t("Cover saved. The post is awaiting moderation in drafts.", "Đã lưu ảnh bìa. Bài viết đang chờ kiểm duyệt trong bản nháp.") });
+      } catch { setStatusMessage({ type: messageType, text: message + " Chưa tải lại được dữ liệu; không cần gửi lại ảnh." }); }
     } catch (failure) {
       setImageFailed(true);
       setImageConflict(failure instanceof ImageRequestError && failure.status === 409);
@@ -1103,11 +1106,14 @@ function RecipeContentView() {
           <button type="button" disabled={isSubmitting} onClick={() => setConfirmDeletePost(true)} className="vm-button rounded-xl border border-red-200 px-4 py-2 text-sm text-red-700 disabled:opacity-50">{t("Delete post", "Xóa bài viết")}</button>
           <button type="button" disabled={isSubmitting} onClick={() => { createdPost.current = null; setServerRecipeDraftId(null); setPublishedResult(null); setImageUrl(""); setImageFile(null); setImageFailed(false); setImageConflict(false); setHasReviewed(false); setStatusMessage(null); }} className="vm-button text-sm underline disabled:opacity-40">Tạo bài khác</button>
           {imageFailed && imageFile && <button type="button" disabled={isSubmitting || imageConflict} onClick={() => void retryPublishedImage()} className="vm-button rounded-xl bg-[#254B38] px-4 py-2 text-sm text-white disabled:opacity-40">{isSubmitting ? "Đang tải ảnh…" : "Thử tải ảnh lại"}</button>}
-          <ImageManager imageUrl={publishedResult.imageUrl ?? publishedResult.thumbnailUrl} disabled={isSubmitting} requiresRefresh={imageConflict}
+          <ImageManager imageUrl={publishedResult.imageUrl || publishedResult.thumbnailUrl} disabled={isSubmitting} requiresRefresh={imageConflict}
             onUpload={file => uploadPostImage(publishedResult.postId, file)} onDelete={() => deletePostImage(publishedResult.postId)}
             onApplied={result => { const updated = { ...publishedResult, imageUrl: result.imageUrl }; createdPost.current = updated; setPublishedResult(updated); if (creationMode === "manual") setImageUrl(result.imageUrl ?? ""); setImageFailed(false); setImageFile(null); }}
             onRefresh={refreshPublishedImage} />
         </div>}
+        {!publishedResult && <p className="mt-3 text-xs leading-5 text-[#53675A]">{imageFile || imageUrl
+          ? t("Your selected cover will replace the video thumbnail. The cooking video stays available.", "Ảnh bìa đã chọn sẽ thay khung hình đầu của video. Video nấu ăn vẫn được giữ lại.")
+          : t("Without a cover photo, the first video frame will be used.", "Nếu không chọn ảnh bìa, hệ thống sẽ dùng khung hình đầu của video.")}</p>}
       </div>
 
       {/* ── Section: Ingredients ────────────────────────────────────────── */}

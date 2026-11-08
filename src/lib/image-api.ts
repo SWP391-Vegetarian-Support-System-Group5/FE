@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { getStoredToken } from "@/lib/auth";
+import { type RecipeResponse } from "@/lib/recipe-api";
 
 export interface ImageMutationResponse {
   imageUrl: string | null;
@@ -62,8 +63,58 @@ function upload(path: string, file: File) {
 
 export const uploadAvatar = (file: File) => upload("/api/users/me/avatar", file);
 export const deleteAvatar = () => mutateImage("/api/users/me/avatar", "DELETE");
-export const uploadPostImage = (postId: number, file: File) => upload(`/api/posts/${postId}/image`, file);
-export const deletePostImage = (postId: number) => mutateImage(`/api/posts/${postId}/image`, "DELETE");
+// The current BE stores recipe covers via media/images + PUT recipes/{postId}.
+// Retain an uploaded URL when saving the recipe fails so retry never uploads twice.
+const uploadedCovers = new WeakMap<File, { token: string; url: string }>();
+
+async function requireImageSuccess(response: Response) {
+  if (response.ok) return;
+  const data = await response.json().catch(() => null);
+  throw new ImageRequestError(response.status, data?.message || data?.detail || data?.title || "");
+}
+
+async function saveRecipeCover(postId: number, file: File | null): Promise<ImageMutationResponse> {
+  const token = getStoredToken();
+  if (!token) throw new ImageRequestError(401, "");
+  if (file) validateImage(file);
+  const current = await apiFetch(`/api/recipes/${postId}`, { cache: "no-store" });
+  await requireImageSuccess(current);
+  const recipe = await current.json() as RecipeResponse;
+  let imageUrl: string | null = null;
+  if (file) {
+    const cached = uploadedCovers.get(file);
+    imageUrl = cached?.token === token ? cached.url : null;
+    if (!imageUrl) {
+      const form = new FormData();
+      form.append("image", file);
+      const uploaded = await apiFetch("/api/media/images?purpose=recipes", { method: "POST", body: form });
+      await requireImageSuccess(uploaded);
+      const data = await uploaded.json() as { imageUrl?: string };
+      if (!data.imageUrl || !/^https:\/\//i.test(data.imageUrl)) throw new ImageRequestError(502, "Máy chủ chưa trả về URL ảnh hợp lệ.");
+      imageUrl = data.imageUrl;
+      uploadedCovers.set(file, { token, url: imageUrl });
+    }
+  }
+  if (getStoredToken() !== token) throw new ImageRequestError(401, "");
+  // Preserve all recipe fields: the BE update endpoint replaces the full recipe.
+  const saved = await apiFetch(`/api/recipes/${postId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      title: recipe.title, content: recipe.content, recipeName: recipe.recipeName,
+      videoUrl: recipe.videoUrl || null, imageUrl,
+      prepMinutes: recipe.prepMinutes ?? null, cookMinutes: recipe.cookMinutes ?? null,
+      servings: recipe.servings, caloriesPerServing: recipe.caloriesPerServing ?? null,
+      ingredients: recipe.ingredients, steps: recipe.steps,
+      categoryIds: recipe.categories.map(category => category.id),
+    }),
+  });
+  await requireImageSuccess(saved);
+  // PUT returns 204. A failed subsequent GET must not turn this save into a failure.
+  return { imageUrl, isGenerated: false, previousImageDeleted: false };
+}
+
+export const uploadPostImage = (postId: number, file: File) => saveRecipeCover(postId, file);
+export const deletePostImage = (postId: number) => saveRecipeCover(postId, null);
 const mealPath = (planId: number, mealId: number) => `/api/meal-plans/${planId}/meals/${mealId}/image`;
 export const uploadMealImage = (planId: number, mealId: number, file: File) => upload(mealPath(planId, mealId), file);
 export const deleteMealImage = (planId: number, mealId: number) => mutateImage(mealPath(planId, mealId), "DELETE");
