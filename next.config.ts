@@ -7,9 +7,6 @@ const nextConfig: NextConfig = {
   // Lets local/CI builds avoid a synced or locked .next folder without changing Vercel's default output.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   env: { NEXT_PUBLIC_AUTH_SESSION_EPOCH: authSessionEpoch },
-  async redirects() {
-    return [{ source: "/explore", destination: "/community", permanent: false }];
-  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
