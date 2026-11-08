@@ -27,7 +27,6 @@ import {
   updateUserAllergens,
   createCustomAllergen,
   getProvinces,
-  getAreas,
   getAddressSuggestions,
   geocodeAddress,
   type DietTypeItem,
@@ -73,6 +72,14 @@ interface ProfileErrors {
   fullName?: string;
   heightCm?: string;
   weightKg?: string;
+}
+
+function toAreaItems(items: Array<{ code: string; name: string; type: string; latitude?: number | null; longitude?: number | null }>): AreaItem[] {
+  return items.map((item) => ({
+    ...item,
+    latitude: item.latitude ?? null,
+    longitude: item.longitude ?? null,
+  }));
 }
 
 function validateDraft(d: ProfileDraft, currentYear: number): ProfileErrors {
@@ -286,13 +293,13 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
 
     let active = true;
     setSelectedProvinceCode(matchingProvince.code);
-    void getAreas(matchingProvince.code)
+    void locationApi.areas(matchingProvince.code)
       .then((areaList) => {
         if (!active) return;
         const matchingArea = areaList.find((item) =>
           item.code !== "all" && normalizedAddress.includes(normalizeLocationName(item.name)),
         );
-        setAreas(areaList);
+        setAreas(toAreaItems(areaList));
         setSelectedAreaCode(matchingArea?.code ?? "");
       })
       .catch(() => {
@@ -364,8 +371,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         setSelectedCoords({ lat: province.latitude, lng: province.longitude });
       }
       try {
-        const areaList = await getAreas(code);
-        setAreas(areaList);
+        // Use the shared location API because it has a safe local fallback
+        // when the reference-data endpoint is temporarily unavailable.
+        const areaList = await locationApi.areas(code);
+        setAreas(toAreaItems(areaList));
       } catch (err) {
         console.error("Failed to load areas", err);
       }
