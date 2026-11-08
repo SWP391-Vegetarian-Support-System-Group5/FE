@@ -418,8 +418,8 @@ export default function AdminMembersPage() {
                         }}
                         tabIndex={0}
                         aria-label={t(`View ${member.fullName}`, `Xem ${member.fullName}`)}
-                        className={`group relative cursor-pointer transition ${isSelected
-                            ? "bg-[#F0F7F4]"
+                        className={`vm-member-row group relative cursor-pointer transition ${isSelected
+                            ? "vm-member-selected bg-[#DCECE2]"
                             : "hover:bg-[#FAF9F6] focus:bg-[#FAF9F6]"
                           }`}
                       >

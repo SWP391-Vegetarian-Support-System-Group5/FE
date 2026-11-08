@@ -1,21 +1,26 @@
 "use client";
 
+import ContentIcon from "@/components/content/ContentIcon";
+
 import Link from "next/link";
-import UiText from "@/components/UiText";
+import UiText, { useUiText } from "@/components/UiText";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import VeggieAIWidget from "@/components/VeggieAIWidget";
 import PopularRecipes from "@/components/PopularRecipes";
 import PopularRestaurants from "@/components/PopularRestaurants";
 import Reveal from "@/components/ui/Reveal";
+import BotanicalAccent from "@/components/ui/BotanicalAccent";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import HeroRecipeCarousel from "@/components/HeroRecipeCarousel";
 
+
 export default function HomePage() {
   const { t } = useLanguage();
+  const ui = useUiText();
   const { user, loading } = useAuth();
   const router = useRouter();
   const isAdmin = user?.role?.toLowerCase() === "admin";
@@ -32,29 +37,56 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col bg-[#FBF9F6]">
       <Navbar />
 
-      <main className="flex-1">
+      <main className="vm-home relative isolate flex-1 overflow-x-clip">
+        <div className="pointer-events-none absolute -left-12 top-5 -z-10 w-32 text-[#658266]/45 sm:w-44 lg:-left-10 lg:w-52" aria-hidden="true"><BotanicalAccent className="vm-hero-foliage w-full" /></div>
         {/* 1. HERO SECTION */}
-        <Reveal><section className="mx-auto max-w-7xl px-6 py-10 lg:px-12 lg:py-14">
-          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
+        <div className="relative">
+        <div className="pointer-events-none absolute -bottom-8 -right-12 z-10 w-32 rotate-180 text-[#658266]/50 sm:w-44 lg:-right-10 lg:w-52" aria-hidden="true"><BotanicalAccent className="vm-corner-foliage w-full" /></div>
+<Reveal><section className="vm-home-hero relative mx-auto max-w-7xl px-6 py-10 lg:px-12 lg:py-16">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-16">
             {/* Left Content */}
-            <div className="lg:col-span-6">
+            <div className="vm-hero-copy lg:col-span-6">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 rounded-full bg-[#D9E6DC] px-3.5 py-1 text-[11px] font-semibold tracking-wider text-[#1E3A2F] uppercase">
-                <span>🌱</span>
+                <span><ContentIcon name="sprout" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" /></span>
                 <span><UiText text={"Lối sống chay"} /></span>
               </div>
 
               {/* Main Heading */}
-              <h1 className="mt-5 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl lg:text-[56px] lg:leading-[64px]"><UiText text={"Khám phá cuộc sống"} />{" "}<br /><UiText text={"chay tốt đẹp hơn"} /></h1>
+              <h1 className="mt-5 font-serif text-4xl font-medium tracking-tight text-[#07241A] sm:text-5xl lg:text-[64px] lg:leading-[1.12]">{t("A little greener.", "Ăn xanh một chút.")}<br /><span className="vm-home-heading-accent inline-block">{t("A little happier.", "Sống vui mỗi ngày.")}</span></h1>
 
               {/* Subtitle */}
-              <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg"><UiText text={"Tìm công thức, video nấu ăn và nhà hàng chay cho hành trình ăn chay mỗi ngày."} /></p>
+              <p className="mt-5 text-base leading-relaxed text-[#424844] sm:text-lg"><UiText text={"Tìm công thức, video nấu ăn và đánh giá nhà hàng cho hành trình ăn chay mỗi ngày."} /></p>
+
+              {/* Search Bar Input Form */}
+              <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+                <form
+                  action="/community"
+                  className="vm-home-search flex w-full items-center rounded-2xl bg-white/85 p-1.5 shadow-sm border border-[#DFE6D9]"
+                >
+                  <div className="flex items-center pl-3 text-[#727974]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                  </div>
+                  <input
+                    name="q" type="text"
+                    placeholder={ui("Search recipes, foods, restaurants...")}
+                    className="w-full bg-transparent px-3 py-2 text-sm text-[#07241A] placeholder-[#727974] focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-[#07241A] px-5 py-2.5 text-xs font-semibold tracking-wide text-white transition hover:bg-[#1E3A2F] shrink-0"
+                  ><UiText text={"Tìm kiếm"} /></button>
+                </form>
+              </div>
 
               {/* Primary CTA Link */}
-              <div className="mt-8">
+              <div className="mt-6 flex flex-wrap items-center gap-5">
                 <Link
                   href="/community"
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-3 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
+                  className="vm-button vm-leaf-button inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-3 text-xs font-semibold tracking-wide text-white shadow-md hover:bg-[#1E3A2F]"
                 >
                   <span><UiText text={"Khám phá công thức"} /></span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -66,12 +98,13 @@ export default function HomePage() {
             </div>
 
             {/* Right Hero Image Inspiration Card */}
-            <div className="lg:col-span-6">
+            <div className="vm-hero-visual relative lg:col-span-6">
               <HeroRecipeCarousel />
             </div>
           </div>
         </section></Reveal>
 
+        </div>
         {/* 2. POPULAR RECIPES SECTION */}
         <Reveal><section id="recipes" className="bg-[#F5F3F0] py-16">
           <div className="mx-auto max-w-7xl px-6 lg:px-12">
@@ -107,6 +140,8 @@ export default function HomePage() {
         {/* 4. FINAL CALL TO ACTION CARD */}
         <Reveal><section id="cta" className="mx-auto max-w-7xl px-6 py-12 lg:px-12 lg:pb-20">
           <div className="relative overflow-hidden rounded-3xl bg-[#EFEEEB] px-8 py-14 text-center sm:px-14 lg:py-16 shadow-sm">
+            <BotanicalAccent className="absolute -bottom-16 -left-14 w-44 text-[#658266]/35 sm:w-56" />
+            <BotanicalAccent className="absolute -right-14 -top-14 w-44 rotate-180 text-[#658266]/35 sm:w-56" />
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#D9E6DC] text-[#1E3A2F] mb-6">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2a10 10 0 1 0 10 10H12V2Z" />
@@ -119,7 +154,7 @@ export default function HomePage() {
             <div className="mt-8">
               <Link
                 href="/community"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-8 py-3.5 text-xs font-semibold tracking-wide text-white shadow-md transition hover:bg-[#1E3A2F]"
+                className="vm-button vm-leaf-button relative inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-8 py-3.5 text-xs font-semibold tracking-wide text-white shadow-md hover:bg-[#1E3A2F]"
               >
                 <span><UiText text={"Tìm phiên bản chay"} /></span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -80,7 +80,7 @@ export default function LeafletRestaurantMap({ center, restaurants, selectedId, 
   const tileSource = tileSources[tileSourceIndex];
 
   return (
-    <div className="relative min-h-[390px] overflow-hidden bg-[#e8eee9]">
+    <div className="relative h-[320px] min-w-0 lg:h-[clamp(300px,43dvh,430px)] overflow-hidden bg-[#e8eee9]">
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={14}

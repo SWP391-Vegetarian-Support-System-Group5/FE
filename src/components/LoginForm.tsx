@@ -125,7 +125,7 @@ export default function LoginForm() {
           }
 
           if (
-            lowerMsg.includes("inactive") ||
+            lowerMsg.includes("inactive") || lowerMsg.includes("banned") || lowerMsg.includes("suspended") ||
             lowerMsg.includes("disabled") ||
             lowerMsg.includes("deactivated") ||
             lowerMsg.includes("khóa") ||
@@ -154,6 +154,7 @@ export default function LoginForm() {
   };
 
   const activeError = localError || authError;
+  const accountDisabled = !!activeError && /inactive|disabled|deactivated|banned|suspended|vô hiệu hóa|bị khóa|đình chỉ/i.test(activeError);
 
   return (
     <div className="w-full max-w-[460px] rounded-3xl border border-[#EFEEEB] bg-white p-8 sm:p-10 shadow-sm">
@@ -210,7 +211,7 @@ export default function LoginForm() {
 
       {/* Error Banner */}
       {activeError && (
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-[#FFDBD0] bg-[#FFF5F2] p-3.5 text-xs text-[#99462A]">
+        <div role="alert" className={`vm-feedback mt-4 flex items-start gap-3 rounded-2xl border text-[#8C3025] ${accountDisabled ? "border-[#E9A89B] border-l-4 bg-[#FFF0EB] p-5 text-sm shadow-sm" : "border-[#FFDBD0] bg-[#FFF5F2] p-3.5 text-xs"}`}>
           <svg
             className="mt-0.5 h-4 w-4 shrink-0"
             viewBox="0 0 24 24"
@@ -223,7 +224,7 @@ export default function LoginForm() {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <div className="flex-1 leading-relaxed">
-            <p><UiText text={activeError} /></p>
+            {accountDisabled ? <><p className="mb-2 font-semibold">{t("Your account has been disabled", "Tài khoản đã bị vô hiệu hóa")}</p><p>{t("Your account has been disabled for violating the community standards. Please contact an administrator for support.", "Tài khoản của bạn đã vi phạm chuẩn mực cộng đồng và bị vô hiệu hóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.")}</p></> : <p><UiText text={activeError} /></p>}
 
             {/* 401 Helper: Link to register */}
             {is401Error && (
