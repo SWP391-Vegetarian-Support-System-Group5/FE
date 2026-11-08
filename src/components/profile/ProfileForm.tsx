@@ -38,6 +38,7 @@ import {
   updateLivingLocation,
 } from "@/lib/profile-api";
 import { locationApi } from "@/lib/location-api";
+import { fallbackAreas } from "@/lib/location-data";
 import { getMediaUrl } from "@/lib/api";
 import { getStoredToken, getStoredUser } from "@/lib/auth";
 import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
@@ -309,6 +310,16 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
 
     return () => { active = false; };
   }, [addressQuery, provinces, selectedProvinceCode]);
+
+  // Never leave the area selector disabled after a province has been chosen.
+  // This is particularly important for older accounts: their saved address is
+  // valid even if the reference-data request is slow or temporarily empty.
+  // The live API response above/below replaces this compact fallback as soon
+  // as it arrives.
+  useEffect(() => {
+    if (!selectedProvinceCode || areas.length > 0) return;
+    setAreas(toAreaItems(fallbackAreas(selectedProvinceCode)));
+  }, [areas.length, selectedProvinceCode]);
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
