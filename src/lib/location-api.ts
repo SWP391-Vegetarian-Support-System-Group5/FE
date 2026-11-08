@@ -63,8 +63,13 @@ async function getJson<T>(path: string, fallback: T, timeoutMs = 2500, propagate
 
 export const locationApi = {
   provinces: () => getJson<Province[]>("/locations/provinces", vietnamProvinces),
-  areas: (provinceCode: string) =>
-    getJson<Area[]>(`/locations/provinces/${provinceCode}/areas`, fallbackAreas(provinceCode)),
+  areas: async (provinceCode: string) => {
+    const fallback = fallbackAreas(provinceCode);
+    const areas = await getJson<Area[]>(`/locations/provinces/${provinceCode}/areas`, fallback);
+    // A successful but empty response must not disable the Area selector.
+    // Keep the location form usable while the backend catalogue is updating.
+    return areas.length > 0 ? areas : fallback;
+  },
   addressSuggestions: (query: string, latitude?: number, longitude?: number) => {
     const params = new URLSearchParams({ query });
     if (latitude != null && longitude != null) {
