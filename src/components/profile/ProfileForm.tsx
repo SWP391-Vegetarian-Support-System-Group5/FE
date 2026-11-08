@@ -36,7 +36,9 @@ import {
   type AreaItem,
   type AddressSuggestion,
   type UpdateProfilePayload,
+  updateLivingLocation,
 } from "@/lib/profile-api";
+import { locationApi } from "@/lib/location-api";
 import { getMediaUrl } from "@/lib/api";
 import { getStoredToken, getStoredUser } from "@/lib/auth";
 import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
@@ -85,6 +87,15 @@ function validateDraft(d: ProfileDraft, currentYear: number): ProfileErrors {
   if (d.weightKg !== "" && (!Number.isFinite(w) || w < 1 || w > 1000))
     errors.weightKg = "Cân nặng phải từ 1 đến 1.000 kg.";
   return errors;
+}
+
+function normalizeLocationName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(thanh pho|tp|tinh|phuong|xa|dac khu|khu vuc)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -142,7 +153,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
   const [areas, setAreas] = useState<AreaItem[]>([]);
 
-  // Location state (local-only, backend doesn't persist province/area text)
+  // Administrative selectors help geocoding; the normalized address and coordinates are persisted.
   const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>("");
   const [selectedAreaCode, setSelectedAreaCode] = useState<string>("");
   const [addressQuery, setAddressQuery] = useState("");
@@ -220,6 +231,18 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         if (profile.latitude != null && profile.longitude != null) {
           setSelectedCoords({ lat: profile.latitude, lng: profile.longitude });
         }
+        if (profile.livingAddress) setAddressQuery(profile.livingAddress);
+        else if (profile.latitude != null && profile.longitude != null) {
+          try {
+            const location = await locationApi.reverseGeocode(profile.latitude, profile.longitude);
+            if (!cancelled && location?.formattedAddress) {
+              setAddressQuery(location.formattedAddress);
+              void updateLivingLocation(profile.latitude, profile.longitude, location.formattedAddress).catch(() => undefined);
+            }
+          } catch {
+            // Coordinates still render on the map when reverse geocoding is unavailable.
+          }
+        }
 
         // userAllergens may come as array or wrapped object — normalize
         const rawAllergens: unknown = userAllergenList;
@@ -248,6 +271,37 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
       cancelled = true;
     };
   }, []);
+
+  // Old accounts already have a saved address/coordinates but no saved
+  // administrative codes. Infer the two selectors from that address instead
+  // of making the user choose the same place again.
+  useEffect(() => {
+    if (!addressQuery.trim() || provinces.length === 0 || selectedProvinceCode) return;
+
+    const normalizedAddress = normalizeLocationName(addressQuery);
+    const matchingProvince = provinces.find((item) =>
+      normalizedAddress.includes(normalizeLocationName(item.name)),
+    );
+    if (!matchingProvince) return;
+
+    let active = true;
+    setSelectedProvinceCode(matchingProvince.code);
+    void getAreas(matchingProvince.code)
+      .then((areaList) => {
+        if (!active) return;
+        const matchingArea = areaList.find((item) =>
+          item.code !== "all" && normalizedAddress.includes(normalizeLocationName(item.name)),
+        );
+        setAreas(areaList);
+        setSelectedAreaCode(matchingArea?.code ?? "");
+      })
+      .catch(() => {
+        // Province remains selected even when the ward list is temporarily unavailable.
+        if (active) setAreas([]);
+      });
+
+    return () => { active = false; };
+  }, [addressQuery, provinces, selectedProvinceCode]);
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
@@ -432,6 +486,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         dietTypeId: draft.dietTypeId,
         latitude: selectedCoords?.lat ?? null,
         longitude: selectedCoords?.lng ?? null,
+        livingAddress: addressQuery.trim() || null,
       };
 
       const [updatedProfile] = await Promise.all([
@@ -1135,7 +1190,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
             {t("Your location helps VeggieMate recommend vegetarian places near you in the Vegan Places Guide and filter neighborhood community dining tables.", "Vị trí của bạn giúp VeggieMate gợi ý địa điểm chay gần bạn trong Cẩm nang địa điểm chay và lọc các gợi ý ăn uống quanh khu vực.")}
             <br />
             <span className="text-[11px] italic">
-              {t("Note: Province/area selections are used to find coordinates only; the backend does not store address text.", "Lưu ý: lựa chọn tỉnh/khu vực chỉ dùng để tìm tọa độ; backend không lưu nội dung địa chỉ.")}
+              {t("Your selected address and coordinates are saved to help find nearby restaurants.", "Địa chỉ và tọa độ đã chọn sẽ được lưu để tìm nhà hàng gần bạn.")}
             </span>
           </p>
         </div>

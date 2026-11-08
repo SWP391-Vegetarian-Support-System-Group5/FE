@@ -43,6 +43,7 @@ export function useNearbyPlaces() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(t("Finding VeggieMate restaurants around your location...", "Đang tìm nhà hàng VeggieMate quanh vị trí của bạn..."));
   const [locationLabel, setLocationLabel] = useState(t("your location", "vị trí của bạn"));
+  const [origin, setOrigin] = useState<Coordinates | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +89,7 @@ export function useNearbyPlaces() {
 
       const data = nearestSix(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId));
       if (cancelled) return;
+      setOrigin(center);
       setPlaces(data);
       setLocationLabel(label);
       setMessage(data.length > 0
@@ -107,5 +109,5 @@ export function useNearbyPlaces() {
 
   const countLabel = useMemo(() => loading ? t("Searching...", "Đang tìm...") : `${places.length} ${t("real places", "địa điểm thật")}`, [loading, places.length, t]);
 
-  return { places, loading, message, locationLabel, countLabel };
+  return { places, loading, message, locationLabel, countLabel, origin };
 }
