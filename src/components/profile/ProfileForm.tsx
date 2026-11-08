@@ -321,6 +321,18 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     setAreas(toAreaItems(fallbackAreas(selectedProvinceCode)));
   }, [areas.length, selectedProvinceCode]);
 
+  // The saved address is the source of truth for older accounts. Once area
+  // options are available (from either the API or the fallback), select the
+  // matching ward automatically just like the Vegan Places screen does.
+  useEffect(() => {
+    if (!selectedProvinceCode || !addressQuery.trim() || !areas.length || selectedAreaCode) return;
+    const normalizedAddress = normalizeLocationName(addressQuery);
+    const match = areas.find((item) =>
+      item.code !== "all" && normalizedAddress.includes(normalizeLocationName(item.name)),
+    );
+    if (match) setSelectedAreaCode(match.code);
+  }, [addressQuery, areas, selectedAreaCode, selectedProvinceCode]);
+
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
     function handleClick(e: MouseEvent) {

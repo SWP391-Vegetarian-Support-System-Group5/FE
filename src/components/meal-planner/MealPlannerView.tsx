@@ -373,16 +373,12 @@ export default function MealPlannerView() {
             </div>
 
             {/* Metrics Row */}
-            <div className="grid grid-cols-2 gap-3 rounded-2xl bg-[#FBF9F6] p-3.5 border border-[#EFEEEB]">
+            <div className="rounded-2xl bg-[#FBF9F6] p-3.5 border border-[#EFEEEB]">
               <div>
-                <span className="text-[11px] font-medium text-[#727974]"><UiText text={"Nhịp cơ thể"} /></span>
+                <span className="text-[11px] font-medium text-[#727974]">BMI</span>
                 <p className="mt-0.5 text-xs font-bold text-[#07241A]">
                   {bmi ?? ui("Not available")}
                 </p>
-              </div>
-              <div>
-                <span className="text-[11px] font-medium text-[#727974]">BMI</span>
-                <p className="mt-0.5 text-xs font-bold text-[#99462A]">{bmiCategory}</p>
               </div>
             </div>
 
