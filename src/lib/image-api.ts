@@ -40,7 +40,8 @@ export function imageError(error: unknown): string {
 }
 
 async function mutateImage(path: string, method: string, body?: BodyInit): Promise<ImageMutationResponse> {
-  if (!getStoredToken()) throw new ImageRequestError(401, "");
+  const session = getStoredToken();
+  if (!session) throw new ImageRequestError(401, "");
   const response = await apiFetch(path, {
     method, body, cache: "no-store",
     ...(typeof body === "string" ? { headers: { "Content-Type": "application/json" } } : {}),
@@ -51,7 +52,15 @@ async function mutateImage(path: string, method: string, body?: BodyInit): Promi
     const message = [fields.message, fields.detail, fields.title].find(value => typeof value === "string");
     throw new ImageRequestError(response.status, typeof message === "string" ? message : "", response.headers.get("Retry-After"));
   }
-  return await response.json() as ImageMutationResponse;
+  const data: unknown = await response.json().catch(() => null);
+  if (getStoredToken() !== session) throw new ImageRequestError(401, "");
+  if (!data || typeof data !== "object") throw new ImageRequestError(502, "");
+  const result = data as Record<string, unknown>;
+  const validUrl = typeof result.imageUrl === "string" && /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/.+/i.test(result.imageUrl);
+  if ((method === "DELETE" ? result.imageUrl !== null : !validUrl) ||
+      typeof result.isGenerated !== "boolean" || typeof result.previousImageDeleted !== "boolean")
+    throw new ImageRequestError(502, "");
+  return { imageUrl: result.imageUrl as string | null, isGenerated: result.isGenerated, previousImageDeleted: result.previousImageDeleted };
 }
 
 function upload(path: string, file: File) {
