@@ -25,7 +25,6 @@ import {
   getAllAllergens,
   getUserAllergens,
   updateUserAllergens,
-  createCustomAllergen,
   getProvinces,
   getAreas,
   getAddressSuggestions,
@@ -147,9 +146,6 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   const [allAllergens, setAllAllergens] = useState<AllergenItem[]>([]);
   const [selectedAllergenIds, setSelectedAllergenIds] = useState<number[]>([]);
   const [savedAllergenIds, setSavedAllergenIds] = useState<number[]>([]);
-  const [customAllergenName, setCustomAllergenName] = useState("");
-  const [customAllergenError, setCustomAllergenError] = useState<string | null>(null);
-  const [customAllergenBusy, setCustomAllergenBusy] = useState(false);
   const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
   const [areas, setAreas] = useState<AreaItem[]>([]);
 
@@ -164,10 +160,8 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   // UI toggles
   const [showDietDropdown, setShowDietDropdown] = useState(false);
   const [showSexDropdown, setShowSexDropdown] = useState(false);
-  const [showAllergenDropdown, setShowAllergenDropdown] = useState(false);
   const dietDropdownRef = useRef<HTMLDivElement>(null);
   const sexDropdownRef = useRef<HTMLDivElement>(null);
-  const allergenDropdownRef = useRef<HTMLDivElement>(null);
   const addressSuggestionsRef = useRef<HTMLDivElement>(null);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -285,10 +279,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     if (!matchingProvince) return;
 
     let active = true;
-    setSelectedProvinceCode(matchingProvince.code);
     void getAreas(matchingProvince.code)
       .then((areaList) => {
         if (!active) return;
+        setSelectedProvinceCode(matchingProvince.code);
         const matchingArea = areaList.find((item) =>
           item.code !== "all" && normalizedAddress.includes(normalizeLocationName(item.name)),
         );
@@ -297,7 +291,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
       })
       .catch(() => {
         // Province remains selected even when the ward list is temporarily unavailable.
-        if (active) setAreas([]);
+        if (active) {
+          setSelectedProvinceCode(matchingProvince.code);
+          setAreas([]);
+        }
       });
 
     return () => { active = false; };
@@ -311,8 +308,6 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         setShowDietDropdown(false);
       if (sexDropdownRef.current && !sexDropdownRef.current.contains(t))
         setShowSexDropdown(false);
-      if (allergenDropdownRef.current && !allergenDropdownRef.current.contains(t))
-        setShowAllergenDropdown(false);
       if (addressSuggestionsRef.current && !addressSuggestionsRef.current.contains(t))
         setShowAddressSuggestions(false);
     }
@@ -428,30 +423,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     );
   }, []);
 
-  const handleAddCustomAllergen = async () => {
-    if (customAllergenBusy || saving) return;
-    const name = customAllergenName.trim();
-    if (!name) { setCustomAllergenError("Vui lòng nhập tên nguyên liệu gây dị ứng."); return; }
-    setCustomAllergenError(null);
-    setCustomAllergenBusy(true);
-    try {
-      const selected = await createCustomAllergen(name);
-      setAllAllergens(current => [...new Map([...current, ...selected].map(item => [item.allergenId, item])).values()]);
-      const ids = selected.map(item => item.allergenId);
-      setSelectedAllergenIds(current => [...new Set([...current, ...ids])]);
-      setSavedAllergenIds(ids);
-      setCustomAllergenName("");
-      setToastMessage("Đã kiểm tra và thêm dị ứng vào hồ sơ.");
-    } catch (error) {
-      setCustomAllergenError(error instanceof Error ? error.message : "Không thể thêm dị ứng. Vui lòng thử lại.");
-    } finally {
-      setCustomAllergenBusy(false);
-    }
-  };
 
-  const removeAllergen = useCallback((id: number) => {
-    setSelectedAllergenIds((prev) => prev.filter((x) => x !== id));
-  }, []);
 
   // ── Cancel ───────────────────────────────────────────────────────────────
   const handleCancel = () => {
@@ -464,7 +436,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
 
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (customAllergenBusy || saving) return;
+    if (saving) return;
     setSaveError(null);
     const validationErrors = validateDraft(draft, currentYear);
     if (Object.keys(validationErrors).length > 0) {
@@ -1019,123 +991,14 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
             <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"VeggieMate sẽ cảnh báo hoặc bỏ qua món có các thành phần này."} /></p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            {/* Render selected allergens as chips */}
-            {selectedAllergenIds.map((id) => {
-              const allergen = allAllergens.find((a) => a.allergenId === id);
-              return (
-                <span
-                  key={id}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#FFDBD0] px-3 py-1 text-xs font-semibold tracking-[0.02em] text-[#390B00]"
-                >
-                  {allergen?.name ?? `Allergen #${id}`}
-                  <button
-                    type="button"
-                    onClick={() => removeAllergen(id)}
-                    className="flex items-center justify-center text-[#390B00]/60 transition hover:text-[#390B00]"
-                    aria-label={`Gỡ dị ứng ${allergen?.name ?? ""}`}
-                  >
-                    <svg
-                      width="8"
-                      height="8"
-                      viewBox="0 0 8 8"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    >
-                      <path d="M1 1l6 6M7 1l-6 6" />
-                    </svg>
-                  </button>
-                </span>
-              );
-            })}
-
-            {/* Add Allergy dropdown from API allergens */}
-            <div ref={allergenDropdownRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setShowAllergenDropdown((v) => !v)}
-                className="inline-flex items-center gap-1 rounded-full bg-[#F5F3F0] px-3 py-1 text-xs font-semibold tracking-[0.02em] text-[#1B1C1A] transition hover:bg-[#EFEEEB]"
-              >
-                <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 8 8"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                >
-                  <path d="M4 1v6M1 4h6" />
-                </svg><UiText text={"Thêm dị ứng"} /></button>
-              {showAllergenDropdown && (
-                <div className="absolute left-0 top-full z-[1000] mt-1 w-52 max-h-48 overflow-y-auto rounded-xl bg-white shadow-lg ring-1 ring-[#EFEEEB]">
-                  {allAllergens.length === 0 && (
-                    <div className="px-4 py-3 text-xs text-[#727974]"><UiText text={"Chưa có thông tin chất gây dị ứng"} /></div>
-                  )}
-                  {allAllergens.map((allergen) => {
-                    const isSelected = selectedAllergenIds.includes(
-                      allergen.allergenId,
-                    );
-                    return (
-                      <button
-                        key={allergen.allergenId}
-                        type="button"
-                        onClick={() => toggleAllergen(allergen.allergenId)}
-                        className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition hover:bg-[#F5F3F0] ${
-                          isSelected
-                            ? "bg-[#FFDBD0]/30 font-semibold text-[#07241A]"
-                            : "text-[#424844]"
-                        }`}
-                      >
-                        <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                            isSelected
-                              ? "border-[#99462A] bg-[#99462A]"
-                              : "border-[#DBDAD7]"
-                          }`}
-                        >
-                          {isSelected && (
-                            <svg
-                              width="10"
-                              height="10"
-                              viewBox="0 0 10 10"
-                              fill="none"
-                              stroke="white"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M2 5l2 2 4-4" />
-                            </svg>
-                          )}
-                        </span>
-                        {<UiText text={allergen.name} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+          <p className="text-sm text-[#627369]">{t("Select allergens from the list, then save your profile to apply changes.", "Chọn dị ứng từ danh sách, rồi lưu hồ sơ để cập nhật thay đổi.")}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {allAllergens.map(allergen => <label key={allergen.allergenId} className={`vm-button flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm ${selectedAllergenIds.includes(allergen.allergenId) ? "border-[#80AA8D] bg-[#EAF5EE] text-[#163E2E]" : "border-[#E5E9E0] bg-white"}`}>
+              <input type="checkbox" disabled={saving} checked={selectedAllergenIds.includes(allergen.allergenId)} onChange={() => toggleAllergen(allergen.allergenId)} className="size-4 shrink-0 accent-[#163E2E]" />
+              <span className="break-words">{allergen.name}</span>
+            </label>)}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <input
-              type="text"
-              value={customAllergenName}
-              onChange={event => { setCustomAllergenName(event.target.value); setCustomAllergenError(null); }}
-              onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); void handleAddCustomAllergen(); } }}
-              maxLength={80}
-              placeholder="Nguyên liệu dị ứng chưa có, ví dụ: mè"
-              aria-label="Tên dị ứng mới"
-              className="min-w-56 flex-1 rounded-xl border border-[#DBDAD7] bg-white px-3 py-2 text-sm"
-            />
-            <button type="button" disabled={customAllergenBusy || saving} onClick={() => void handleAddCustomAllergen()} className="rounded-xl bg-[#143D30] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-              {customAllergenBusy ? "Đang kiểm tra…" : "Thêm dị ứng mới"}
-            </button>
-          </div>
-          {customAllergenError && <p role="alert" className="text-sm text-red-700">{customAllergenError}</p>}
-          <p className="text-xs text-[#727974]">Tên mới được AI kiểm tra trùng nghĩa và nội dung trước khi lưu tự động.</p>
+          {allAllergens.length === 0 && <p className="text-sm text-[#727974]">{t("The allergen list is currently unavailable.", "Hiện chưa có danh sách dị ứng để chọn.")}</p>}
         </div>
       </section>
 
@@ -1282,13 +1145,13 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         <button
           type="button"
           onClick={handleCancel}
-          disabled={saving || customAllergenBusy}
+          disabled={saving}
           className="rounded-xl px-5 py-2.5 text-sm font-semibold tracking-[0.01em] text-[#727974] transition hover:bg-[#F5F3F0] hover:text-[#07241A]"
         ><UiText text={"Hủy bỏ"} /></button>
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving || customAllergenBusy}
+          disabled={saving}
           className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-2.5 text-sm font-semibold tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-[#1E3A2F] disabled:opacity-60"
         >
           {saving ? (
