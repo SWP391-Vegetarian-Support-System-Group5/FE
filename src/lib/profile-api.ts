@@ -168,18 +168,26 @@ export function updateUserAllergens(allergenIds: number[]) {
   return apiPut<void>("/api/users/me/allergens", { allergenIds });
 }
 
-/** Validates a new food allergy on the server and immediately saves it to this profile. */
-export async function createCustomAllergen(name: string): Promise<AllergenItem[]> {
+export type AllergenSubmission = {
+  id: number; userId: number; submittedName: string; name: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  message: string; rejectionReason: string | null; allergenId: number | null;
+  createdAt: string; reviewedAt: string | null;
+};
+
+export const getAllergenSubmissions = () => apiGet<AllergenSubmission[]>("/api/users/me/allergen-requests", { cache: "no-store" });
+
+/** Submits a proposal for admin review; does not change profile selections. */
+export async function createCustomAllergen(name: string): Promise<AllergenSubmission> {
   const response = await apiFetch("/api/users/me/allergens/custom", {
-    method: "POST",
-    body: JSON.stringify({ name }),
+    method: "POST", body: JSON.stringify({ name }),
   });
-  const data = await response.json() as { message?: string; allergens?: BackendCatalogItem[] };
-  if (!response.ok) throw new Error(data.message || "Không thể thêm dị ứng. Vui lòng thử lại.");
-  return (data.allergens ?? []).map(item => ({
-    allergenId: item.allergenId ?? item.id ?? 0,
-    name: item.name,
-  })).filter(item => item.allergenId > 0);
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.message || data?.detail || "ALLERGEN_SUBMIT_FAILED");
+  if (!data || !Number.isInteger(data.id) || !["PENDING", "APPROVED", "REJECTED"].includes(data.status)) {
+    throw new Error("ALLERGEN_RESPONSE_INVALID");
+  }
+  return data as AllergenSubmission;
 }
 
 /** Fetch all provinces */
