@@ -26,7 +26,6 @@ import {
   getUserAllergens,
   updateUserAllergens,
   getProvinces,
-  getAreas,
   getAddressSuggestions,
   geocodeAddress,
   type DietTypeItem,
@@ -38,6 +37,7 @@ import {
   updateLivingLocation,
 } from "@/lib/profile-api";
 import { locationApi } from "@/lib/location-api";
+import { fallbackAreas } from "@/lib/location-data";
 import { getMediaUrl } from "@/lib/api";
 import { getStoredToken, getStoredUser } from "@/lib/auth";
 import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
@@ -72,6 +72,14 @@ interface ProfileErrors {
   fullName?: string;
   heightCm?: string;
   weightKg?: string;
+}
+
+function toAreaItems(items: Array<{ code: string; name: string; type: string; latitude?: number | null; longitude?: number | null }>): AreaItem[] {
+  return items.map((item) => ({
+    ...item,
+    latitude: item.latitude ?? null,
+    longitude: item.longitude ?? null,
+  }));
 }
 
 function validateDraft(d: ProfileDraft, currentYear: number): ProfileErrors {
@@ -279,21 +287,26 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     if (!matchingProvince) return;
 
     let active = true;
-    void getAreas(matchingProvince.code)
+    void locationApi.areas(matchingProvince.code)
       .then((areaList) => {
         if (!active) return;
         setSelectedProvinceCode(matchingProvince.code);
         const matchingArea = areaList.find((item) =>
           item.code !== "all" && normalizedAddress.includes(normalizeLocationName(item.name)),
         );
-        setAreas(areaList);
+        setAreas(toAreaItems(areaList));
         setSelectedAreaCode(matchingArea?.code ?? "");
       })
       .catch(() => {
         // Province remains selected even when the ward list is temporarily unavailable.
         if (active) {
           setSelectedProvinceCode(matchingProvince.code);
-          setAreas([]);
+          const areaList = toAreaItems(fallbackAreas(matchingProvince.code));
+          setAreas(areaList);
+          const matchingArea = areaList.find((item) =>
+            item.code !== "all" && normalizedAddress.includes(normalizeLocationName(item.name)),
+          );
+          setSelectedAreaCode(matchingArea?.code ?? "");
         }
       });
 
@@ -353,14 +366,17 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
       const province = provinces.find((item) => item.code === code);
       setSelectedProvinceCode(code);
       setSelectedAreaCode("");
-      setAreas([]);
+      // Keep the selector usable while the API replaces these fallback options.
+      setAreas(toAreaItems(fallbackAreas(code)));
       setAddressQuery("");
       if (province?.latitude != null && province.longitude != null) {
         setSelectedCoords({ lat: province.latitude, lng: province.longitude });
       }
       try {
-        const areaList = await getAreas(code);
-        setAreas(areaList);
+        // Use the shared location API because it has a safe local fallback
+        // when the reference-data endpoint is temporarily unavailable.
+        const areaList = await locationApi.areas(code);
+        setAreas(toAreaItems(areaList));
       } catch (err) {
         console.error("Failed to load areas", err);
       }
