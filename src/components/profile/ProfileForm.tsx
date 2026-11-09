@@ -1,6 +1,8 @@
 "use client";
 
 import ContentIcon from "@/components/content/ContentIcon";
+import AllergenRequestsPanel from "@/components/profile/AllergenRequestsPanel";
+import AllergenSelectionSave from "@/components/profile/AllergenSelectionSave";
 
 import UiText, { useUiText } from "@/components/UiText";
 
@@ -154,6 +156,12 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   const [allAllergens, setAllAllergens] = useState<AllergenItem[]>([]);
   const [selectedAllergenIds, setSelectedAllergenIds] = useState<number[]>([]);
   const [savedAllergenIds, setSavedAllergenIds] = useState<number[]>([]);
+  const [allergenSaving, setAllergenSaving] = useState(false);
+  const applySavedAllergens = useCallback((items: AllergenItem[]) => {
+    const ids = items.map(item => item.allergenId);
+    setSelectedAllergenIds(ids);
+    setSavedAllergenIds([...ids]);
+  }, []);
   const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
   const [areas, setAreas] = useState<AreaItem[]>([]);
 
@@ -443,6 +451,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
 
   // ── Cancel ───────────────────────────────────────────────────────────────
   const handleCancel = () => {
+    if (allergenSaving) return;
     setSaveError(null);
     setDraft({ ...savedDraft });
     setSelectedAllergenIds([...savedAllergenIds]);
@@ -452,7 +461,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
 
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (saving) return;
+    if (saving || allergenSaving) return;
     setSaveError(null);
     const validationErrors = validateDraft(draft, currentYear);
     if (Object.keys(validationErrors).length > 0) {
@@ -1007,14 +1016,16 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
             <p className="text-[13px] leading-5 text-[#727974]"><UiText text={"VeggieMate sẽ cảnh báo hoặc bỏ qua món có các thành phần này."} /></p>
           </div>
 
-          <p className="text-sm text-[#627369]">{t("Select allergens from the list, then save your profile to apply changes.", "Chọn dị ứng từ danh sách, rồi lưu hồ sơ để cập nhật thay đổi.")}</p>
+          <p className="text-sm text-[#627369]">{t("Select allergens, then use Save allergens and confirm to update this selection separately.", "Chọn dị ứng, bấm Lưu dị ứng rồi xác nhận để cập nhật riêng lựa chọn này.")}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {allAllergens.map(allergen => <label key={allergen.allergenId} className={`vm-button flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm ${selectedAllergenIds.includes(allergen.allergenId) ? "border-[#80AA8D] bg-[#EAF5EE] text-[#163E2E]" : "border-[#E5E9E0] bg-white"}`}>
-              <input type="checkbox" disabled={saving} checked={selectedAllergenIds.includes(allergen.allergenId)} onChange={() => toggleAllergen(allergen.allergenId)} className="size-4 shrink-0 accent-[#163E2E]" />
+              <input type="checkbox" disabled={saving || allergenSaving} checked={selectedAllergenIds.includes(allergen.allergenId)} onChange={() => toggleAllergen(allergen.allergenId)} className="size-4 shrink-0 accent-[#163E2E]" />
               <span className="break-words">{allergen.name}</span>
             </label>)}
           </div>
           {allAllergens.length === 0 && <p className="text-sm text-[#727974]">{t("The allergen list is currently unavailable.", "Hiện chưa có danh sách dị ứng để chọn.")}</p>}
+          <AllergenSelectionSave selectedIds={selectedAllergenIds} savedIds={savedAllergenIds} catalog={allAllergens} disabled={saving} onBusyChange={setAllergenSaving} onSaved={applySavedAllergens} />
+          <AllergenRequestsPanel key={avatarOwner?.uid ?? "guest"} onCatalogChange={setAllAllergens} />
         </div>
       </section>
 
@@ -1161,13 +1172,13 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         <button
           type="button"
           onClick={handleCancel}
-          disabled={saving}
+          disabled={saving || allergenSaving}
           className="rounded-xl px-5 py-2.5 text-sm font-semibold tracking-[0.01em] text-[#727974] transition hover:bg-[#F5F3F0] hover:text-[#07241A]"
         ><UiText text={"Hủy bỏ"} /></button>
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || allergenSaving}
           className="inline-flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-2.5 text-sm font-semibold tracking-[0.01em] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-[#1E3A2F] disabled:opacity-60"
         >
           {saving ? (

@@ -47,7 +47,7 @@ export const createRestaurant = (body: RestaurantPayload) => mutate<AdminRestaur
 export const updateRestaurant = (id: number, body: RestaurantPayload) => mutate<void>(`/api/admin/restaurants/${id}`, "PUT", body);
 export const deleteRestaurant = (id: number) => mutate<void>(`/api/admin/restaurants/${id}`, "DELETE");
 
-export const listAllergens = () => apiGet<AdminAllergen[]>("/api/allergens");
+export const listAllergens = () => apiGet<AdminAllergen[]>("/api/allergens", { cache: "no-store" });
 export const createAllergen = (name: string) => mutate<AdminAllergen>("/api/admin/allergens", "POST", { name });
 export const updateAllergen = (id: number, name: string) => mutate<void>(`/api/admin/allergens/${id}`, "PUT", { name });
 export const deleteAllergen = (id: number) => mutate<void>(`/api/admin/allergens/${id}`, "DELETE");

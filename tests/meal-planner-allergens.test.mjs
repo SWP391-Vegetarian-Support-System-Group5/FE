@@ -26,11 +26,20 @@ async function setup({ bookmarksFail = false, selectedFail = false, saveFail = f
         return slots[index];
       },
       useMemo: callback => callback(),
+      useCallback: callback => callback,
       useEffect: callback => { if (firstRender) effects.push(callback); },
     },
     "@/context/AuthContext": { useAuth: () => ({ user: { uid: "user-1" }, loading: false }) },
     "@/context/LanguageContext": { useLanguage: () => ({ t: english => english, language: "en", locale: "en-US" }) },
     "@/lib/api": { getMediaUrl: value => value },
+    "@/lib/auth": { getStoredToken: () => "isolated-test-session" },
+    "./useMealImagePolling": { useMealImagePolling: () => ({ imagePollingNotice: null, resumeImagePolling() {} }), hasPendingImages: () => false },
+    "@/lib/meal-plan-goals": {
+      planningProfile: profile => ({ missing: [], age: 26, bmi: 22, energy: { tdee: 2200 }, profile }),
+      goalAllowed: () => true,
+      goalLimits: () => ({ maxAdjustment: 1000 }),
+      normalizeGoal: () => ({ nutritionGoal: "MAINTAIN", calorieAdjustment: null }),
+    },
     "@/lib/meal-plan-api": { getMealPlans: async () => [], generateMealPlan: async request => { mealRequests.push(request); return { meals: [] }; } },
     "@/lib/profile-api": {
       getProfile: async () => ({ fullName: "Test User" }),
@@ -43,7 +52,7 @@ async function setup({ bookmarksFail = false, selectedFail = false, saveFail = f
     "@/lib/recipe-api": {},
     "@/lib/diet-type-display": { formatDietTypeName: () => "" },
     "@/lib/localized-content": { localizeText: value => value },
-    "@/lib/meal-plan-dates": { initialMealPlanDate: () => "23/10/26", parseMealPlanDate: () => "2026-10-23" },
+    "@/lib/meal-plan-dates": { initialMealPlanDate: () => "09/11/2026", parseMealPlanDate: () => new Date("2026-11-09T00:00:00Z"), mealPlanWeekRange: () => "", mealPlanDay: () => "" },
   };
   const exports = {};
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL("../src/components/meal-planner/useMealPlanner.ts", import.meta.url), "utf8"), {
@@ -62,6 +71,7 @@ test("entered pantry ingredients are sent when creating a meal plan", async () =
   render().setNewPantryItem("tofu");
   render().handleAddPantry({ preventDefault() {} });
   await render().handleRegenerate();
+  await render().confirmGeneration("MAINTAIN", 0);
   assert.equal(mealRequests[0].availableIngredients, "tofu");
 });
 

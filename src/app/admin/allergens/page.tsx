@@ -8,17 +8,18 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { apiFetch, apiGet } from "@/lib/api";
 import { listAllergens, createAllergen, updateAllergen, deleteAllergen, type AdminAllergen } from "@/lib/admin-catalog-api";
 
-type Request = { id: number; userId: number; submittedName: string; name: string; status: "PENDING" | "APPROVED" | "REJECTED"; message: string; rejectionReason: string | null; createdAt: string };
+type Request = import("@/lib/profile-api").AllergenSubmission;
 type Member = { userId: number; fullName: string; email: string };
 
-const fetchLists = () => Promise.allSettled([
-  apiGet<Request[]>("/api/admin/allergen-requests", { cache: "no-store" }),
+const fetchLists = (status: string) => Promise.allSettled([
+  apiGet<Request[]>(`/api/admin/allergen-requests?status=${encodeURIComponent(status)}`, { cache: "no-store" }),
   listAllergens(), apiGet<Member[]>("/api/admin/users"),
 ]);
 
 export default function AdminAllergensPage() {
   const { t, locale } = useLanguage();
   const [requests, setRequests] = useState<Request[]>([]);
+  const [status, setStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
   const [catalog, setCatalog] = useState<AdminAllergen[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [query, setQuery] = useState("");
@@ -26,6 +27,7 @@ export default function AdminAllergensPage() {
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const version = useRef(0);
+  const cancelLoads = useCallback(() => { version.current++; }, []);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState<"saved" | "refresh" | "">("");
   const [rejecting, setRejecting] = useState<Request | null>(null);
@@ -42,26 +44,33 @@ export default function AdminAllergensPage() {
     if (users.status === "fulfilled") setMembers(users.value);
     return queue.status === "fulfilled" && allergens.status === "fulfilled";
   }, []);
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     const current = ++version.current;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
-      const result = await fetchLists();
+      const result = await fetchLists(status);
       if (current !== version.current) return false;
       return applyLists(result);
     } finally { if (current === version.current) setLoading(false); }
-  }, [applyLists]);
+  }, [applyLists, status]);
   useEffect(() => {
     let active = true;
     const current = ++version.current;
-    void fetchLists().then(result => { if (active && current === version.current) applyLists(result); })
+    void fetchLists(status).then(result => { if (active && current === version.current) applyLists(result); })
       .finally(() => { if (active && current === version.current) setLoading(false); });
     return () => { active = false; };
-  }, [applyLists]);
+  }, [applyLists, status]);
+  useEffect(() => {
+    const refresh = () => { if (!document.hidden && !lock.current) void load(true); };
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { cancelLoads(); window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
+  }, [load, cancelLoads]);
 
   async function run(action: () => Promise<void>) {
     if (lock.current) return;
-    lock.current = true; setBusy(true); setError(""); setNotice("");
+    lock.current = true; cancelLoads(); setBusy(true); setError(""); setNotice("");
     try {
       await action(); setNotice("saved");
       try { if (!await load()) setNotice("refresh"); } catch { setNotice("refresh"); }
@@ -69,17 +78,18 @@ export default function AdminAllergensPage() {
     finally { lock.current = false; setBusy(false); }
   }
   async function review(item: Request, approve: boolean) {
-    if (item.status !== "PENDING" || (!approve && !reason.trim())) return;
+    if (item.status !== "PENDING" || (!approve && (!reason.trim() || reason.trim().length > 1000))) return;
     await run(async () => {
       const response = await apiFetch(`/api/admin/allergen-requests/${item.id}/${approve ? "approve" : "reject"}`, {
         method: "POST", ...(approve ? {} : { body: JSON.stringify({ reason: reason.trim() }) }),
       });
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        throw new Error(data?.message || data?.detail || t(`Request failed (${response.status}).`, `Xử lý thất bại (${response.status}).`));
+        throw new Error(data?.message || data?.detail || "SAVE_FAILED");
       }
       const result = await response.json() as Request;
-      setRequests(previous => previous.map(row => row.id === result.id ? result : row));
+      if (result.id !== item.id || result.status !== (approve ? "APPROVED" : "REJECTED")) throw new Error("ALLERGEN_RESPONSE_INVALID");
+      setRequests(previous => previous.flatMap(row => row.id === result.id ? result.status === status ? [result] : [] : [row]));
       setRejecting(null); setReason("");
     });
   }
@@ -102,8 +112,8 @@ export default function AdminAllergensPage() {
       <button className="vm-button inline-flex items-center gap-2 rounded-xl bg-[#163E2E] px-5 py-3 text-sm font-medium text-white disabled:opacity-50" onClick={() => { setForm({ name: "" }); setError(""); }} disabled={busy}><Plus size={18} aria-hidden="true" />{t("Add allergen", "Thêm chất gây dị ứng")}</button>
     </header>
     {notice && <p role="status" className="vm-feedback rounded-xl border border-[#CDE4D5] bg-[#EAF5EE] p-4 text-sm">{notice === "saved" ? t("Changes saved successfully.", "Đã lưu thay đổi thành công.") : t("Saved. Refresh the list to synchronize; do not submit again.", "Đã lưu thành công. Hãy tải lại danh sách để đồng bộ; không cần gửi lại.")}</p>}
-    {error && <p role="alert" className="vm-feedback break-words rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error === "LOAD_FAILED" || error === "SAVE_FAILED" ? t("Unable to process this request. Please try again.", "Chưa xử lý được yêu cầu. Vui lòng thử lại.") : error}</p>}
-    {queueFailed && <p role="alert" className="vm-feedback rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t("Unable to load allergen requests. Check the backend /api/admin/allergen-requests endpoint. The allergen catalog is loaded separately.", "Chưa tải được yêu cầu dị ứng. Cần kiểm tra API /api/admin/allergen-requests của BE. Danh mục dị ứng vẫn được tải riêng.")}</p>}
+    {error && <p role="alert" className="vm-feedback break-words rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error === "LOAD_FAILED" || error === "SAVE_FAILED" || error === "ALLERGEN_RESPONSE_INVALID" ? t("Unable to process this request. Please try again.", "Chưa xử lý được yêu cầu. Vui lòng thử lại.") : error}</p>}
+    {queueFailed && <p role="alert" className="vm-feedback rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t("Unable to load requests. Refresh to try again; your catalog is loaded separately.", "Chưa tải được yêu cầu. Hãy tải lại để thử lại; danh mục dị ứng được tải riêng.")}</p>}
     {catalogFailed && <p role="alert" className="vm-feedback rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{t("Unable to load the allergen catalog. Please refresh.", "Chưa tải được danh mục dị ứng. Vui lòng tải lại.")}</p>}
     <section aria-labelledby="allergen-catalog-title" aria-busy={loading} className="overflow-hidden rounded-2xl border border-[#DFE8DF] bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E8EEE7] p-4 sm:p-5">
@@ -139,6 +149,11 @@ export default function AdminAllergensPage() {
           </li>)}
         </ul>}
     </section>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#DFE8DF] bg-white p-4">
+      <p className="text-sm text-[#627369]">{t("Processed requests leave the pending queue. History is retained, and this page refreshes automatically.", "Yêu cầu đã xử lý tự rời hàng chờ. Lịch sử được giữ lại; trang tự cập nhật kết quả.")}</p>
+      <label className="flex flex-wrap items-center gap-2 text-sm font-medium">{t("Request status", "Trạng thái yêu cầu")}<select value={status} disabled={busy} onChange={event => { setLoading(true); setStatus(event.target.value as typeof status); }} className="ml-3 rounded-xl border border-[#DFE8DF] bg-white px-3 py-2"><option value="PENDING">{labels.PENDING}</option><option value="APPROVED">{labels.APPROVED}</option><option value="REJECTED">{labels.REJECTED}</option></select></label>
+    </div>
+    {!loading && !queueFailed && visible.length === 0 && <p role="status" className="rounded-2xl border border-[#DFE8DF] bg-white p-6 text-sm text-[#627369]">{t("No requests match this status and search.", "Không có yêu cầu phù hợp với trạng thái và từ khóa này.")}</p>}
     {!loading && !queueFailed && visible.length > 0 && <section aria-label={t("User allergen requests", "Yêu cầu dị ứng của người dùng")} className="space-y-3">
       <h2 className="text-lg font-semibold">{t("User allergen requests", "Yêu cầu dị ứng của người dùng")}</h2>
       {visible.map(item => {
