@@ -105,7 +105,7 @@ export function useMealPlanner() {
   }, [authLoading, user?.uid, allergenRevision]);
   useEffect(() => {
     if (!toastMessage) return;
-    const timer = setTimeout(() => setToastMessage(null), 3000);
+    const timer = setTimeout(() => setToastMessage(null), 6000);
     return () => clearTimeout(timer);
   }, [toastMessage]);
 
@@ -130,15 +130,15 @@ export function useMealPlanner() {
     }
     return [...grouped.entries()].sort(([a], [b]) => a - b).map(([day, meals]) => {
       const date = mealPlanDay(plan!.startDate, day, locale);
-      return { dayName: date.weekday, theme: `${t("Day", "Ngày")} ${day} - ${date.date}`, totalPrep: `${meals.length} ${t("meals", "bữa")}`, meals };
+      return { dayNumber: day, dayName: date.weekday, theme: `${t("Day", "Ngày")} ${day} - ${date.date}`, totalPrep: `${meals.length} ${t("meals", "bữa")}`, meals };
     });
   }, [plan, recipeData, language, locale, savedIds, t]);
 
   async function run(action: () => Promise<void>) {
-    if (lock.current) return;
+    if (lock.current) return false;
     lock.current = true; setWorking(true); setError("");
-    try { await action(); }
-    catch (failure) { setError(failure instanceof Error ? failure.message : "Could not update meal plan."); }
+    try { await action(); return true; }
+    catch (failure) { setError(failure instanceof Error ? failure.message : "Could not update meal plan."); return false; }
     finally { lock.current = false; setWorking(false); }
   }
   function validateGenerationInputs(context: PlanningProfile) {
@@ -189,14 +189,14 @@ export function useMealPlanner() {
       const payload = { startDate: parsedDate, availableIngredients: pantryIngredients.join(", "), ...normalizeGoal(goal, adjustment) };
       const next = plan ? await regenerateMealPlan(plan.mealPlanId, payload) : await generateMealPlan(payload);
       if (getStoredToken() !== session) return;
-      setPlan(next); setPlanOwner(user?.uid); setGoalContext(null); await hydrateRecipes(next); setToastMessage(t("Meal plan saved.", "Đã lưu thực đơn."));
+      setPlan(next); setPlanOwner(user?.uid); setGoalContext(null); setToastMessage(t("Your 7-day meal plan is ready. Choose By day or Whole week to explore your meals.", "Đã tạo thực đơn 7 ngày thành công. Chọn Từng ngày hoặc Cả tuần để xem các món ăn.")); await hydrateRecipes(next);
     });
   }
   async function handleReplaceMeal(_day: number, mealId: string, _slot: MealItem["slot"], recipeId?: number) {
     if (!plan) return;
     const meal = plan.meals.find(item => item.mealPlanMealId === Number(mealId));
     if (!meal || meal.dayNumber !== _day + 1 || meal.mealType !== _slot) return;
-    await run(async () => {
+    return run(async () => {
       const next = await replaceMeal(plan.mealPlanId, Number(mealId), recipeId);
       setPlan(next); await hydrateRecipes(next);
     });

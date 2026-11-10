@@ -38,7 +38,7 @@ export default function ImageManager({ imageUrl, onUpload, onDelete, onGenerate,
       onApplied(result);
       setFile(null);
       const message = kind === "delete" ? "Đã xóa ảnh riêng." : kind === "generate" ? "Đã tạo ảnh AI minh họa." : "Đã lưu ảnh.";
-      setNotice(message + (result.previousImageDeleted === false ? " Máy chủ chưa dọn xong ảnh cũ; không cần gửi lại yêu cầu." : ""));
+      setNotice(message);
       try { await onRefresh(); }
       catch { setNotice(message + " Chưa tải lại được dữ liệu. Hãy bấm tải lại dữ liệu; không cần gửi lại ảnh."); }
     } catch (failure) {
