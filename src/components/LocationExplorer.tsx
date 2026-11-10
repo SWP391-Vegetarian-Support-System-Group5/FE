@@ -395,13 +395,13 @@ export default function LocationExplorer() {
             </form>
             <LeafletRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
           </div>
-          <aside className="max-h-[510px] overflow-y-auto bg-[#fbfaf8] p-5">
+          <aside className="bg-[#fbfaf8] p-5">
             <div className="mb-4 flex items-end justify-between">
               <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">{t("Places nearby", "Địa điểm gần đây")}</h3><p className="mt-1 text-xs text-[#788079]">{t("Within a maximum radius of 5 km", "Trong bán kính tối đa 5 km")}</p></div>
               <span className="rounded-full bg-[#e4eee7] px-2.5 py-1 text-xs font-bold text-[#24543d]">{restaurants.length}</span>
             </div>
             {loading ? <p className="py-10 text-center text-sm text-[#788079]">{t("Searching for places...", "Đang tìm địa điểm...")}</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">{t("No matching VeggieMate restaurants were found within 5 km of this address.", "Không tìm thấy nhà hàng VeggieMate phù hợp trong bán kính 5 km quanh địa chỉ này.")}</p> : (
-              <div className="space-y-3">{restaurants.map((restaurant) => (
+              <div className="space-y-3 pb-1">{restaurants.map((restaurant) => (
                 <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setDetailRestaurant(restaurant); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
                   {restaurant.imageUrl && <Image src={getMediaUrl(restaurant.imageUrl)} alt={restaurant.name} width={320} height={120} unoptimized className="mb-3 h-28 w-full rounded-xl object-cover" />}
                   <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{displayPlaceCategory(restaurant.category, t)}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.distanceKm != null ? `${restaurant.distanceKm.toFixed(1)} km` : ""}</span></div>
