@@ -390,7 +390,7 @@ export default function LocationExplorer() {
             </form>
             <LeafletRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
           </div>
-          <aside className="max-h-[380px] min-w-0 overflow-y-auto overscroll-contain bg-[#fbfaf8] p-4 lg:max-h-[clamp(300px,43dvh,430px)]">
+  <aside className="min-w-0 bg-[#fbfaf8] p-4">
             <div className="mb-4 flex items-end justify-between">
               <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">{t("Places nearby", "Địa điểm gần đây")}</h3><p className="mt-1 text-xs text-[#788079]">{t("Within a maximum radius of 5 km", "Trong bán kính tối đa 5 km")}</p></div>
               <span className="rounded-full bg-[#e4eee7] px-2.5 py-1 text-xs font-bold text-[#24543d]">{restaurants.length}</span>

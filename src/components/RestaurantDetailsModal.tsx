@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { MapPin, Route, X } from "lucide-react";
 import { getMediaUrl } from "@/lib/api";
 import { locationApi, type RestaurantRoute } from "@/lib/location-api";
@@ -16,23 +17,52 @@ const RestaurantRouteMap = dynamic(() => import("@/components/RestaurantRouteMap
 
 export default function RestaurantDetailsModal({ restaurant, origin, onClose }: { restaurant: Restaurant; origin: Coordinates; onClose: () => void }) {
   const { t } = useLanguage();
-  const [route, setRoute] = useState<RestaurantRoute | null>(null);
-  const [routeMessage, setRouteMessage] = useState("");
+  const routeKey = `${restaurant.id}:${origin.lat}:${origin.lng}`;
+  const [routeResult, setRouteResult] = useState<{ key: string; route: RestaurantRoute | null; message: string }>({
+    key: "",
+    route: null,
+    message: "",
+  });
 
   useEffect(() => {
     let active = true;
-    setRoute(null);
-    setRouteMessage("");
     void locationApi.restaurantRoute(restaurant.id, origin.lat, origin.lng)
-      .then(value => { if (active) setRoute(value); })
-      .catch(() => { if (active) setRouteMessage(t("Could not load driving directions; straight-line distance is shown.", "Chưa tải được chỉ đường; đang hiển thị khoảng cách gần đúng.")); });
+      .then(value => {
+        if (active) setRouteResult({ key: routeKey, route: value, message: "" });
+      })
+      .catch(() => {
+        if (active) setRouteResult({
+          key: routeKey,
+          route: null,
+          message: t("Could not load driving directions; straight-line distance is shown.", "Chưa tải được chỉ đường; đang hiển thị khoảng cách gần đúng."),
+        });
+      });
     return () => { active = false; };
-  }, [origin.lat, origin.lng, restaurant.id, t]);
+  }, [origin.lat, origin.lng, restaurant.id, routeKey, t]);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [onClose]);
+
+  const hasCurrentRoute = routeResult.key === routeKey;
+  const route = hasCurrentRoute ? routeResult.route : null;
+  const routeMessage = hasCurrentRoute ? routeResult.message : "";
   const distance = route?.distanceKm || restaurant.distanceKm;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#09281d]/45 p-4" role="dialog" aria-modal="true" aria-label={restaurant.name}>
-      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[28px] bg-[#fffdfa] shadow-2xl">
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] flex min-h-[100dvh] items-center justify-center overflow-y-auto bg-[#09281d]/45 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={restaurant.name}>
+      <div className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto rounded-[28px] bg-[#fffdfa] shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#eeeae3] bg-[#fffdfa]/95 px-6 py-4 backdrop-blur">
           <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#a34d32]">{displayPlaceCategory(restaurant.category, t)}</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[#09281d]">{restaurant.name}</h2></div>
           <button type="button" aria-label={t("Close", "Đóng")} onClick={onClose} className="rounded-full p-2 text-[#53635a] transition hover:bg-[#edf2ec]"><X size={22} /></button>
@@ -51,6 +81,7 @@ export default function RestaurantDetailsModal({ restaurant, origin, onClose }: 
           {routeMessage && <p className="text-xs text-[#9a4a32]">{routeMessage}</p>}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
