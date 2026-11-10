@@ -76,8 +76,15 @@ export async function createChatSession(options?: { fresh?: boolean }): Promise<
   if (!getStoredToken() && !options?.fresh) {
     const stored = getStoredGuestSession();
     if (stored) {
-      const session = await getChatSessionById(stored.chatSessionId, stored.guestAccessToken);
-      return { ...session, guestAccessToken: stored.guestAccessToken };
+      try {
+        const session = await getChatSessionById(stored.chatSessionId, stored.guestAccessToken);
+        return { ...session, guestAccessToken: stored.guestAccessToken };
+      } catch {
+        // The browser may retain a guest session after its server record was
+        // removed (for example after data cleanup). Discard it and create a
+        // new guest session instead of leaving the chat unusable.
+        clearStoredGuestSession();
+      }
     }
   }
   const res = await apiFetch("/api/chat/sessions", {
