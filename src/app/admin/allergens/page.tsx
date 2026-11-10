@@ -129,7 +129,7 @@ export default function AdminAllergensPage() {
             <Search size={17} className="shrink-0 text-[#627369]" aria-hidden="true" />
             <input aria-label={t("Search allergens", "Tìm chất gây dị ứng")} value={query} onChange={event => setQuery(event.target.value)} placeholder={t("Search allergens…", "Tìm chất gây dị ứng…")} className="w-full min-w-0 bg-transparent py-3 text-sm outline-none sm:w-56" />
           </label>
-          <button disabled={loading || busy} className={button} onClick={() => void load().catch(() => {})} aria-label={t("Refresh", "Tải lại")}><RefreshCw size={17} className={loading ? "motion-safe:animate-spin" : ""} /></button>
+          <button disabled={loading || busy} className={button} onClick={() => void load().catch(() => { })} aria-label={t("Refresh", "Tải lại")}><RefreshCw size={17} className={loading ? "motion-safe:animate-spin" : ""} /></button>
         </div>
       </div>
       <div className="hidden items-center justify-between border-b border-[#E8EEE7] bg-[#F6F8F3] px-5 py-3 text-xs font-medium uppercase tracking-wide text-[#627369] sm:flex">
