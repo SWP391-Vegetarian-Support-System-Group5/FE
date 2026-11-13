@@ -11,6 +11,7 @@ import { apiFetch, apiGet } from "@/lib/api";
 import { categoryName, getRecipeCategories } from "@/lib/recipe-categories";
 import type { CategoryData } from "@/lib/admin-category-design";
 import CategoryRecipeAssignments from "@/components/recipe/CategoryRecipeAssignments";
+import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 
 export default function AdminCategoriesPage() {
   const ui = useUiText();
@@ -482,20 +483,24 @@ export default function AdminCategoriesPage() {
             <tbody className="divide-y divide-[#F0EFEB]">
               {filteredCategories.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-xs text-[#727974]">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <span className="text-3xl"><ContentIcon name="tag" width="1em" height="1em" className="inline-block" /></span>
-                      <p className="font-semibold text-[#07241A]"><UiText text="Không tìm thấy danh mục phù hợp." /></p>
-                      {activeTab === "recipes" && (
-                        <button
-                          type="button"
-                          onClick={handleOpenAddModal}
-                          className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
-                        >
-                          <UiText text="Tạo danh mục mới" />
-                        </button>
-                      )}
-                    </div>
+                  <td colSpan={5} className="py-14 text-center text-xs text-[#727974]">
+                    {loading ? (
+                      <AdminLeafLoading text={ui("Loading...")} />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <span className="text-3xl"><ContentIcon name="tag" width="1em" height="1em" className="inline-block" /></span>
+                        <p className="font-semibold text-[#07241A]"><UiText text="Không tìm thấy danh mục phù hợp." /></p>
+                        {activeTab === "recipes" && (
+                          <button
+                            type="button"
+                            onClick={handleOpenAddModal}
+                            className="mt-2 text-xs font-semibold text-[#1E3A2F] underline hover:text-[#2A4E40]"
+                          >
+                            <UiText text="Tạo danh mục mới" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -589,7 +594,6 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
 
-      {loading && <p role="status">{ui("Loading...")}</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
       <Link href="/admin/ingredients" className="text-sm underline">{ui("Ingredients")}</Link>
 

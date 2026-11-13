@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminModeration } from "@/context/AdminModerationContext";
 import { useLanguage } from "@/context/LanguageContext";
+import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 
 export default function AdminLayout({
   children,
@@ -56,11 +57,8 @@ export default function AdminLayout({
   // Loading screen & unauthorized access block
   if (loading || !user || user.role?.toLowerCase() !== "admin") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#FBF9F6]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#1E3A2F] border-t-transparent" />
-          <p className="text-sm font-medium text-[#1E3A2F]"><UiText text={"Đang kiểm tra quyền quản trị..."} /></p>
-        </div>
+      <div className="flex min-h-screen flex-col items-center justify-center vm-admin-atmosphere">
+        <AdminLeafLoading size="lg" text={<UiText text={"Đang kiểm tra quyền quản trị..."} />} />
       </div>
     );
   }
