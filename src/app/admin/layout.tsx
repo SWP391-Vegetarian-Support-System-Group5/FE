@@ -152,7 +152,7 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased" style={{ colorScheme: "light", backgroundColor: "#FBF9F6", color: "#07241A" }}>
+    <div data-vine="off" className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased" style={{ colorScheme: "light", backgroundColor: "#FBF9F6", color: "#07241A" }}>
       {/* 1. TOP NAVBAR CỐ ĐỊNH - KHÔNG CUỘN THEO TRANG */}
       <header className="fixed top-0 left-0 right-0 z-50 flex h-16 border-b border-[#EFEEEB] bg-white" style={{ backgroundColor: "#ffffff", color: "#07241A" }}>
         {/* Khối bên trái: ADMIN v1.4 (rộng w-60 khớp sidebar) */}
@@ -272,9 +272,10 @@ export default function AdminLayout({
               <Link
                 key={item.label}
                 href={item.href}
+                data-ripple
                 className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-200 ${isActive
                   ? "vm-admin-nav-active text-white"
-                  : "text-[#424844] hover:bg-[#F2EFE9] hover:text-[#07241A] hover:translate-x-0.5 active:scale-[0.98]"
+                  : "text-[#424844] vm-admin-nav-hover active:scale-[0.98]"
                   }`}
               >
                 <div className="relative z-10 flex items-center gap-3">
