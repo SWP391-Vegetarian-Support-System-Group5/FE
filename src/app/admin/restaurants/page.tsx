@@ -387,7 +387,7 @@ export default function AdminRestaurantsPage() {
             type="button"
             disabled={loading}
             onClick={() => openForm()}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0A251D] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-[#153B2F] disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 rounded-xl vm-admin-tab-active px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:brightness-105 active:scale-[0.98] disabled:opacity-50 transition"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" />

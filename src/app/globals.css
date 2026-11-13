@@ -197,6 +197,91 @@
   border-radius: inherit;
 }
 
+/* Admin Atmospheric Depth (Chiều sâu không gian nhẹ nhàng) */
+.vm-admin-atmosphere {
+  background-color: #FBF9F6;
+  background-image: 
+    radial-gradient(1100px 700px at 85% -5%, rgba(30, 58, 47, 0.038) 0%, transparent 75%),
+    radial-gradient(900px 600px at 10% 105%, rgba(37, 75, 61, 0.028) 0%, transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Admin Page Tabs & Action Buttons - Active Wave Effect */
+.vm-admin-tab-active {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    115deg,
+    #1E3A2F 0%,
+    #254b3d 30%,
+    #326350 50%,
+    #254b3d 70%,
+    #1E3A2F 100%
+  ) !important;
+  background-size: 220% 100% !important;
+  color: #ffffff !important;
+  animation: vm-admin-wave-flow 4.2s ease-in-out infinite;
+  box-shadow: 0 3px 12px -2px rgba(30, 58, 47, 0.32);
+}
+
+.vm-admin-tab-active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0.05) 75%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: vm-admin-wave-shimmer 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: inherit;
+}
+
+/* Light active pill tab (for light grey segmented bars) */
+.vm-admin-tab-light-active {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    115deg,
+    #ffffff 0%,
+    #f3f8f4 30%,
+    #e4f0e7 50%,
+    #f3f8f4 70%,
+    #ffffff 100%
+  ) !important;
+  background-size: 220% 100% !important;
+  color: #07241A !important;
+  animation: vm-admin-wave-flow 4.2s ease-in-out infinite;
+  box-shadow: 0 2px 8px -1px rgba(30, 58, 47, 0.12);
+}
+
+.vm-admin-tab-light-active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(30, 58, 47, 0.03) 25%,
+    rgba(30, 58, 47, 0.1) 50%,
+    rgba(30, 58, 47, 0.03) 75%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: vm-admin-wave-shimmer 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: inherit;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .vm-card:hover { translate: 0 -4px; scale: 1.003; box-shadow: 0 14px 30px #1e3a2f18; border-color: #9db595; }
   .vm-card:hover .vm-feed-image { scale: 1.035; }
@@ -212,8 +297,9 @@
   .vm-reveal[data-reveal="pending"] { opacity: 1; transform: none; }
   .vm-card:hover { translate: none; scale: 1; }
   .vm-feed-image, .vm-button:active { scale: 1 !important; }
-  .vm-admin-nav-active { animation: none !important; background: #1E3A2F !important; }
-  .vm-admin-nav-active::after, .vm-admin-nav-hover::after { display: none !important; }
+  .vm-admin-nav-active, .vm-admin-tab-active { animation: none !important; background: #1E3A2F !important; }
+  .vm-admin-tab-light-active { animation: none !important; background: #ffffff !important; }
+  .vm-admin-nav-active::after, .vm-admin-tab-active::after, .vm-admin-tab-light-active::after, .vm-admin-nav-hover::after { display: none !important; }
   .vm-admin-nav-hover:hover { animation: none !important; transform: none !important; }
 }
 /* Botanical accents are decorative, scoped to the landing page. */

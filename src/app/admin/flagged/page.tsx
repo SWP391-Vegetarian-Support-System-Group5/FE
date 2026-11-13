@@ -145,8 +145,8 @@ export default function AdminFlaggedPage() {
             onClick={() => setActiveTab("All")}
             className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
               activeTab === "All"
-                ? "bg-[#1E3A2F] text-white shadow-sm"
-                : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
+                ? "vm-admin-tab-active text-white shadow-sm"
+                : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50 vm-admin-nav-hover"
             }`}
           ><UiText text={"Tất cả ("} />{flaggedCount})
           </button>
@@ -155,8 +155,8 @@ export default function AdminFlaggedPage() {
             onClick={() => setActiveTab("Content")}
             className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
               activeTab === "Content"
-                ? "bg-[#1E3A2F] text-white shadow-sm"
-                : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
+                ? "vm-admin-tab-active text-white shadow-sm"
+                : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50 vm-admin-nav-hover"
             }`}
           ><UiText text={"Nội dung ("} />{contentCount})
           </button>
@@ -165,8 +165,8 @@ export default function AdminFlaggedPage() {
             onClick={() => setActiveTab("Comments")}
             className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
               activeTab === "Comments"
-                ? "bg-[#1E3A2F] text-white shadow-sm"
-                : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50"
+                ? "vm-admin-tab-active text-white shadow-sm"
+                : "bg-white border border-[#EFEEEB] text-[#424844] hover:bg-gray-50 vm-admin-nav-hover"
             }`}
           ><UiText text={"Bình luận ("} />{commentsCount})
           </button>
