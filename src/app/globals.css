@@ -99,6 +99,64 @@
 }
 .vm-upload-indeterminate { animation: vm-upload-travel 1.4s ease-in-out infinite; }
 
+/* Admin Navigation Active Item - Gentle Wave Effect (Lướt sóng nhẹ) */
+@keyframes vm-admin-wave-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes vm-admin-wave-shimmer {
+  0% {
+    transform: translateX(-140%) skewX(-18deg);
+  }
+  45%, 100% {
+    transform: translateX(240%) skewX(-18deg);
+  }
+}
+
+.vm-admin-nav-active {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    115deg,
+    #1E3A2F 0%,
+    #254b3d 30%,
+    #326350 50%,
+    #254b3d 70%,
+    #1E3A2F 100%
+  );
+  background-size: 220% 100%;
+  animation: vm-admin-wave-flow 4.2s ease-in-out infinite;
+  box-shadow: 0 4px 14px -2px rgba(30, 58, 47, 0.35);
+}
+
+.vm-admin-nav-active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.04) 75%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: vm-admin-wave-shimmer 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: inherit;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .vm-card:hover { translate: 0 -4px; scale: 1.003; box-shadow: 0 14px 30px #1e3a2f18; border-color: #9db595; }
   .vm-card:hover .vm-feed-image { scale: 1.035; }
@@ -114,6 +172,8 @@
   .vm-reveal[data-reveal="pending"] { opacity: 1; transform: none; }
   .vm-card:hover { translate: none; scale: 1; }
   .vm-feed-image, .vm-button:active { scale: 1 !important; }
+  .vm-admin-nav-active { animation: none !important; background: #1E3A2F !important; }
+  .vm-admin-nav-active::after { display: none !important; }
 }
 /* Botanical accents are decorative, scoped to the landing page. */
 .vm-home {
