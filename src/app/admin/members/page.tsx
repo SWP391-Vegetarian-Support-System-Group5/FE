@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { apiFetch, apiGet } from "@/lib/api";
+import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 
 interface AdminUser {
   userId: number;
@@ -501,9 +502,8 @@ export default function AdminMembersPage() {
               </table>
 
               {loading && (
-                <div className="flex items-center justify-center gap-2 py-12 text-xs text-[#727974]">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#1E3A2F] border-t-transparent" />
-                  <span>{t("Loading members...", "Đang tải thành viên...")}</span>
+                <div className="py-14 text-center" role="status">
+                  <AdminLeafLoading text={t("Loading members...", "Đang tải danh sách thành viên...")} />
                 </div>
               )}
 

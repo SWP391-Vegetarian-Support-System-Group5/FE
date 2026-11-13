@@ -5,6 +5,7 @@ import ContentIcon from "@/components/content/ContentIcon";
 import { useLanguage } from "@/context/LanguageContext";
 import { localizeIngredient, localizeIngredientCategory } from "@/lib/localized-content";
 import { getAllergens, getIngredientCategories, getIngredients, updateIngredient, type AllergenItem, type IngredientCategoryItem, type IngredientItem } from "@/lib/recipe-api";
+import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 
 const labels: Record<string, [string, string]> = {
   PLANT: ["Plant", "Thực vật"], DAIRY: ["Dairy", "Sữa và chế phẩm từ sữa"], EGG: ["Egg", "Trứng"],
@@ -66,7 +67,11 @@ export default function IngredientsPage() {
       <label className="min-w-0 flex-1 text-sm">{t("Search", "Tìm kiếm")}<input type="search" value={query} onChange={event => setQuery(event.target.value)} className="mt-1 block w-full rounded border border-[#D9E6DC] bg-white p-2" /></label>
       <label className="text-sm">{t("Category", "Nhóm nguyên liệu")}<select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} className="mt-1 block max-w-full rounded border border-[#D9E6DC] bg-white p-2"><option value="">{t("All", "Tất cả")}</option>{categories.map(category => <option key={category.id} value={category.id}>{labels[category.code] ? t(...labels[category.code]) : category.name}</option>)}</select></label>
     </div>
-    {loading ? <p className="text-sm">{t("Loading...", "Đang tải...")}</p> : <div className="overflow-x-auto">
+    {loading ? (
+      <div className="py-14 text-center">
+        <AdminLeafLoading text={t("Loading...", "Đang tải nguyên liệu...")} />
+      </div>
+    ) : <div className="overflow-x-auto">
       <table className="w-full text-left text-sm"><thead><tr className="border-b border-[#D9E6DC]"><th className="py-3">{t("Name", "Tên")}</th><th>{t("Category", "Nhóm nguyên liệu")}</th><th>{t("Allergen", "Chất gây dị ứng")}</th><th><span className="sr-only">{t("Actions", "Thao tác")}</span></th></tr></thead>
         <tbody>{visibleItems.map(item => {
           const category = categories.find(candidate => candidate.id === item.ingredientCategoryId);

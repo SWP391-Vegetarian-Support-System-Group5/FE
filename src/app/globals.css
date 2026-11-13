@@ -282,6 +282,42 @@
   border-radius: inherit;
 }
 
+/* Swaying Green Leaf Loading Effect (Hiệu ứng chiếc lá xanh lắc lư cho Admin) */
+@keyframes vm-leaf-sway {
+  0% {
+    transform: rotate(-16deg) translateY(0);
+  }
+  50% {
+    transform: rotate(16deg) translateY(-4px);
+  }
+  100% {
+    transform: rotate(-16deg) translateY(0);
+  }
+}
+
+@keyframes vm-leaf-shadow {
+  0%, 100% {
+    transform: scaleX(0.75);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scaleX(1.15);
+    opacity: 0.12;
+  }
+}
+
+.vm-leaf-sway {
+  transform-origin: 25% 85%;
+  animation: vm-leaf-sway 1.8s ease-in-out infinite;
+  display: inline-block;
+  will-change: transform;
+}
+
+.vm-leaf-shadow {
+  animation: vm-leaf-shadow 1.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .vm-card:hover { translate: 0 -4px; scale: 1.003; box-shadow: 0 14px 30px #1e3a2f18; border-color: #9db595; }
   .vm-card:hover .vm-feed-image { scale: 1.035; }
@@ -301,6 +337,7 @@
   .vm-admin-tab-light-active { animation: none !important; background: #ffffff !important; }
   .vm-admin-nav-active::after, .vm-admin-tab-active::after, .vm-admin-tab-light-active::after, .vm-admin-nav-hover::after { display: none !important; }
   .vm-admin-nav-hover:hover { animation: none !important; transform: none !important; }
+  .vm-leaf-sway, .vm-leaf-shadow { animation: none !important; }
 }
 /* Botanical accents are decorative, scoped to the landing page. */
 .vm-home {

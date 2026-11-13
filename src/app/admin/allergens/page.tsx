@@ -5,6 +5,7 @@ import { CheckCircle2, Clock3, Pencil, Plus, RefreshCw, Search, ShieldCheck, Tra
 import { useLanguage } from "@/context/LanguageContext";
 import ContentDialog from "@/components/content/ContentDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 import { apiFetch, apiGet } from "@/lib/api";
 import { listAllergens, createAllergen, updateAllergen, deleteAllergen, type AdminAllergen } from "@/lib/admin-catalog-api";
 
@@ -135,7 +136,11 @@ export default function AdminAllergensPage() {
       <div className="hidden items-center justify-between border-b border-[#E8EEE7] bg-[#F6F8F3] px-5 py-3 text-xs font-medium uppercase tracking-wide text-[#627369] sm:flex">
         <span>{t("Allergen name", "Tên chất gây dị ứng")}</span><span>{t("Actions", "Thao tác")}</span>
       </div>
-      {loading ? <div role="status" className="space-y-3 p-5"><span className="sr-only">{t("Loading allergens…", "Đang tải danh mục dị ứng…")}</span>{[0, 1, 2].map(index => <div key={index} className="vm-skeleton h-16 rounded-xl" />)}</div> : catalogFailed ? null : visibleCatalog.length === 0 ? <p className="p-8 text-center text-sm text-[#627369]">{search ? t("No allergens found for this name.", "Không tìm thấy chất gây dị ứng theo tên này.") : t("No allergens yet. Add one to get started.", "Chưa có chất gây dị ứng. Thêm mới để bắt đầu.")}</p> :
+      {loading ? (
+        <div role="status" className="py-14 text-center">
+          <AdminLeafLoading text={t("Loading allergens…", "Đang tải danh mục dị ứng…")} />
+        </div>
+      ) : catalogFailed ? null : visibleCatalog.length === 0 ? <p className="p-8 text-center text-sm text-[#627369]">{search ? t("No allergens found for this name.", "Không tìm thấy chất gây dị ứng theo tên này.") : t("No allergens yet. Add one to get started.", "Chưa có chất gây dị ứng. Thêm mới để bắt đầu.")}</p> :
         <ul className="vm-stagger divide-y divide-[#E8EEE7]">
           {visibleCatalog.map(item => <li key={item.id} className="vm-enter flex flex-wrap items-center justify-between gap-3 px-4 py-4 transition-colors duration-200 hover:bg-[#F1F7F1] focus-within:bg-[#F1F7F1] motion-reduce:transition-none sm:px-5">
             <div className="flex min-w-0 flex-1 items-center gap-3">

@@ -11,6 +11,7 @@ import { localizeRecipeTitle } from "@/lib/localized-content";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { categoryName } from "@/lib/recipe-categories";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 import {
   deleteAdminComment,
   deleteAdminPost,
@@ -458,10 +459,12 @@ export default function AdminContentPage() {
                 <tbody className="divide-y divide-[#EFEEEB]/70">
                   {visiblePosts.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="py-12 text-center text-xs text-[#727974]">
-                        {loading
-                          ? t("Loading content...", "Đang tải nội dung...")
-                          : t("No matching content found.", "Không tìm thấy nội dung phù hợp.")}
+                      <td colSpan={4} className="py-14 text-center">
+                        {loading ? (
+                          <AdminLeafLoading text={t("Loading content...", "Đang tải nội dung...")} />
+                        ) : (
+                          <p className="text-xs text-[#727974]">{t("No matching content found.", "Không tìm thấy nội dung phù hợp.")}</p>
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -870,7 +873,9 @@ export default function AdminContentPage() {
 
             <div className="space-y-6 p-6">
               {loadingDetail ? (
-                <p role="status" className="py-12 text-center text-sm text-[#627068]">{t("Loading recipe details...", "Đang tải đầy đủ thông tin công thức…")}</p>
+                <div className="py-14 text-center">
+                  <AdminLeafLoading text={t("Loading recipe details...", "Đang tải đầy đủ thông tin công thức…")} />
+                </div>
               ) : detailError ? (
                 <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{detailError}</p>
               ) : detailRecipe ? (

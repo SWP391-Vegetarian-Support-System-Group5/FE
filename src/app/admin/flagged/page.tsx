@@ -9,6 +9,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAdminModeration } from "@/context/AdminModerationContext";
+import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 
 type FilterTab = "All" | "Content" | "Comments";
 
@@ -202,7 +203,12 @@ export default function AdminFlaggedPage() {
       {/* Flagged Content Cards List */}
       <div className="space-y-5">
         {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        {filteredItems.map((item) => (
+        {loading && (
+          <div className="py-16 text-center">
+            <AdminLeafLoading text={<UiText text={"Đang đồng bộ báo cáo..."} />} />
+          </div>
+        )}
+        {!loading && filteredItems.map((item) => (
           <div
             key={item.id}
             className="rounded-2xl border border-[#EFEEEB] bg-white p-6 shadow-sm transition hover:shadow-md"

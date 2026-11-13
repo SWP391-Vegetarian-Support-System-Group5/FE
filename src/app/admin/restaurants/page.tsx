@@ -7,6 +7,7 @@ import ImageFilePicker from "@/components/ImageFilePicker";
 import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 import { formatDietTypeName } from "@/lib/diet-type-display";
 import { getIngredients, type IngredientItem } from "@/lib/recipe-api";
 import { getAddressSuggestions, type AddressSuggestion } from "@/lib/profile-api";
@@ -583,17 +584,8 @@ export default function AdminRestaurantsPage() {
 
         {/* Table Body / Rows */}
         {loading ? (
-          <div className="p-8 text-center text-sm text-[#727974]" role="status">
-            <svg
-              className="mx-auto h-6 w-6 animate-spin text-[#1E3A2F]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
-            </svg>
-            <p className="mt-2">{t("Loading restaurants...", "Đang tải nhà hàng...")}</p>
+          <div className="py-16 text-center" role="status">
+            <AdminLeafLoading text={t("Loading restaurants...", "Đang tải nhà hàng...")} />
           </div>
         ) : !loaded ? (
           <p className="p-8 text-center text-sm text-[#727974]">
