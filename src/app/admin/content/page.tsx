@@ -326,7 +326,7 @@ export default function AdminContentPage() {
 
           <Link
             href="/admin/content/create"
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-[#1E3A2F] px-4 py-2.5 text-xs font-semibold text-white shadow-2xs transition hover:bg-[#152820]"
+            className="inline-flex items-center gap-1.5 rounded-2xl vm-admin-tab-active px-4 py-2.5 text-xs font-semibold text-white shadow-2xs transition hover:brightness-105 active:scale-[0.98]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -347,7 +347,7 @@ export default function AdminContentPage() {
             { key: "Draft", label: t("Drafts", "Bản nháp"), count: draftCount },
           ] as const).map(tab => <button key={tab.key} type="button" aria-pressed={typeFilter === tab.key}
             onClick={() => { setTypeFilter(tab.key); setPage(1); setSelectedContentId(null); }}
-            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${typeFilter === tab.key ? "bg-[#07241A] text-white shadow-2xs" : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB]"}`}>
+            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${typeFilter === tab.key ? "vm-admin-tab-active shadow-2xs" : "bg-[#EFEEEB]/70 text-[#424844] hover:bg-[#EFEEEB] vm-admin-nav-hover"}`}>
             {tab.label} ({tab.count.toLocaleString(locale)})
           </button>)}
         </div>
@@ -710,8 +710,8 @@ export default function AdminContentPage() {
                     type="button"
                     onClick={() => setCommentFilter("All")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${commentFilter === "All"
-                      ? "bg-[#EFEEEB] text-[#07241A]"
-                      : "text-[#727974] hover:text-[#07241A]"
+                      ? "vm-admin-tab-light-active"
+                      : "text-[#727974] hover:text-[#07241A] vm-admin-nav-hover"
                       }`}
                   >
                     {t("All", "Tất cả")}
@@ -720,8 +720,8 @@ export default function AdminContentPage() {
                     type="button"
                     onClick={() => setCommentFilter("Flagged")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${commentFilter === "Flagged"
-                      ? "bg-[#FEE2E2] text-[#B91C1C]"
-                      : "text-[#727974] hover:text-[#07241A]"
+                      ? "bg-[#FEE2E2] text-[#B91C1C] ring-1 ring-red-300"
+                      : "text-[#727974] hover:text-[#07241A] vm-admin-nav-hover"
                       }`}
                   >
                     {t(
@@ -733,8 +733,8 @@ export default function AdminContentPage() {
                     type="button"
                     onClick={() => setCommentFilter("Hidden")}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${commentFilter === "Hidden"
-                      ? "bg-[#EFEEEB] text-[#07241A]"
-                      : "text-[#727974] hover:text-[#07241A]"
+                      ? "vm-admin-tab-light-active"
+                      : "text-[#727974] hover:text-[#07241A] vm-admin-nav-hover"
                       }`}
                   >
                     {t("Hidden", "Đã ẩn")}

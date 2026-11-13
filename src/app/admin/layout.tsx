@@ -152,13 +152,12 @@ export default function AdminLayout({
   ];
 
   return (
-    <div data-vine="off" className="min-h-screen bg-[#FBF9F6] text-[#07241A] font-sans antialiased" style={{ colorScheme: "light", backgroundColor: "#FBF9F6", color: "#07241A" }}>
+    <div data-vine="off" className="min-h-screen vm-admin-atmosphere text-[#07241A] font-sans antialiased" style={{ colorScheme: "light", color: "#07241A" }}>
       {/* 1. TOP NAVBAR CỐ ĐỊNH - KHÔNG CUỘN THEO TRANG */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex h-16 border-b border-[#EFEEEB] bg-white" style={{ backgroundColor: "#ffffff", color: "#07241A" }}>
-        {/* Khối bên trái: ADMIN v1.4 (rộng w-60 khớp sidebar) */}
-        <div className="flex h-full w-60 shrink-0 items-center justify-between border-r border-[#EFEEEB] bg-[#FBF9F6] px-6" style={{ backgroundColor: "#FBF9F6" }}>
+      <header className="fixed top-0 left-0 right-0 z-50 flex h-16 border-b border-[#EFEEEB] bg-white/95 backdrop-blur-md" style={{ backgroundColor: "rgba(255, 255, 255, 0.95)", color: "#07241A" }}>
+        {/* Khối bên trái: ADMIN (rộng w-60 khớp sidebar) */}
+        <div className="flex h-full w-60 shrink-0 items-center border-r border-[#EFEEEB] bg-[#FBF9F6] px-6" style={{ backgroundColor: "#FBF9F6" }}>
           <span className="text-xs font-bold tracking-widest text-[#727974]">ADMIN</span>
-          <span className="text-[11px] font-medium text-[#A0A5A1]">v1.4</span>
         </div>
 
         {/* Khối bên phải: Main Admin Navbar (nền trắng) */}

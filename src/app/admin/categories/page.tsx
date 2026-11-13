@@ -368,7 +368,7 @@ export default function AdminCategoriesPage() {
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="flex items-center gap-2 rounded-xl bg-[#0B1E17] px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#183B2F]"
+            className="flex items-center gap-2 rounded-xl vm-admin-tab-active px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:brightness-105 active:scale-[0.98]"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -388,8 +388,8 @@ export default function AdminCategoriesPage() {
             type="button"
             onClick={() => { setActiveTab("recipes"); setExpandedCategoryId(null); setError(""); }}
             className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${activeTab === "recipes"
-                ? "bg-white text-[#0B1E17] shadow-xs"
-                : "text-[#6A736E] hover:text-[#0B1E17]"
+                ? "vm-admin-tab-light-active shadow-xs font-bold"
+                : "text-[#6A736E] hover:text-[#0B1E17] vm-admin-nav-hover"
               }`}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -404,8 +404,8 @@ export default function AdminCategoriesPage() {
             type="button"
             onClick={() => { setActiveTab("ingredients"); setExpandedCategoryId(null); setError(""); }}
             className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${activeTab === "ingredients"
-                ? "bg-white text-[#0B1E17] shadow-xs"
-                : "text-[#6A736E] hover:text-[#0B1E17]"
+                ? "vm-admin-tab-light-active shadow-xs font-bold"
+                : "text-[#6A736E] hover:text-[#0B1E17] vm-admin-nav-hover"
               }`}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
