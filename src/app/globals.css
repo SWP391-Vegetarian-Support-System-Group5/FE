@@ -157,6 +157,46 @@
   border-radius: inherit;
 }
 
+/* Hover wave effect for non-active admin items */
+.vm-admin-nav-hover {
+  position: relative;
+  overflow: hidden;
+  transition: all 220ms ease-out;
+}
+
+.vm-admin-nav-hover:hover {
+  background: linear-gradient(
+    115deg,
+    #F2EFE9 0%,
+    #e8efe5 35%,
+    #d6e5d3 50%,
+    #e8efe5 65%,
+    #F2EFE9 100%
+  );
+  background-size: 220% 100%;
+  animation: vm-admin-wave-flow 3.5s ease-in-out infinite;
+  transform: translateX(3px);
+  color: #07241A;
+}
+
+.vm-admin-nav-hover:hover::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: vm-admin-wave-shimmer 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: inherit;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .vm-card:hover { translate: 0 -4px; scale: 1.003; box-shadow: 0 14px 30px #1e3a2f18; border-color: #9db595; }
   .vm-card:hover .vm-feed-image { scale: 1.035; }
@@ -173,7 +213,8 @@
   .vm-card:hover { translate: none; scale: 1; }
   .vm-feed-image, .vm-button:active { scale: 1 !important; }
   .vm-admin-nav-active { animation: none !important; background: #1E3A2F !important; }
-  .vm-admin-nav-active::after { display: none !important; }
+  .vm-admin-nav-active::after, .vm-admin-nav-hover::after { display: none !important; }
+  .vm-admin-nav-hover:hover { animation: none !important; transform: none !important; }
 }
 /* Botanical accents are decorative, scoped to the landing page. */
 .vm-home {

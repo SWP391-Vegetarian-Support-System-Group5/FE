@@ -17,10 +17,11 @@ export default function InteractionEffects() {
     };
     const enter = (event: PointerEvent | FocusEvent) => {
       if (!pointer.matches || !(event.target instanceof Element)) return;
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) return;
       const next = event.target.closest<HTMLElement>('button, a[href], [role="button"], summary, .vm-card, [data-ripple]');
       if (next === target) return;
       clear();
-      if (!next || next.closest(':disabled, [aria-disabled="true"], [inert], .leaflet-container, [data-vine="off"]')) return;
+      if (!next || next.closest(':disabled, [aria-disabled="true"], [inert], .leaflet-container, [data-vine="off"], [data-admin]')) return;
       const rect = next.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       target = next;
@@ -117,7 +118,7 @@ export default function InteractionEffects() {
     const clear = () => { active.forEach(node => node.remove()); active.clear(); timers.forEach(clearTimeout); timers.clear(); };
     const click = (event: MouseEvent) => {
       if (motion.matches || !(event.target instanceof Element)) return;
-      const control = event.target.closest<HTMLElement>("button, a.vm-button, a.vm-card, [data-ripple]");
+      const control = event.target.closest<HTMLElement>("button, a.vm-button, a.vm-card, a[href], [data-ripple]");
       if (!control || control.closest('[aria-disabled="true"], :disabled, [inert]') || control.closest(".leaflet-container")) return;
       const rect = control.getBoundingClientRect();
       if (!rect.width || !rect.height || active.size >= 6) return;
