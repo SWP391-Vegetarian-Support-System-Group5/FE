@@ -272,20 +272,20 @@ export default function AdminLayout({
               <Link
                 key={item.label}
                 href={item.href}
-                className={`group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition ${isActive
-                  ? "bg-[#1E3A2F] text-white shadow-sm"
-                  : "text-[#424844] hover:bg-[#F2EFE9] hover:text-[#07241A]"
+                className={`group relative flex items-center justify-between rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-200 ${isActive
+                  ? "vm-admin-nav-active text-white"
+                  : "text-[#424844] hover:bg-[#F2EFE9] hover:text-[#07241A] hover:translate-x-0.5 active:scale-[0.98]"
                   }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className={isActive ? "text-white" : "text-[#727974] group-hover:text-[#07241A]"}>
+                <div className="relative z-10 flex items-center gap-3">
+                  <span className={isActive ? "text-white" : "text-[#727974] group-hover:text-[#07241A] transition-colors"}>
                     {item.icon}
                   </span>
                   <span><UiText text={item.label} /></span>
                 </div>
                 {item.badge && (
                   <span
-                    className="rounded-full bg-[#F97316] px-2 py-0.5 text-[10px] font-bold text-white"
+                    className="relative z-10 rounded-full bg-[#F97316] px-2 py-0.5 text-[10px] font-bold text-white shadow-xs"
                   >
                     {item.badge}
                   </span>
