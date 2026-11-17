@@ -6,6 +6,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import ContentDialog from "@/components/content/ContentDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
+import AdminSelect from "@/components/ui/AdminSelect";
 import { apiFetch, apiGet } from "@/lib/api";
 import { listAllergens, createAllergen, updateAllergen, deleteAllergen, type AdminAllergen } from "@/lib/admin-catalog-api";
 
@@ -156,7 +157,22 @@ export default function AdminAllergensPage() {
     </section>
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#DFE8DF] bg-white p-4">
       <p className="text-sm text-[#627369]">{t("Processed requests leave the pending queue. History is retained, and this page refreshes automatically.", "Yêu cầu đã xử lý tự rời hàng chờ. Lịch sử được giữ lại; trang tự cập nhật kết quả.")}</p>
-      <label className="flex flex-wrap items-center gap-2 text-sm font-medium">{t("Request status", "Trạng thái yêu cầu")}<select value={status} disabled={busy} onChange={event => { setLoading(true); setStatus(event.target.value as typeof status); }} className="ml-3 rounded-xl border border-[#DFE8DF] bg-white px-3 py-2"><option value="PENDING">{labels.PENDING}</option><option value="APPROVED">{labels.APPROVED}</option><option value="REJECTED">{labels.REJECTED}</option></select></label>
+      <div className="flex items-center gap-2.5">
+        <span className="text-xs font-semibold text-[#727974]">{t("Request status", "Trạng thái yêu cầu")}:</span>
+        <AdminSelect<"PENDING" | "APPROVED" | "REJECTED">
+          value={status}
+          disabled={busy}
+          onChange={(newVal) => {
+            setLoading(true);
+            setStatus(newVal);
+          }}
+          options={[
+            { value: "PENDING", label: labels.PENDING },
+            { value: "APPROVED", label: labels.APPROVED },
+            { value: "REJECTED", label: labels.REJECTED },
+          ]}
+        />
+      </div>
     </div>
     {!loading && !queueFailed && visible.length === 0 && <p role="status" className="rounded-2xl border border-[#DFE8DF] bg-white p-6 text-sm text-[#627369]">{t("No requests match this status and search.", "Không có yêu cầu phù hợp với trạng thái và từ khóa này.")}</p>}
     {!loading && !queueFailed && visible.length > 0 && <section aria-label={t("User allergen requests", "Yêu cầu dị ứng của người dùng")} className="space-y-3">

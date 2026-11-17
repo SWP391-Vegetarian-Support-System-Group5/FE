@@ -6,6 +6,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { localizeIngredient, localizeIngredientCategory } from "@/lib/localized-content";
 import { getAllergens, getIngredientCategories, getIngredients, updateIngredient, type AllergenItem, type IngredientCategoryItem, type IngredientItem } from "@/lib/recipe-api";
 import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
+import AdminSelect from "@/components/ui/AdminSelect";
 
 const labels: Record<string, [string, string]> = {
   PLANT: ["Plant", "Thực vật"], DAIRY: ["Dairy", "Sữa và chế phẩm từ sữa"], EGG: ["Egg", "Trứng"],
@@ -54,18 +55,64 @@ export default function IngredientsPage() {
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {editing && <form onSubmit={save} className="border-y border-[#D9E6DC] py-5">
       <fieldset disabled={saving} className="grid gap-4 sm:grid-cols-3">
-        <label className="text-sm">{t("Name", "Tên")}<input required maxLength={200} value={editing.name} onChange={event => setEditing({ ...editing, name: event.target.value })} className="mt-1 block w-full rounded border border-[#D9E6DC] bg-white p-2" /></label>
-        <label className="text-sm">{t("Category", "Nhóm nguyên liệu")}<select value={editing.ingredientCategoryId} onChange={event => setEditing({ ...editing, ingredientCategoryId: Number(event.target.value) })} className="mt-1 block w-full rounded border border-[#D9E6DC] bg-white p-2">{categories.map(category => <option key={category.id} value={category.id}>{labels[category.code] ? t(...labels[category.code]) : category.name}</option>)}</select></label>
-        <label className="text-sm">{t("Allergen", "Chất gây dị ứng")}<select value={editing.allergenId ?? ""} onChange={event => setEditing({ ...editing, allergenId: event.target.value ? Number(event.target.value) : null })} className="mt-1 block w-full rounded border border-[#D9E6DC] bg-white p-2"><option value="">{t("None", "Không có")}</option>{allergens.map(allergen => <option key={allergen.id} value={allergen.id}>{localizeIngredient(allergen.name, language)}</option>)}</select></label>
+        <label className="text-sm">{t("Name", "Tên")}<input required maxLength={200} value={editing.name} onChange={event => setEditing({ ...editing, name: event.target.value })} className="mt-1 block w-full rounded-xl border border-[#D9E6DC] bg-white p-2 text-xs" /></label>
+        <div className="text-sm">
+          <span>{t("Category", "Nhóm nguyên liệu")}</span>
+          <div className="mt-1">
+            <AdminSelect
+              value={editing.ingredientCategoryId}
+              variant="form"
+              onChange={(val) => setEditing({ ...editing, ingredientCategoryId: Number(val) })}
+              options={categories.map((c) => ({
+                value: c.id,
+                label: labels[c.code] ? t(...labels[c.code]) : c.name,
+              }))}
+            />
+          </div>
+        </div>
+        <div className="text-sm">
+          <span>{t("Allergen", "Chất gây dị ứng")}</span>
+          <div className="mt-1">
+            <AdminSelect
+              value={editing.allergenId ?? ""}
+              variant="form"
+              onChange={(val) => setEditing({ ...editing, allergenId: val ? Number(val) : null })}
+              options={[
+                { value: "", label: t("None", "Không có") },
+                ...allergens.map((a) => ({
+                  value: a.id,
+                  label: localizeIngredient(a.name, language),
+                })),
+              ]}
+            />
+          </div>
+        </div>
         <div className="flex items-center gap-3 sm:col-span-3">
           <button type="submit" className="inline-flex items-center gap-2 rounded bg-[#1E3A2F] px-4 py-2 text-sm text-white disabled:opacity-60"><ContentIcon name="check" />{saving ? t("Saving...", "Đang lưu...") : t("Save", "Lưu")}</button>
           <button type="button" onClick={() => setEditing(null)} title={t("Cancel", "Hủy")} aria-label={t("Cancel", "Hủy")} className="flex h-9 w-9 items-center justify-center rounded border border-[#D9E6DC]"><ContentIcon name="close" /></button>
         </div>
       </fieldset>
     </form>}
-    <div className="flex flex-wrap items-end gap-4">
-      <label className="min-w-0 flex-1 text-sm">{t("Search", "Tìm kiếm")}<input type="search" value={query} onChange={event => setQuery(event.target.value)} className="mt-1 block w-full rounded border border-[#D9E6DC] bg-white p-2" /></label>
-      <label className="text-sm">{t("Category", "Nhóm nguyên liệu")}<select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} className="mt-1 block max-w-full rounded border border-[#D9E6DC] bg-white p-2"><option value="">{t("All", "Tất cả")}</option>{categories.map(category => <option key={category.id} value={category.id}>{labels[category.code] ? t(...labels[category.code]) : category.name}</option>)}</select></label>
+    <div className="flex flex-wrap items-center gap-4">
+      <label className="min-w-0 flex-1 text-sm font-medium">{t("Search", "Tìm kiếm")}
+        <input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder={t("Search ingredient...", "Tìm nguyên liệu...")} className="mt-1.5 block w-full rounded-2xl border border-[#EFEEEB] bg-white px-3.5 py-2.5 text-xs text-[#07241A] outline-none shadow-2xs focus:border-[#1E3A2F]" />
+      </label>
+      <div className="flex flex-col text-sm font-medium">
+        <span>{t("Category", "Nhóm nguyên liệu")}</span>
+        <div className="mt-1.5">
+          <AdminSelect
+            value={categoryFilter}
+            onChange={(val) => setCategoryFilter(val)}
+            options={[
+              { value: "", label: t("All", "Tất cả") },
+              ...categories.map((c) => ({
+                value: String(c.id),
+                label: labels[c.code] ? t(...labels[c.code]) : c.name,
+              })),
+            ]}
+          />
+        </div>
+      </div>
     </div>
     {loading ? (
       <div className="py-14 text-center">
