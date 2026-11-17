@@ -8,6 +8,7 @@ import { uploadImage } from "@/lib/image-upload";
 import { useLanguage } from "@/context/LanguageContext";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
+import AdminSelect from "@/components/ui/AdminSelect";
 import { formatDietTypeName } from "@/lib/diet-type-display";
 import { getIngredients, type IngredientItem } from "@/lib/recipe-api";
 import { getAddressSuggestions, type AddressSuggestion } from "@/lib/profile-api";
@@ -474,80 +475,57 @@ export default function AdminRestaurantsPage() {
         </div>
 
         {/* Location Dropdown */}
-        <div className="relative min-w-44">
-          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8F948F]">
+        <AdminSelect
+          value={locationFilter}
+          onChange={(newVal) => {
+            setLocationFilter(newVal);
+            setPage(1);
+          }}
+          ariaLabel={t("Filter restaurants by location", "Lọc nhà hàng theo địa điểm")}
+          className="min-w-48"
+          buttonClassName="w-full !rounded-xl !bg-[#FBF9F6] !border-transparent hover:!border-[#EFEEEB] hover:!bg-white"
+          icon={
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-          </div>
-          <select
-            value={locationFilter}
-            onChange={(e) => {
-              setLocationFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full appearance-none rounded-xl border border-transparent bg-[#FBF9F6] pl-8 pr-8 py-2 text-xs font-medium text-[#424844] outline-none transition focus:border-[#EFEEEB] focus:bg-white cursor-pointer"
-          >
-            {availableLocalities.map((loc) => (
-              <option key={loc.id} value={loc.id}>
-                {loc.id === "All"
-                  ? t("Location: All Localities", "Địa điểm: Tất cả khu vực")
-                  : locale.startsWith("vi")
-                    ? loc.labelVi
-                    : loc.labelEn}
-              </option>
-            ))}
-          </select>
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8F948F]"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </div>
+          }
+          options={availableLocalities.map((loc) => ({
+            value: loc.id,
+            label:
+              loc.id === "All"
+                ? t("Location: All Localities", "Địa điểm: Tất cả khu vực")
+                : locale.startsWith("vi")
+                  ? loc.labelVi
+                  : loc.labelEn,
+          }))}
+        />
 
         {/* Types of Vegetarianism Dropdown */}
-        <div className="relative min-w-52">
-          <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8F948F]">
+        <AdminSelect
+          value={dietFilter}
+          onChange={(newVal) => {
+            setDietFilter(newVal);
+            setPage(1);
+          }}
+          ariaLabel={t("Filter by types of vegetarianism", "Lọc theo loại hình ăn chay")}
+          className="min-w-52"
+          buttonClassName="w-full !rounded-xl !bg-[#FBF9F6] !border-transparent hover:!border-[#EFEEEB] hover:!bg-white"
+          icon={
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" />
               <line x1="16" y1="8" x2="2" y2="22" />
               <line x1="17.5" y1="15" x2="9" y2="15" />
             </svg>
-          </div>
-          <select
-            value={dietFilter}
-            onChange={(e) => {
-              setDietFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full appearance-none rounded-xl border border-transparent bg-[#FBF9F6] pl-8 pr-8 py-2 text-xs font-medium text-[#424844] outline-none transition focus:border-[#EFEEEB] focus:bg-white cursor-pointer"
-          >
-            <option value="">{t("Types of Vegetarianism: All", "Loại hình ăn chay: Tất cả")}</option>
-            {dietTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {formatDietTypeName(type.name)}
-              </option>
-            ))}
-          </select>
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8F948F]"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </div>
+          }
+          options={[
+            { value: "", label: t("Types of Vegetarianism: All", "Loại hình ăn chay: Tất cả") },
+            ...dietTypes.map((type) => ({
+              value: String(type.id),
+              label: formatDietTypeName(type.name),
+            })),
+          ]}
+        />
 
         {/* Refresh button */}
         <button

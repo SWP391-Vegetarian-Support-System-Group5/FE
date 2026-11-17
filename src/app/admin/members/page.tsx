@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { apiFetch, apiGet } from "@/lib/api";
 import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
+import AdminSelect from "@/components/ui/AdminSelect";
 
 interface AdminUser {
   userId: number;
@@ -274,45 +275,33 @@ export default function AdminMembersPage() {
         </div>
 
         {/* Status Dropdown */}
-        <div className="relative">
-          <select
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as typeof status);
-              setPage(1);
-            }}
-            aria-label={t("Filter members by status", "Lọc thành viên theo trạng thái")}
-            className="cursor-pointer appearance-none rounded-2xl border border-[#EFEEEB] bg-white py-2.5 pl-9 pr-8 text-xs font-semibold text-[#07241A] shadow-2xs transition hover:bg-[#FAF9F6] focus:border-[#1E3A2F] focus:outline-none"
-          >
-            <option value="all">{t("Status: All Statuses", "Trạng thái: Mọi trạng thái")}</option>
-            <option value="active">{t("Status: Active", "Trạng thái: Đang hoạt động")}</option>
-            <option value="suspended">{t("Status: Suspended", "Trạng thái: Đã đình chỉ")}</option>
-          </select>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#727974"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
-          >
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-          </svg>
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#727974"
-            strokeWidth="2.5"
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
+        <AdminSelect<"all" | "active" | "suspended">
+          value={status}
+          onChange={(newVal) => {
+            setStatus(newVal);
+            setPage(1);
+          }}
+          ariaLabel={t("Filter members by status", "Lọc thành viên theo trạng thái")}
+          icon={
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+          }
+          options={[
+            { value: "all", label: t("Status: All Statuses", "Trạng thái: Mọi trạng thái") },
+            { value: "active", label: t("Status: Active", "Trạng thái: Đang hoạt động") },
+            { value: "suspended", label: t("Status: Suspended", "Trạng thái: Đã đình chỉ") },
+          ]}
+        />
 
         {/* Sort Date Dropdown */}
         <div className="relative">

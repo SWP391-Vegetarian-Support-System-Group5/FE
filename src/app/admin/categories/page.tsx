@@ -12,6 +12,7 @@ import { categoryName, getRecipeCategories } from "@/lib/recipe-categories";
 import type { CategoryData } from "@/lib/admin-category-design";
 import CategoryRecipeAssignments from "@/components/recipe/CategoryRecipeAssignments";
 import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
+import AdminSelect from "@/components/ui/AdminSelect";
 
 export default function AdminCategoriesPage() {
   const ui = useUiText();
@@ -638,26 +639,28 @@ export default function AdminCategoriesPage() {
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#727974]">
                       <UiText text="Nhóm thực phẩm" /> *
                     </label>
-                    <select
-                      value={formDietaryGroup}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setFormDietaryGroup(val);
-                        const names: Record<string, string> = {
-                          PLANT: "Thực vật",
-                          DAIRY: "Sữa và chế phẩm từ sữa",
-                          EGG: "Trứng",
-                          HONEY: "Mật ong",
-                        };
-                        setFormName(names[val] || val);
-                      }}
-                      className="mt-1.5 w-full rounded-xl border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-2 text-xs font-semibold text-[#07241A] outline-none focus:border-[#1E3A2F] focus:bg-white"
-                    >
-                      <option value="PLANT">{ui("Thực vật")}</option>
-                      <option value="DAIRY">{ui("Sữa và chế phẩm từ sữa")}</option>
-                      <option value="EGG">{ui("Trứng")}</option>
-                      <option value="HONEY">{ui("Mật ong")}</option>
-                    </select>
+                    <div className="mt-1.5">
+                      <AdminSelect
+                        value={formDietaryGroup}
+                        variant="form"
+                        onChange={(val) => {
+                          setFormDietaryGroup(val);
+                          const names: Record<string, string> = {
+                            PLANT: "Thực vật",
+                            DAIRY: "Sữa và chế phẩm từ sữa",
+                            EGG: "Trứng",
+                            HONEY: "Mật ong",
+                          };
+                          setFormName(names[val] || val);
+                        }}
+                        options={[
+                          { value: "PLANT", label: ui("Thực vật") },
+                          { value: "DAIRY", label: ui("Sữa và chế phẩm từ sữa") },
+                          { value: "EGG", label: ui("Trứng") },
+                          { value: "HONEY", label: ui("Mật ong") },
+                        ]}
+                      />
+                    </div>
                   </div>
                 )}
 
