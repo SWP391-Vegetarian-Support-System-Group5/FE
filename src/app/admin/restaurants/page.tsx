@@ -103,12 +103,6 @@ function getRestaurantSubname(item: AdminRestaurant): string {
   return "Ẩm thực chay";
 }
 
-function getRestaurantStats(item: AdminRestaurant) {
-  const rating = (4.5 + ((item.restaurantId * 7) % 5) / 10).toFixed(1);
-  const reviews = 50 + ((item.restaurantId * 37) % 320);
-  return { rating, reviews };
-}
-
 function getRestaurantStatus(item: AdminRestaurant): "Public" | "Private" {
   // If coordinates are set or deterministically available
   return item.latitude !== null || item.restaurantId % 4 !== 0 ? "Public" : "Private";
@@ -553,10 +547,9 @@ export default function AdminRestaurantsPage() {
       <div className="overflow-hidden rounded-2xl border border-[#EFEEEB] bg-white shadow-2xs">
         {/* Table Header */}
         <div className="hidden grid-cols-12 gap-4 border-b border-[#EFEEEB] bg-[#FBF9F6] px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#727974] md:grid">
-          <div className="col-span-4">{t("RESTAURANT & IDENTITY", "NHÀ HÀNG & NHẬN DIỆN")}</div>
-          <div className="col-span-3">{t("LOCATION", "ĐỊA ĐIỂM")}</div>
+          <div className="col-span-5">{t("RESTAURANT & IDENTITY", "NHÀ HÀNG & NHẬN DIỆN")}</div>
+          <div className="col-span-4">{t("LOCATION", "ĐỊA ĐIỂM")}</div>
           <div className="col-span-2">{t("TYPES OF VEGETARIANISM", "LOẠI HÌNH ĂN CHAY")}</div>
-          <div className="col-span-2">{t("RATING & COMMUNITY", "ĐÁNH GIÁ & CỘNG ĐỒNG")}</div>
           <div className="col-span-1 text-right">{t("STATUS", "TRẠNG THÁI")}</div>
         </div>
 
@@ -576,7 +569,6 @@ export default function AdminRestaurantsPage() {
         ) : (
           <div className="divide-y divide-[#EFEEEB]">
             {shown.map((item, idx) => {
-              const { rating, reviews } = getRestaurantStats(item);
               const status = getRestaurantStatus(item);
               const thumbnail = getRestaurantThumbnail(item, idx);
               const subname = getRestaurantSubname(item);
@@ -600,7 +592,7 @@ export default function AdminRestaurantsPage() {
                   className="group relative flex flex-col gap-4 px-5 py-4 transition hover:bg-[#FDFCFB] md:grid md:grid-cols-12 md:items-center"
                 >
                   {/* RESTAURANT & IDENTITY */}
-                  <div className="col-span-4 flex items-center gap-3.5">
+                  <div className="col-span-5 flex items-center gap-3.5">
                     <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[#EFEEEB] bg-[#F4F2EE]">
                       <Image
                         src={thumbnail}
@@ -626,7 +618,7 @@ export default function AdminRestaurantsPage() {
                   </div>
 
                   {/* LOCATION */}
-                  <div className="col-span-3 flex items-start gap-1.5">
+                  <div className="col-span-4 flex items-start gap-1.5">
                     <svg
                       width="15"
                       height="15"
@@ -669,23 +661,12 @@ export default function AdminRestaurantsPage() {
                     )}
                   </div>
 
-                  {/* RATING & COMMUNITY */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-1 text-xs font-bold text-[#07241A]">
-                      <span className="text-amber-500 text-sm"><ContentIcon name="star" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" fill="currentColor" /></span>
-                      <span>{rating} / 5.0</span>
-                    </div>
-                    <p className="mt-0.5 text-[11px] text-[#727974]">
-                      {reviews} {t("verified reviews", "đánh giá xác thực")}
-                    </p>
-                  </div>
-
                   {/* STATUS & ROW ACTIONS */}
                   <div className="col-span-1 flex items-center justify-between md:justify-end gap-2">
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${status === "Public"
-                          ? "bg-[#EAF5EE] text-[#1E7E51]"
-                          : "bg-[#F3F4F6] text-[#6B7280]"
+                        ? "bg-[#EAF5EE] text-[#1E7E51]"
+                        : "bg-[#F3F4F6] text-[#6B7280]"
                         }`}
                     >
                       <span
@@ -758,8 +739,8 @@ export default function AdminRestaurantsPage() {
                     type="button"
                     onClick={() => setPage(p)}
                     className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition ${safePage === p
-                        ? "bg-[#07241A] text-white"
-                        : "border border-transparent hover:border-[#EFEEEB] hover:bg-[#F9F8F6] text-[#424844]"
+                      ? "bg-[#07241A] text-white"
+                      : "border border-transparent hover:border-[#EFEEEB] hover:bg-[#F9F8F6] text-[#424844]"
                       }`}
                   >
                     {p}
@@ -892,8 +873,8 @@ export default function AdminRestaurantsPage() {
                       <label
                         key={type.id}
                         className={`flex items-center gap-2 rounded-xl border p-2.5 font-normal cursor-pointer transition ${form.dietTypeIds.includes(type.id)
-                            ? "border-[#1E3A2F] bg-[#EAF5EE]/40 text-[#1E3A2F]"
-                            : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
+                          ? "border-[#1E3A2F] bg-[#EAF5EE]/40 text-[#1E3A2F]"
+                          : "border-[#EFEEEB] bg-[#FBF9F6] text-[#424844] hover:bg-white"
                           }`}
                       >
                         <input
