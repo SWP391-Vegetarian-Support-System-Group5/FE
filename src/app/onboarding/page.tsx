@@ -23,9 +23,12 @@ type FormState = {
   activityLevel: "" | (typeof activityLevels)[number][0];
   dietTypeId: string;
   goalWeightKg: string;
+  livingAddress: string;
+  latitude: number | null;
+  longitude: number | null;
 };
 
-const emptyForm: FormState = { birthYear: "", sex: "", heightCm: "", weightKg: "", activityLevel: "", dietTypeId: "", goalWeightKg: "" };
+const emptyForm: FormState = { birthYear: "", sex: "", heightCm: "", weightKg: "", activityLevel: "", dietTypeId: "", goalWeightKg: "", livingAddress: "", latitude: null, longitude: null };
 
 function FieldLabel({ children, icon: Icon }: { children: React.ReactNode; icon: typeof UserRound }) {
   return <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#173C2D]"><Icon size={16} strokeWidth={2.25} className="text-[#658266]" />{children}</span>;
@@ -45,7 +48,7 @@ export default function OnboardingPage() {
     if (!user) return;
     Promise.all([getProfile(), getDietTypes()]).then(([profile, types]) => {
       setDiets(types);
-      setForm({ birthYear: profile.birthYear != null ? String(profile.birthYear) : "", sex: profile.sex || "", heightCm: profile.heightCm?.toString() || "", weightKg: profile.weightKg?.toString() || "", activityLevel: profile.activityLevel || "", dietTypeId: profile.dietTypeId?.toString() || "", goalWeightKg: profile.goalWeightKg?.toString() || "" });
+      setForm({ birthYear: profile.birthYear != null ? String(profile.birthYear) : "", sex: profile.sex || "", heightCm: profile.heightCm?.toString() || "", weightKg: profile.weightKg?.toString() || "", activityLevel: profile.activityLevel || "", dietTypeId: profile.dietTypeId?.toString() || "", goalWeightKg: profile.goalWeightKg?.toString() || "", livingAddress: profile.livingAddress || "", latitude: profile.latitude, longitude: profile.longitude });
     }).catch(() => setStatus("Không thể tải hồ sơ. Vui lòng thử lại."));
   }, [loading, router, user]);
 
@@ -69,11 +72,13 @@ export default function OnboardingPage() {
   function update<K extends keyof FormState>(key: K, value: FormState[K]) { setForm((current) => ({ ...current, [key]: value })); setStatus(""); }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!form.birthYear || !form.sex || !height || !weight || !form.activityLevel || !form.dietTypeId) { setStatus("Vui lòng hoàn tất các thông tin bắt buộc để tạo thực đơn phù hợp."); return; }
+    const goal = Number(form.goalWeightKg);
+    if (!form.birthYear || !form.sex || !height || !weight || !form.activityLevel || !form.dietTypeId || !goal || !form.livingAddress.trim() || form.latitude == null || form.longitude == null) { setStatus("Vui lòng hoàn tất tất cả thông tin, gồm cả địa chỉ và vị trí sinh sống."); return; }
     if (Number(form.birthYear) < 1900 || Number(form.birthYear) > currentYear - 18) { setStatus(`Năm sinh cần nằm trong khoảng 1900 đến ${currentYear - 18}.`); return; }
+    if (height < 140 || height > 210 || weight < 40 || weight > 150 || goal < 40 || goal > 150) { setStatus("Chiều cao phải từ 140–210 cm; cân nặng hiện tại và mục tiêu phải từ 40–150 kg."); return; }
     setSaving(true);
     try {
-      await updateProfile({ fullName: user!.fullName || user!.displayName || "Người dùng VeggieMate", sex: form.sex, birthYear: Number(form.birthYear), heightCm: height, weightKg: weight, activityLevel: form.activityLevel, dietTypeId: Number(form.dietTypeId), goalWeightKg: form.goalWeightKg ? Number(form.goalWeightKg) : null, latitude: null, longitude: null });
+      await updateProfile({ fullName: user!.fullName || user!.displayName || "Người dùng VeggieMate", sex: form.sex, birthYear: Number(form.birthYear), heightCm: height, weightKg: weight, activityLevel: form.activityLevel, dietTypeId: Number(form.dietTypeId), goalWeightKg: goal, latitude: form.latitude, longitude: form.longitude, livingAddress: form.livingAddress.trim() });
       router.replace("/");
     } catch (error) { setStatus(error instanceof Error ? error.message : "Không lưu được hồ sơ."); } finally { setSaving(false); }
   }
@@ -93,7 +98,8 @@ export default function OnboardingPage() {
           <label><FieldLabel icon={Scale}>Cân nặng hiện tại</FieldLabel><div className="relative"><input required min="1" step="any" type="number" inputMode="decimal" value={form.weightKg} onChange={(event) => update("weightKg", event.target.value)} placeholder="Ví dụ: 58" className={`${inputClass} pr-14`} /><span className="absolute right-4 top-3 text-sm font-medium text-[#727974]">kg</span></div></label>
           <label><FieldLabel icon={Activity}>Mức vận động</FieldLabel><select required value={form.activityLevel} onChange={(event) => update("activityLevel", event.target.value as FormState["activityLevel"])} className={inputClass}><option value="">Chọn mức vận động</option>{activityLevels.map(([value, label, detail]) => <option key={value} value={value}>{label} · {detail}</option>)}</select></label>
           <label><FieldLabel icon={Leaf}>Kiểu ăn chay</FieldLabel><select required value={form.dietTypeId} onChange={(event) => update("dietTypeId", event.target.value)} className={inputClass}><option value="">Chọn kiểu ăn chay</option>{diets.map((diet) => <option key={diet.dietTypeId} value={diet.dietTypeId}>{formatDietTypeName(diet.name, "vi")}</option>)}</select></label>
-          <label className="sm:col-span-2"><FieldLabel icon={Target}>Cân nặng mục tiêu <span className="font-normal text-[#727974]">(không bắt buộc)</span></FieldLabel><div className="relative"><input min="1" step="any" type="number" inputMode="decimal" value={form.goalWeightKg} onChange={(event) => update("goalWeightKg", event.target.value)} placeholder="Ví dụ: 55" className={`${inputClass} pr-14`} /><span className="absolute right-4 top-3 text-sm font-medium text-[#727974]">kg</span></div></label>
+          <label className="sm:col-span-2"><FieldLabel icon={Target}>Cân nặng mục tiêu</FieldLabel><div className="relative"><input required min="40" max="150" step="any" type="number" inputMode="decimal" value={form.goalWeightKg} onChange={(event) => update("goalWeightKg", event.target.value)} placeholder="Ví dụ: 55" className={`${inputClass} pr-14`} /><span className="absolute right-4 top-3 text-sm font-medium text-[#727974]">kg</span></div></label>
+          <label className="sm:col-span-2"><FieldLabel icon={Target}>Địa chỉ sinh sống</FieldLabel><input required value={form.livingAddress} onChange={(event) => update("livingAddress", event.target.value)} placeholder="Ví dụ: Tăng Nhơn Phú, TP. Hồ Chí Minh" className={inputClass} /><button type="button" onClick={() => navigator.geolocation?.getCurrentPosition(position => { update("latitude", position.coords.latitude); update("longitude", position.coords.longitude); }, () => setStatus("Không thể lấy vị trí. Hãy bật quyền vị trí của trình duyệt rồi thử lại."))} className="mt-2 text-xs font-semibold text-[#1E3A2F] underline">{form.latitude != null ? "Đã lưu vị trí hiện tại" : "Dùng vị trí hiện tại"}</button></label>
         </div>
         {selectedDiet && <div className="mt-3 rounded-2xl border border-[#DDEBDD] bg-[#F4F9F3] p-4 text-sm leading-6 text-[#315C43]"><span className="font-semibold">{formatDietTypeName(selectedDiet.name, "vi")}:</span> {dietTypeAvoidsText(selectedDiet, "vi")}</div>}
         {(bmi != null || estimatedTdee != null) && <div className="mt-3 grid gap-3 rounded-2xl border border-[#DDEBDD] bg-[#F8FBF7] p-4 sm:grid-cols-2"><div><p className="text-xs font-semibold uppercase tracking-wide text-[#6A756D]">Chỉ số cơ thể</p><p className="mt-1 text-lg font-bold text-[#173C2D]">{bmi != null ? `BMI ${bmi.toFixed(1)} · ${bmiLabel}` : "Đang chờ dữ liệu"}</p>{age && <p className="mt-1 text-xs text-[#68726B]">Tuổi ước tính: {age}</p>}</div><div className="border-t border-[#E1EADF] pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0"><p className="text-xs font-semibold uppercase tracking-wide text-[#6A756D]">Năng lượng hằng ngày</p><p className="mt-1 text-lg font-bold text-[#173C2D]">{estimatedTdee ? `~${estimatedTdee.toLocaleString("vi-VN")} kcal` : "Điền đủ thông tin để tính"}</p><p className="mt-1 text-xs text-[#68726B]">{goalCopy}</p></div></div>}

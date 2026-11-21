@@ -342,8 +342,9 @@ export function useMealPlanner() {
     try {
       const fresh = await getProfile();
       if (session !== getStoredToken()) throw new Error("Phiên đăng nhập đã thay đổi.");
-      const { fullName, sex, birthYear, birthDate, heightCm, activityLevel, goalWeightKg, dietTypeId, latitude, longitude } = fresh;
-      const updated = await updateProfile({ fullName, sex, birthYear, birthDate, heightCm, weightKg, activityLevel, goalWeightKg, dietTypeId, latitude, longitude });
+      const { fullName, sex, birthYear, heightCm, activityLevel, goalWeightKg, dietTypeId, latitude, longitude, livingAddress } = fresh;
+      if (!sex || !birthYear || !heightCm || !activityLevel || !goalWeightKg || !dietTypeId || latitude == null || longitude == null || !livingAddress) throw new Error("Hồ sơ chưa đầy đủ. Hãy cập nhật Hồ sơ của tôi trước khi lưu cân nặng.");
+      const updated = await updateProfile({ fullName, sex, birthYear, heightCm, weightKg, activityLevel, goalWeightKg, dietTypeId, latitude, longitude, livingAddress });
       if (session !== getStoredToken()) throw new Error("Phiên đăng nhập đã thay đổi. Vui lòng tải lại trang.");
       setProfile(updated);
       setToastMessage("Đã cập nhật cân nặng. Thông tin mới sẽ được dùng khi tạo thực đơn tiếp theo.");

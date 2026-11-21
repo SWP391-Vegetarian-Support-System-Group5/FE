@@ -74,6 +74,11 @@ interface ProfileErrors {
   fullName?: string;
   heightCm?: string;
   weightKg?: string;
+  goalWeightKg?: string;
+  sex?: string;
+  activityLevel?: string;
+  dietTypeId?: string;
+  location?: string;
 }
 
 function toAreaItems(items: Array<{ code: string; name: string; type: string; latitude?: number | null; longitude?: number | null }>): AreaItem[] {
@@ -87,14 +92,20 @@ function toAreaItems(items: Array<{ code: string; name: string; type: string; la
 function validateDraft(d: ProfileDraft, currentYear: number): ProfileErrors {
   const errors: ProfileErrors = {};
   if (!d.fullName.trim()) errors.fullName = "Full name is required.";
-  if (d.birthYear && !validBirthYear(d.birthYear, currentYear))
+  if (!d.birthYear || !validBirthYear(d.birthYear, currentYear))
     errors.birthYear = `Nhập năm sinh từ ${currentYear - 120} đến ${currentYear}.`;
   const h = Number(d.heightCm);
-  if (d.heightCm !== "" && (!Number.isFinite(h) || h < 1 || h > 300))
-    errors.heightCm = "Chiều cao phải từ 1 đến 300 cm.";
+  if (!d.heightCm || !Number.isFinite(h) || h < 140 || h > 210)
+    errors.heightCm = "Chiều cao phải từ 140 đến 210 cm.";
   const w = Number(d.weightKg);
-  if (d.weightKg !== "" && (!Number.isFinite(w) || w < 1 || w > 1000))
-    errors.weightKg = "Cân nặng phải từ 1 đến 1.000 kg.";
+  if (!d.weightKg || !Number.isFinite(w) || w < 40 || w > 150)
+    errors.weightKg = "Cân nặng phải từ 40 đến 150 kg.";
+  const goal = Number(d.goalWeightKg);
+  if (!d.goalWeightKg || !Number.isFinite(goal) || goal < 40 || goal > 150)
+    errors.goalWeightKg = "Cân nặng mục tiêu phải từ 40 đến 150 kg.";
+  if (!d.sex) errors.sex = "Vui lòng chọn giới tính.";
+  if (!d.activityLevel) errors.activityLevel = "Vui lòng chọn mức vận động.";
+  if (!d.dietTypeId) errors.dietTypeId = "Vui lòng chọn kiểu ăn chay.";
   return errors;
 }
 
@@ -464,6 +475,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     if (saving || allergenSaving) return;
     setSaveError(null);
     const validationErrors = validateDraft(draft, currentYear);
+    if (!selectedCoords || !addressQuery.trim()) validationErrors.location = "Vui lòng chọn địa chỉ sinh sống hợp lệ.";
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -473,17 +485,17 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     try {
       const payload: UpdateProfilePayload = {
         fullName: draft.fullName,
-        sex: draft.sex,
+        sex: draft.sex!,
         birthDate: birthDateForYear(draft.birthYear, draft.birthDate),
-        birthYear: draft.birthYear ? Number(draft.birthYear) : null,
-        heightCm: draft.heightCm ? parseFloat(draft.heightCm) : null,
-        weightKg: draft.weightKg ? parseFloat(draft.weightKg) : null,
-        activityLevel: draft.activityLevel,
-        goalWeightKg: draft.goalWeightKg ? parseFloat(draft.goalWeightKg) : null,
-        dietTypeId: draft.dietTypeId,
-        latitude: selectedCoords?.lat ?? null,
-        longitude: selectedCoords?.lng ?? null,
-        livingAddress: addressQuery.trim() || null,
+        birthYear: Number(draft.birthYear),
+        heightCm: parseFloat(draft.heightCm),
+        weightKg: parseFloat(draft.weightKg),
+        activityLevel: draft.activityLevel!,
+        goalWeightKg: parseFloat(draft.goalWeightKg),
+        dietTypeId: draft.dietTypeId!,
+        latitude: selectedCoords!.lat,
+        longitude: selectedCoords!.lng,
+        livingAddress: addressQuery.trim(),
       };
 
       const [updatedProfile] = await Promise.all([
