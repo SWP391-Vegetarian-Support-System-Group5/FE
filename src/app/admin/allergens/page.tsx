@@ -1,193 +1,76 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { CheckCircle2, Clock3, Pencil, Plus, RefreshCw, Search, ShieldCheck, Trash2, XCircle } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Search, ShieldCheck, Trash2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import ContentDialog from "@/components/content/ContentDialog";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
-import AdminSelect from "@/components/ui/AdminSelect";
-import { apiFetch, apiGet } from "@/lib/api";
-import { listAllergens, createAllergen, updateAllergen, deleteAllergen, type AdminAllergen } from "@/lib/admin-catalog-api";
-
-type Request = import("@/lib/profile-api").AllergenSubmission;
-type Member = { userId: number; fullName: string; email: string };
-
-const fetchLists = (status: string) => Promise.allSettled([
-  apiGet<Request[]>(`/api/admin/allergen-requests?status=${encodeURIComponent(status)}`, { cache: "no-store" }),
-  listAllergens(), apiGet<Member[]>("/api/admin/users"),
-]);
+import { createAllergen, deleteAllergen, listAllergens, updateAllergen, type AdminAllergen } from "@/lib/admin-catalog-api";
 
 export default function AdminAllergensPage() {
   const { t, locale } = useLanguage();
-  const [requests, setRequests] = useState<Request[]>([]);
-  const [status, setStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
   const [catalog, setCatalog] = useState<AdminAllergen[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const lock = useRef(false);
-  const version = useRef(0);
-  const cancelLoads = useCallback(() => { version.current++; }, []);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState<"saved" | "refresh" | "">("");
-  const [rejecting, setRejecting] = useState<Request | null>(null);
-  const [reason, setReason] = useState("");
+  const [notice, setNotice] = useState("");
   const [form, setForm] = useState<{ id?: number; name: string } | null>(null);
   const [removing, setRemoving] = useState<AdminAllergen | null>(null);
-  const [queueFailed, setQueueFailed] = useState(false);
-  const [catalogFailed, setCatalogFailed] = useState(false);
-  const applyLists = useCallback(([queue, allergens, users]: Awaited<ReturnType<typeof fetchLists>>) => {
-    setQueueFailed(queue.status === "rejected");
-    setCatalogFailed(allergens.status === "rejected");
-    if (queue.status === "fulfilled") setRequests(queue.value);
-    if (allergens.status === "fulfilled") setCatalog(allergens.value);
-    if (users.status === "fulfilled") setMembers(users.value);
-    return queue.status === "fulfilled" && allergens.status === "fulfilled";
-  }, []);
-  const load = useCallback(async (silent = false) => {
-    const current = ++version.current;
-    if (!silent) setLoading(true);
-    try {
-      const result = await fetchLists(status);
-      if (current !== version.current) return false;
-      return applyLists(result);
-    } finally { if (current === version.current) setLoading(false); }
-  }, [applyLists, status]);
-  useEffect(() => {
-    let active = true;
-    const current = ++version.current;
-    void fetchLists(status).then(result => { if (active && current === version.current) applyLists(result); })
-      .finally(() => { if (active && current === version.current) setLoading(false); });
-    return () => { active = false; };
-  }, [applyLists, status]);
-  useEffect(() => {
-    const refresh = () => { if (!document.hidden && !lock.current) void load(true); };
-    const timer = window.setInterval(refresh, 15000);
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    return () => { cancelLoads(); window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
-  }, [load, cancelLoads]);
+  const requestVersion = useRef(0);
 
-  async function run(action: () => Promise<void>) {
-    if (lock.current) return;
-    lock.current = true; cancelLoads(); setBusy(true); setError(""); setNotice("");
+  const load = useCallback(async () => {
+    const version = ++requestVersion.current;
+    setLoading(true); setError("");
     try {
-      await action(); setNotice("saved");
-      try { if (!await load()) setNotice("refresh"); } catch { setNotice("refresh"); }
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "SAVE_FAILED"); }
-    finally { lock.current = false; setBusy(false); }
-  }
-  async function review(item: Request, approve: boolean) {
-    if (item.status !== "PENDING" || (!approve && (!reason.trim() || reason.trim().length > 1000))) return;
-    await run(async () => {
-      const response = await apiFetch(`/api/admin/allergen-requests/${item.id}/${approve ? "approve" : "reject"}`, {
-        method: "POST", ...(approve ? {} : { body: JSON.stringify({ reason: reason.trim() }) }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.message || data?.detail || "SAVE_FAILED");
-      }
-      const result = await response.json() as Request;
-      if (result.id !== item.id || result.status !== (approve ? "APPROVED" : "REJECTED")) throw new Error("ALLERGEN_RESPONSE_INVALID");
-      setRequests(previous => previous.flatMap(row => row.id === result.id ? result.status === status ? [result] : [] : [row]));
-      setRejecting(null); setReason("");
-    });
-  }
-  function save(event: FormEvent) {
+      const items = await listAllergens();
+      if (version === requestVersion.current) setCatalog(items);
+    } catch (cause) {
+      if (version === requestVersion.current) setError(cause instanceof Error ? cause.message : "LOAD_FAILED");
+    } finally {
+      if (version === requestVersion.current) setLoading(false);
+    }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const run = async (action: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try { await action(); setNotice(t("Changes saved successfully.", "Đã lưu thay đổi thành công.")); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "SAVE_FAILED"); }
+    finally { setBusy(false); }
+  };
+
+  const save = (event: FormEvent) => {
     event.preventDefault();
     if (!form?.name.trim()) return;
     void run(async () => {
-      if (form.id) await updateAllergen(form.id, form.name.trim()); else await createAllergen(form.name.trim());
+      const name = form.name.trim();
+      const saved = form.id
+        ? (await updateAllergen(form.id, name), { id: form.id, name, type: null } satisfies AdminAllergen)
+        : await createAllergen(name);
+      setCatalog(current => form.id ? current.map(item => item.id === saved.id ? saved : item) : [...current, saved].sort((a, b) => a.name.localeCompare(b.name, locale)));
       setForm(null);
     });
-  }
-  const labels = { ALL: t("All", "Tất cả"), APPROVED: t("Approved", "Đã phê duyệt"), PENDING: t("Pending approval", "Chờ phê duyệt"), REJECTED: t("Rejected", "Đã từ chối") };
-  const search = query.trim().toLocaleLowerCase(locale);
-  const visible = requests.filter(item => `${item.name} ${item.submittedName}`.toLocaleLowerCase(locale).includes(search));
-  const visibleCatalog = catalog.filter(item => item.name.toLocaleLowerCase(locale).includes(search));
-  const button = "vm-button rounded-xl border border-[#DFE8DF] bg-white px-4 py-2.5 text-sm disabled:opacity-50";
+  };
+  const remove = () => {
+    if (!removing) return;
+    void run(async () => { await deleteAllergen(removing.id); setCatalog(current => current.filter(item => item.id !== removing.id)); setRemoving(null); });
+  };
+  const visible = catalog.filter(item => item.name.toLocaleLowerCase(locale).includes(query.trim().toLocaleLowerCase(locale)));
+  const actionButton = "vm-button inline-flex items-center gap-2 rounded-xl border border-[#DFE8DF] bg-white px-4 py-2.5 text-sm disabled:opacity-50";
+
   return <div className="vm-enter min-w-0 space-y-6 text-[#07241A]">
-    <header className="flex flex-wrap items-center justify-between gap-4">
-      <div><span className="inline-flex items-center gap-2 rounded-full bg-[#EAF5EE] px-3 py-1 text-xs text-[#21764B]"><ShieldCheck size={15} />{t("Allergen verification", "Xác thực chất gây dị ứng")}</span><h1 className="mt-3 font-serif text-2xl font-semibold sm:text-3xl">{t("Allergens & health management", "Quản lý dị ứng & sức khỏe")}</h1></div>
-      <button className="vm-button inline-flex items-center gap-2 rounded-xl vm-admin-tab-active px-5 py-3 text-sm font-medium text-white disabled:opacity-50 hover:brightness-105 active:scale-[0.98] transition" onClick={() => { setForm({ name: "" }); setError(""); }} disabled={busy}><Plus size={18} aria-hidden="true" />{t("Add allergen", "Thêm chất gây dị ứng")}</button>
-    </header>
-    {notice && <p role="status" className="vm-feedback rounded-xl border border-[#CDE4D5] bg-[#EAF5EE] p-4 text-sm">{notice === "saved" ? t("Changes saved successfully.", "Đã lưu thay đổi thành công.") : t("Saved. Refresh the list to synchronize; do not submit again.", "Đã lưu thành công. Hãy tải lại danh sách để đồng bộ; không cần gửi lại.")}</p>}
-    {error && <p role="alert" className="vm-feedback break-words rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error === "LOAD_FAILED" || error === "SAVE_FAILED" || error === "ALLERGEN_RESPONSE_INVALID" ? t("Unable to process this request. Please try again.", "Chưa xử lý được yêu cầu. Vui lòng thử lại.") : error}</p>}
-    {queueFailed && <p role="alert" className="vm-feedback rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t("Unable to load requests. Refresh to try again; your catalog is loaded separately.", "Chưa tải được yêu cầu. Hãy tải lại để thử lại; danh mục dị ứng được tải riêng.")}</p>}
-    {catalogFailed && <p role="alert" className="vm-feedback rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{t("Unable to load the allergen catalog. Please refresh.", "Chưa tải được danh mục dị ứng. Vui lòng tải lại.")}</p>}
+    <header className="flex flex-wrap items-center justify-between gap-4"><div><span className="inline-flex items-center gap-2 rounded-full bg-[#EAF5EE] px-3 py-1 text-xs text-[#21764B]"><ShieldCheck size={15} />{t("Allergen catalog", "Danh mục dị ứng")}</span><h1 className="mt-3 font-serif text-2xl font-semibold sm:text-3xl">{t("Allergens & health management", "Quản lý dị ứng & sức khỏe")}</h1><p className="mt-2 text-sm text-[#627369]">{t("Manage allergens that members can select in their profile.", "Quản lý chất gây dị ứng mà thành viên có thể chọn trong hồ sơ.")}</p></div><button className="vm-button inline-flex items-center gap-2 rounded-xl vm-admin-tab-active px-5 py-3 text-sm font-medium text-white disabled:opacity-50" onClick={() => { setForm({ name: "" }); setError(""); }} disabled={busy}><Plus size={18} />{t("Add allergen", "Thêm chất gây dị ứng")}</button></header>
+    {notice && <p role="status" className="vm-feedback rounded-xl border border-[#CDE4D5] bg-[#EAF5EE] p-4 text-sm text-[#205339]">{notice}</p>}
+    {error && <p role="alert" className="vm-feedback break-words rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error === "LOAD_FAILED" || error === "SAVE_FAILED" ? t("Unable to process this request. Please try again.", "Chưa xử lý được yêu cầu. Vui lòng thử lại.") : error}</p>}
     <section aria-labelledby="allergen-catalog-title" aria-busy={loading} className="overflow-hidden rounded-2xl border border-[#DFE8DF] bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E8EEE7] p-4 sm:p-5">
-        <div>
-          <h2 id="allergen-catalog-title" className="flex items-center gap-2 text-lg font-semibold">
-            {t("Allergen catalog", "Danh mục dị ứng")}
-            <span className="rounded-full bg-[#EAF5EE] px-2.5 py-1 text-xs font-medium text-[#21764B]">{loading ? "…" : catalogFailed ? "—" : catalog.length.toLocaleString(locale)}</span>
-          </h2>
-          <p className="mt-1 text-sm text-[#627369]">{t("Manage allergen names used across the system.", "Quản lý các chất gây dị ứng trong hệ thống.")}</p>
-        </div>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#DFE8DF] bg-[#FAFBF8] px-3 focus-within:ring-2 focus-within:ring-[#21764B]/30">
-            <Search size={17} className="shrink-0 text-[#627369]" aria-hidden="true" />
-            <input aria-label={t("Search allergens", "Tìm chất gây dị ứng")} value={query} onChange={event => setQuery(event.target.value)} placeholder={t("Search allergens…", "Tìm chất gây dị ứng…")} className="w-full min-w-0 bg-transparent py-3 text-sm outline-none sm:w-56" />
-          </label>
-          <button disabled={loading || busy} className={button} onClick={() => void load().catch(() => { })} aria-label={t("Refresh", "Tải lại")}><RefreshCw size={17} className={loading ? "motion-safe:animate-spin" : ""} /></button>
-        </div>
-      </div>
-      <div className="hidden items-center justify-between border-b border-[#E8EEE7] bg-[#F6F8F3] px-5 py-3 text-xs font-medium uppercase tracking-wide text-[#627369] sm:flex">
-        <span>{t("Allergen name", "Tên chất gây dị ứng")}</span><span>{t("Actions", "Thao tác")}</span>
-      </div>
-      {loading ? (
-        <div role="status" className="py-14 text-center">
-          <AdminLeafLoading text={t("Loading allergens…", "Đang tải danh mục dị ứng…")} />
-        </div>
-      ) : catalogFailed ? null : visibleCatalog.length === 0 ? <p className="p-8 text-center text-sm text-[#627369]">{search ? t("No allergens found for this name.", "Không tìm thấy chất gây dị ứng theo tên này.") : t("No allergens yet. Add one to get started.", "Chưa có chất gây dị ứng. Thêm mới để bắt đầu.")}</p> :
-        <ul className="vm-stagger divide-y divide-[#E8EEE7]">
-          {visibleCatalog.map(item => <li key={item.id} className="vm-enter flex flex-wrap items-center justify-between gap-3 px-4 py-4 transition-colors duration-200 hover:bg-[#F1F7F1] focus-within:bg-[#F1F7F1] motion-reduce:transition-none sm:px-5">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF5EE] text-[#21764B]"><ShieldCheck size={20} aria-hidden="true" /></span>
-              <span className="min-w-0 break-words text-sm font-medium sm:text-base">{item.name}</span>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button disabled={busy} aria-label={t(`Edit ${item.name}`, `Sửa ${item.name}`)} className="vm-button inline-flex items-center gap-2 rounded-xl border border-[#CEE2D3] bg-[#EDF5EE] px-3 py-2 text-sm font-medium text-[#205339] hover:bg-[#DFEEE2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#21764B] disabled:opacity-50" onClick={() => { setForm({ id: item.id, name: item.name }); setError(""); }}><Pencil size={16} aria-hidden="true" />{t("Edit", "Sửa")}</button>
-              <button disabled={busy} aria-label={t(`Delete ${item.name}`, `Xóa ${item.name}`)} className="vm-button inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50" onClick={() => setRemoving(item)}><Trash2 size={16} aria-hidden="true" />{t("Delete", "Xóa")}</button>
-            </div>
-          </li>)}
-        </ul>}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E8EEE7] p-4 sm:p-5"><div><h2 id="allergen-catalog-title" className="flex items-center gap-2 text-lg font-semibold">{t("Allergen catalog", "Danh mục dị ứng")}<span className="rounded-full bg-[#EAF5EE] px-2.5 py-1 text-xs font-medium text-[#21764B]">{loading ? "…" : catalog.length.toLocaleString(locale)}</span></h2></div><div className="flex w-full items-center gap-2 sm:w-auto"><label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#DFE8DF] bg-[#FAFBF8] px-3"><Search size={17} className="shrink-0 text-[#627369]" /><input aria-label={t("Search allergens", "Tìm chất gây dị ứng")} value={query} onChange={event => setQuery(event.target.value)} placeholder={t("Search allergens…", "Tìm chất gây dị ứng…")} className="w-full min-w-0 bg-transparent py-3 text-sm outline-none sm:w-56" /></label><button disabled={loading || busy} className={actionButton} onClick={() => void load()} aria-label={t("Refresh", "Tải lại")}><RefreshCw size={17} className={loading ? "motion-safe:animate-spin" : ""} /></button></div></div>
+      <div className="hidden items-center justify-between border-b border-[#E8EEE7] bg-[#F6F8F3] px-5 py-3 text-xs font-medium uppercase tracking-wide text-[#627369] sm:flex"><span>{t("Allergen name", "Tên chất gây dị ứng")}</span><span>{t("Actions", "Thao tác")}</span></div>
+      {loading ? <div role="status" className="py-14 text-center"><AdminLeafLoading text={t("Loading allergens…", "Đang tải danh mục dị ứng…")} /></div> : visible.length === 0 ? <p className="p-8 text-center text-sm text-[#627369]">{query ? t("No allergens found for this name.", "Không tìm thấy chất gây dị ứng theo tên này.") : t("No allergens yet. Add one to get started.", "Chưa có chất gây dị ứng. Thêm mới để bắt đầu.")}</p> : <ul className="vm-stagger divide-y divide-[#E8EEE7]">{visible.map(item => <li key={item.id} className="vm-enter flex flex-wrap items-center justify-between gap-3 px-4 py-4 hover:bg-[#F1F7F1] sm:px-5"><div className="flex min-w-0 flex-1 items-center gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF5EE] text-[#21764B]"><ShieldCheck size={20} /></span><span className="min-w-0 break-words text-sm font-medium sm:text-base">{item.name}</span></div><div className="flex shrink-0 items-center gap-2"><button disabled={busy} className="vm-button inline-flex items-center gap-2 rounded-xl border border-[#CEE2D3] bg-[#EDF5EE] px-3 py-2 text-sm font-medium text-[#205339] disabled:opacity-50" onClick={() => { setForm({ id: item.id, name: item.name }); setError(""); }}><Pencil size={16} />{t("Edit", "Sửa")}</button><button disabled={busy} className="vm-button inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 disabled:opacity-50" onClick={() => setRemoving(item)}><Trash2 size={16} />{t("Delete", "Xóa")}</button></div></li>)}</ul>}
     </section>
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#DFE8DF] bg-white p-4">
-      <p className="text-sm text-[#627369]">{t("Processed requests leave the pending queue. History is retained, and this page refreshes automatically.", "Yêu cầu đã xử lý tự rời hàng chờ. Lịch sử được giữ lại; trang tự cập nhật kết quả.")}</p>
-      <div className="flex items-center gap-2.5">
-        <span className="text-xs font-semibold text-[#727974]">{t("Request status", "Trạng thái yêu cầu")}:</span>
-        <AdminSelect<"PENDING" | "APPROVED" | "REJECTED">
-          value={status}
-          disabled={busy}
-          onChange={(newVal) => {
-            setLoading(true);
-            setStatus(newVal);
-          }}
-          options={[
-            { value: "PENDING", label: labels.PENDING },
-            { value: "APPROVED", label: labels.APPROVED },
-            { value: "REJECTED", label: labels.REJECTED },
-          ]}
-        />
-      </div>
-    </div>
-    {!loading && !queueFailed && visible.length === 0 && <p role="status" className="rounded-2xl border border-[#DFE8DF] bg-white p-6 text-sm text-[#627369]">{t("No requests match this status and search.", "Không có yêu cầu phù hợp với trạng thái và từ khóa này.")}</p>}
-    {!loading && !queueFailed && visible.length > 0 && <section aria-label={t("User allergen requests", "Yêu cầu dị ứng của người dùng")} className="space-y-3">
-      <h2 className="text-lg font-semibold">{t("User allergen requests", "Yêu cầu dị ứng của người dùng")}</h2>
-      {visible.map(item => {
-        const member = members.find(row => row.userId === item.userId);
-        const pending = item.status === "PENDING";
-        return <article key={item.id} className="vm-enter rounded-2xl border border-[#E5E9E0] bg-white p-4 sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className={`rounded-xl p-3 ${pending ? "bg-amber-50 text-amber-700" : item.status === "APPROVED" ? "bg-[#EAF5EE] text-[#21764B]" : "bg-red-50 text-red-700"}`}>{pending ? <Clock3 size={21} /> : item.status === "APPROVED" ? <CheckCircle2 size={21} /> : <XCircle size={21} />}</span><div className="min-w-0"><h2 className="break-words text-lg font-semibold">{item.name || item.submittedName}</h2><p className="mt-1 text-xs text-[#627369]">{t("Status: ", "Trạng thái: ")}{labels[item.status]} · {new Date(item.createdAt).toLocaleDateString(locale)}</p></div></div><p className="max-w-full break-words rounded-xl bg-[#F3F6F0] px-3 py-2 text-sm">{member?.fullName || member?.email || t(`Member #${item.userId}`, `Thành viên #${item.userId}`)}</p></div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#EEF1EB] pt-4"><p className="min-w-0 flex-1 break-words text-sm text-[#627369]">{item.rejectionReason || item.message || labels[item.status]}</p>{pending && <div className="flex flex-wrap gap-2"><button disabled={busy || loading} className={`${button} text-red-700`} onClick={() => { setRejecting(item); setReason(""); setError(""); }}>{t("Reject", "Từ chối")}</button><button disabled={busy || loading} className="vm-button rounded-xl vm-admin-tab-active px-4 py-2.5 text-sm text-white disabled:opacity-50 hover:brightness-105 active:scale-[0.98] transition" onClick={() => void review(item, true)}>{busy ? t("Processing…", "Đang xử lý…") : t("Approve request", "Phê duyệt yêu cầu")}</button></div>}</div>
-        </article>;
-      })}
-    </section>}
-    {rejecting && <ContentDialog title={t("Reject request", "Từ chối yêu cầu")} onClose={() => { if (!busy) setRejecting(null); }}><form className="space-y-4 p-6" onSubmit={event => { event.preventDefault(); void review(rejecting, false); }}><p className="text-sm">{rejecting.submittedName}</p><label className="block text-sm">{t("Reason shown to the user", "Lý do hiển thị cho người dùng")}<textarea required maxLength={1000} value={reason} disabled={busy} onChange={event => setReason(event.target.value)} rows={4} className="mt-2 w-full rounded-xl border p-3" /></label>{error && <p role="alert" className="text-sm text-red-700">{error}</p>}<button disabled={busy || !reason.trim()} className={button}>{busy ? t("Saving…", "Đang lưu…") : t("Confirm rejection", "Xác nhận từ chối")}</button></form></ContentDialog>}
-    {form && <ContentDialog title={form.id ? t("Edit allergen", "Sửa chất gây dị ứng") : t("Add allergen", "Thêm chất gây dị ứng")} onClose={() => { if (!busy) setForm(null); }}><form onSubmit={save} className="space-y-4 p-6"><label className="block text-sm">{t("Allergen name", "Tên chất gây dị ứng")}<input required maxLength={150} disabled={busy} value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} className="mt-2 w-full rounded-xl border p-3" /></label>{error && <p role="alert" className="text-sm text-red-700">{error}</p>}<button disabled={busy || !form.name.trim()} className={button}>{busy ? t("Saving…", "Đang lưu…") : t("Save", "Lưu")}</button></form></ContentDialog>}
-    <ConfirmDialog open={!!removing} title={t("Delete allergen?", "Xóa chất gây dị ứng?")} description={removing?.name || ""} confirmLabel={t("Delete", "Xóa")} busy={busy} onClose={() => setRemoving(null)} onConfirm={() => { if (removing) void run(async () => { await deleteAllergen(removing.id); setRemoving(null); }); }} />
+    {form && <ContentDialog title={form.id ? t("Edit allergen", "Sửa chất gây dị ứng") : t("Add allergen", "Thêm chất gây dị ứng")} onClose={() => { if (!busy) setForm(null); }}><form onSubmit={save} className="space-y-4 p-6"><label className="block text-sm">{t("Allergen name", "Tên chất gây dị ứng")}<input required maxLength={150} disabled={busy} value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} className="mt-2 w-full rounded-xl border p-3" /></label><button disabled={busy || !form.name.trim()} className={actionButton}>{busy ? t("Saving…", "Đang lưu…") : t("Save", "Lưu")}</button></form></ContentDialog>}
+    <ConfirmDialog open={!!removing} title={t("Delete allergen?", "Xóa chất gây dị ứng?")} description={removing?.name || ""} confirmLabel={t("Delete", "Xóa")} busy={busy} onClose={() => setRemoving(null)} onConfirm={remove} />
   </div>;
 }

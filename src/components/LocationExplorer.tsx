@@ -374,8 +374,8 @@ export default function LocationExplorer() {
           {message && <p role="status" className="mt-3 text-xs text-[#8b4a34]">{<UiText text={message} />}</p>}
         </div>
 
-        <div className="grid border-t border-[#edeae5] lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
-          <div className="min-w-0">
+        <div className="grid border-t border-[#edeae5] lg:h-[clamp(440px,58dvh,620px)] lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
+          <div className="min-w-0 lg:flex lg:min-h-0 lg:flex-col">
             <form onSubmit={(event) => void searchRestaurantsByDish(event)} className="border-b border-[#edeae5] bg-[#fbfaf8] p-3 sm:px-4">
               <label className="block text-sm font-semibold text-[#173f2d]">
                 {t("Find dishes at nearby restaurants", "Tìm món tại nhà hàng gần bạn")}
@@ -388,15 +388,15 @@ export default function LocationExplorer() {
               </label>
               <p className="mt-2 text-xs text-[#728078]">{t("Only restaurants within 5 km with dishes or ingredients matching your search are shown.", "Chỉ hiển thị nhà hàng trong bán kính 5 km có món hoặc nguyên liệu khớp với từ khóa.")}</p>
             </form>
-            <LeafletRestaurantMap center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
+            <LeafletRestaurantMap className="lg:min-h-0 lg:flex-1" center={center} restaurants={restaurants} selectedId={selected?.id} onSelect={setSelected} onMapClick={(coordinates) => void selectMapLocation(coordinates)} />
           </div>
-  <aside className="min-w-0 bg-[#fbfaf8] p-4">
+          <aside className="min-w-0 bg-[#fbfaf8] p-4 lg:flex lg:min-h-0 lg:flex-col">
             <div className="mb-4 flex items-end justify-between">
               <div><h3 className="font-serif text-xl font-semibold text-[#09281d]">{t("Places nearby", "Địa điểm gần đây")}</h3><p className="mt-1 text-xs text-[#788079]">{t("Within a maximum radius of 5 km", "Trong bán kính tối đa 5 km")}</p></div>
               <span className="rounded-full bg-[#e4eee7] px-2.5 py-1 text-xs font-bold text-[#24543d]">{restaurants.length}</span>
             </div>
             {loading ? <p className="py-10 text-center text-sm text-[#788079]">{t("Searching for places...", "Đang tìm địa điểm...")}</p> : restaurants.length === 0 ? <p className="rounded-xl bg-white p-5 text-sm leading-6 text-[#6b736d]">{t("No matching VeggieMate restaurants were found within 5 km of this address.", "Không tìm thấy nhà hàng VeggieMate phù hợp trong bán kính 5 km quanh địa chỉ này.")}</p> : (
-              <div className="space-y-3 pb-1">{restaurants.map((restaurant) => (
+              <div className="space-y-3 pb-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-1 [scrollbar-gutter:stable]">{restaurants.map((restaurant) => (
                 <button key={restaurant.id} type="button" onClick={() => { setSelected(restaurant); setDetailRestaurant(restaurant); }} className={`w-full rounded-2xl border p-4 text-left transition ${selected?.id === restaurant.id ? "border-[#397158] bg-[#eef5f0] shadow-sm" : "border-[#ebe8e2] bg-white hover:border-[#b9cfc2]"}`}>
                   {restaurant.imageUrl && <Image src={getMediaUrl(restaurant.imageUrl)} alt={restaurant.name} width={320} height={120} unoptimized className="mb-3 h-28 w-full rounded-xl object-cover" />}
                   <div className="flex items-start justify-between gap-3"><div><span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a34d32]">{displayPlaceCategory(restaurant.category, t)}</span><h4 className="mt-1 font-serif text-lg font-semibold text-[#123629]">{restaurant.name}</h4></div><span className="whitespace-nowrap text-xs font-bold text-[#775c20]">{restaurant.distanceKm != null ? `${restaurant.distanceKm.toFixed(1)} km` : ""}</span></div>

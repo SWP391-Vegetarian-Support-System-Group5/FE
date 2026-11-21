@@ -173,34 +173,6 @@ export function updateUserAllergens(allergenIds: number[]) {
   });
 }
 
-export type AllergenSubmission = {
-  id: number; userId: number; submittedName: string; name: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  message: string; rejectionReason: string | null; allergenId: number | null;
-  createdAt: string; reviewedAt: string | null; reviewedByUserId: number | null;
-};
-
-export const getAllergenSubmissions = async () => {
-  const response = await apiFetch("/api/users/me/allergen-requests", { cache: "no-store" });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(typeof data?.message === "string" ? data.message : "ALLERGEN_HISTORY_FAILED");
-  if (!Array.isArray(data)) throw new Error("ALLERGEN_RESPONSE_INVALID");
-  return data as AllergenSubmission[];
-};
-
-/** Submits a proposal for admin review; does not change profile selections. */
-export async function createCustomAllergen(name: string): Promise<AllergenSubmission> {
-  const response = await apiFetch("/api/users/me/allergens/custom", {
-    method: "POST", body: JSON.stringify({ name }),
-  });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.message || data?.detail || "ALLERGEN_SUBMIT_FAILED");
-  if (!data || !Number.isInteger(data.id) || !["PENDING", "APPROVED", "REJECTED"].includes(data.status)) {
-    throw new Error("ALLERGEN_RESPONSE_INVALID");
-  }
-  return data as AllergenSubmission;
-}
-
 /** Fetch all provinces */
 export function getProvinces() {
   return apiGet<ProvinceItem[]>("/api/locations/provinces");
