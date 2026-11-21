@@ -1,7 +1,6 @@
 "use client";
 
 import ContentIcon from "@/components/content/ContentIcon";
-import AllergenRequestsPanel from "@/components/profile/AllergenRequestsPanel";
 import AllergenSelectionSave from "@/components/profile/AllergenSelectionSave";
 
 import UiText, { useUiText } from "@/components/UiText";
@@ -1037,7 +1036,6 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
           </div>
           {allAllergens.length === 0 && <p className="text-sm text-[#727974]">{t("The allergen list is currently unavailable.", "Hiện chưa có danh sách dị ứng để chọn.")}</p>}
           <AllergenSelectionSave selectedIds={selectedAllergenIds} savedIds={savedAllergenIds} catalog={allAllergens} disabled={saving} onBusyChange={setAllergenSaving} onSaved={applySavedAllergens} />
-          <AllergenRequestsPanel key={avatarOwner?.uid ?? "guest"} onCatalogChange={setAllAllergens} />
         </div>
       </section>
 

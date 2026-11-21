@@ -13,6 +13,7 @@ type Props = {
   selectedId?: string;
   onSelect: (restaurant: Restaurant) => void;
   onMapClick: (coordinates: Coordinates) => void;
+  className?: string;
 };
 
 const cartoBasemapKey = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY;
@@ -75,12 +76,12 @@ function MapZoomButtons() {
   );
 }
 
-export default function LeafletRestaurantMap({ center, restaurants, selectedId, onSelect, onMapClick }: Props) {
+export default function LeafletRestaurantMap({ center, restaurants, selectedId, onSelect, onMapClick, className }: Props) {
   const [tileSourceIndex, setTileSourceIndex] = useState(0);
   const tileSource = tileSources[tileSourceIndex];
 
   return (
-    <div className="relative h-[320px] min-w-0 lg:h-[clamp(300px,43dvh,430px)] overflow-hidden bg-[#e8eee9]">
+    <div className={`relative min-w-0 overflow-hidden bg-[#e8eee9] ${className ? `h-[320px] lg:h-full ${className}` : "h-[320px] lg:h-[clamp(300px,43dvh,430px)]"}`}>
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={14}
