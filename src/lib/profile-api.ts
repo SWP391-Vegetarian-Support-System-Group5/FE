@@ -33,17 +33,17 @@ export interface BackendUserProfile {
 /** Shape sent to PUT /api/users/me/profile */
 export interface UpdateProfilePayload {
   fullName: string;
-  sex: "MALE" | "FEMALE" | null;
+  sex: "MALE" | "FEMALE";
   birthDate?: string | null;
-  birthYear?: number | null;
-  heightCm: number | null;
-  weightKg: number | null;
-  activityLevel: ActivityLevel | null;
-  goalWeightKg: number | null;
-  dietTypeId: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  livingAddress?: string | null;
+  birthYear: number;
+  heightCm: number;
+  weightKg: number;
+  activityLevel: ActivityLevel;
+  goalWeightKg: number;
+  dietTypeId: number;
+  latitude: number;
+  longitude: number;
+  livingAddress: string;
 }
 
 /** Single diet type from GET /api/diet-types */
