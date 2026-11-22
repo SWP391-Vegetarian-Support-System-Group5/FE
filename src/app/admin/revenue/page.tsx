@@ -75,11 +75,6 @@ export default function AdminRevenuePage() {
     );
   }, [revenue?.purchases, query]);
 
-  const averageTransaction =
-    revenue && revenue.paidTransactionCount > 0
-      ? Math.round(revenue.totalRevenueVnd / revenue.paidTransactionCount)
-      : 0;
-
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -135,7 +130,7 @@ export default function AdminRevenuePage() {
       )}
 
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-2xs">
           <div className="flex items-center justify-between text-[#727974]">
             <span className="text-[11px] font-bold uppercase tracking-wider">
@@ -172,27 +167,6 @@ export default function AdminRevenuePage() {
           </p>
           <p className="mt-1 text-xs text-[#727974]">
             {t("Verified payment transactions", "Giao dịch đã xác thực thành công")}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-2xs">
-          <div className="flex items-center justify-between text-[#727974]">
-            <span className="text-[11px] font-bold uppercase tracking-wider">
-              {t("Average Transaction", "Giá trị trung bình")}
-            </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FFF3EB] text-[#C25E26]">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <path d="m16 12-4-4-4 4" />
-                <path d="M12 16V8" />
-              </svg>
-            </div>
-          </div>
-          <p className="mt-3 font-serif text-3xl font-bold text-[#07241A]">
-            {loading ? "…" : money(averageTransaction)}
-          </p>
-          <p className="mt-1 text-xs text-[#727974]">
-            {t("Average revenue per payment", "Doanh thu bình quân mỗi đơn")}
           </p>
         </div>
       </div>
