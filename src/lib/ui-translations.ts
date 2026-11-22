@@ -1077,6 +1077,11 @@ verified reviews|đánh giá xác thực
 Public|Công khai
 Private|Riêng tư
 dining places in Vietnam database|địa điểm ăn chay trong hệ thống Việt Nam
+Subscription Plans|Gói đăng ký
+Subscription Revenue|Doanh thu gói đăng ký
+Fee management|Fee management (Quản lý phí)
+Fee Management|Fee Management (Quản lý phí)
+FEE MANAGEMENT|FEE MANAGEMENT (QUẢN LÝ PHÍ)
 `;
 
 const catalog = new Map<string, readonly [string, string]>();
