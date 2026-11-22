@@ -314,10 +314,10 @@ export default function AdminLayout({
             );
           })}
 
-          {/* Fee Management Section Header */}
+          {/* Billing Management Section Header */}
           <div className="pt-4 pb-1 px-3.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#727974]">
-              <UiText text="Fee management" />
+              <UiText text="Billing Management" />
             </p>
           </div>
 

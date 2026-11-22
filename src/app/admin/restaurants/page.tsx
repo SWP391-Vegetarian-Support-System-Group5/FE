@@ -92,16 +92,6 @@ function getRestaurantThumbnail(item: AdminRestaurant, index: number): string {
   return RESTAURANT_IMAGES[(item.restaurantId + index) % RESTAURANT_IMAGES.length];
 }
 
-function getRestaurantSubname(item: AdminRestaurant): string {
-  const name = item.name.toLowerCase();
-  if (name.includes("green garden")) return "Quán chay Vườn Xanh";
-  if (name.includes("loving leaf")) return "Lá Xanh Thuần Chay";
-  if (name.includes("an nhien") || name.includes("an nhiên")) return "Cơm chay An Nhiên";
-  if (name.includes("roots")) return "Roots Saigon Cafe";
-  if (item.foods && item.foods.length > 0) return item.foods[0];
-  return "Ẩm thực chay";
-}
-
 function getRestaurantStatus(item: AdminRestaurant): "Public" | "Private" {
   // If coordinates are set or deterministically available
   return item.latitude !== null || item.restaurantId % 4 !== 0 ? "Public" : "Private";
@@ -540,7 +530,7 @@ export default function AdminRestaurantsPage() {
       <div className="overflow-hidden rounded-2xl border border-[#EFEEEB] bg-white shadow-2xs">
         {/* Table Header */}
         <div className="hidden border-b border-[#EFEEEB] bg-[#FBF9F6] px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#727974] md:grid md:grid-cols-[2.3fr_3.1fr_2.1fr_1.5fr_1fr] md:items-center md:gap-4">
-          <div>{t("RESTAURANT & IDENTITY", "NHÀ HÀNG & NHẬN DIỆN")}</div>
+          <div>{t("RESTAURANT", "NHÀ HÀNG")}</div>
           <div>{t("LOCATION", "ĐỊA ĐIỂM")}</div>
           <div>{t("TYPES OF VEGETARIANISM", "LOẠI HÌNH ĂN CHAY")}</div>
           <div className="text-center">{t("STATUS", "TRẠNG THÁI")}</div>
@@ -565,7 +555,6 @@ export default function AdminRestaurantsPage() {
             {shown.map((item, idx) => {
               const status = getRestaurantStatus(item);
               const thumbnail = getRestaurantThumbnail(item, idx);
-              const subname = getRestaurantSubname(item);
 
               // Find primary diet name
               const primaryDiet = item.dietTypeIds
@@ -585,7 +574,7 @@ export default function AdminRestaurantsPage() {
                   key={item.restaurantId}
                   className="group relative flex flex-col gap-3 px-5 py-3.5 transition hover:bg-[#FDFCFB] md:grid md:grid-cols-[2.3fr_3.1fr_2.1fr_1.5fr_1fr] md:items-center md:gap-4"
                 >
-                  {/* RESTAURANT & IDENTITY */}
+                  {/* RESTAURANT */}
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#EFEEEB] bg-[#F4F2EE]">
                       <Image
@@ -601,9 +590,7 @@ export default function AdminRestaurantsPage() {
                       <h2 className="font-serif text-[15px] font-bold text-[#07241A] tracking-tight truncate">
                         {item.name}
                       </h2>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-xs text-[#727974] truncate">
-                        <span className="italic">{subname}</span>
-                        <span>•</span>
+                      <div className="mt-0.5 flex items-center text-xs text-[#727974] truncate">
                         <span className="font-mono text-[11px] text-[#8F948F]">
                           ID: VMR-{item.restaurantId.toString().padStart(4, "0")}
                         </span>
