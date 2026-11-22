@@ -539,12 +539,12 @@ export default function AdminRestaurantsPage() {
       {/* Main Table Container */}
       <div className="overflow-hidden rounded-2xl border border-[#EFEEEB] bg-white shadow-2xs">
         {/* Table Header */}
-        <div className="hidden grid-cols-12 gap-4 border-b border-[#EFEEEB] bg-[#FBF9F6] px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#727974] md:grid">
-          <div className="col-span-4">{t("RESTAURANT & IDENTITY", "NHÀ HÀNG & NHẬN DIỆN")}</div>
-          <div className="col-span-3">{t("LOCATION", "ĐỊA ĐIỂM")}</div>
-          <div className="col-span-2">{t("TYPES OF VEGETARIANISM", "LOẠI HÌNH ĂN CHAY")}</div>
-          <div className="col-span-2">{t("STATUS", "TRẠNG THÁI")}</div>
-          <div className="col-span-1 text-right">{t("ACTIONS", "THAO TÁC")}</div>
+        <div className="hidden border-b border-[#EFEEEB] bg-[#FBF9F6] px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#727974] md:grid md:grid-cols-[2.3fr_3.1fr_2.1fr_1.5fr_1fr] md:items-center md:gap-4">
+          <div>{t("RESTAURANT & IDENTITY", "NHÀ HÀNG & NHẬN DIỆN")}</div>
+          <div>{t("LOCATION", "ĐỊA ĐIỂM")}</div>
+          <div>{t("TYPES OF VEGETARIANISM", "LOẠI HÌNH ĂN CHAY")}</div>
+          <div className="text-center">{t("STATUS", "TRẠNG THÁI")}</div>
+          <div className="text-right">{t("ACTIONS", "THAO TÁC")}</div>
         </div>
 
         {/* Table Body / Rows */}
@@ -583,10 +583,10 @@ export default function AdminRestaurantsPage() {
               return (
                 <div
                   key={item.restaurantId}
-                  className="group relative flex flex-col gap-3 px-5 py-3.5 transition hover:bg-[#FDFCFB] md:grid md:grid-cols-12 md:items-center md:gap-4"
+                  className="group relative flex flex-col gap-3 px-5 py-3.5 transition hover:bg-[#FDFCFB] md:grid md:grid-cols-[2.3fr_3.1fr_2.1fr_1.5fr_1fr] md:items-center md:gap-4"
                 >
                   {/* RESTAURANT & IDENTITY */}
-                  <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                  <div className="flex items-center gap-3.5 min-w-0">
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-[#EFEEEB] bg-[#F4F2EE]">
                       <Image
                         src={thumbnail}
@@ -612,7 +612,7 @@ export default function AdminRestaurantsPage() {
                   </div>
 
                   {/* LOCATION */}
-                  <div className="col-span-3 flex items-start gap-1.5 min-w-0 pr-2">
+                  <div className="flex items-start gap-1.5 min-w-0 pr-2">
                     <svg
                       width="15"
                       height="15"
@@ -631,7 +631,7 @@ export default function AdminRestaurantsPage() {
                   </div>
 
                   {/* TYPES OF VEGETARIANISM */}
-                  <div className="col-span-2 min-w-0">
+                  <div className="min-w-0">
                     {isVegan ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D5EBDC] bg-[#EAF5EE] px-3 py-1 text-[11px] font-semibold text-[#1E7E51] whitespace-nowrap">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -658,7 +658,7 @@ export default function AdminRestaurantsPage() {
                   {/* STATUS & ACTIONS */}
                   <div className="flex items-center justify-between border-t border-[#EFEEEB]/60 pt-2.5 md:contents">
                     {/* STATUS */}
-                    <div className="col-span-2 flex items-center">
+                    <div className="flex items-center justify-start md:justify-center">
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium whitespace-nowrap ${status === "Public"
                           ? "bg-[#EAF5EE] text-[#1E7E51]"
@@ -674,7 +674,7 @@ export default function AdminRestaurantsPage() {
                     </div>
 
                     {/* ACTIONS */}
-                    <div className="col-span-1 flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
                         disabled={busy}
