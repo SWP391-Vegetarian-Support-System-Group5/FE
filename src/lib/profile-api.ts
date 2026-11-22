@@ -33,17 +33,17 @@ export interface BackendUserProfile {
 /** Shape sent to PUT /api/users/me/profile */
 export interface UpdateProfilePayload {
   fullName: string;
-  sex: "MALE" | "FEMALE" | null;
+  sex: "MALE" | "FEMALE";
   birthDate?: string | null;
-  birthYear?: number | null;
-  heightCm: number | null;
-  weightKg: number | null;
-  activityLevel: ActivityLevel | null;
-  goalWeightKg: number | null;
-  dietTypeId: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  livingAddress?: string | null;
+  birthYear: number;
+  heightCm: number;
+  weightKg: number;
+  activityLevel: ActivityLevel;
+  goalWeightKg: number;
+  dietTypeId: number;
+  latitude: number;
+  longitude: number;
+  livingAddress: string;
 }
 
 /** Single diet type from GET /api/diet-types */
@@ -171,34 +171,6 @@ export function updateUserAllergens(allergenIds: number[]) {
     if (!response.ok) throw new Error(typeof data?.message === "string" ? data.message : "ALLERGEN_SAVE_FAILED");
     return data;
   });
-}
-
-export type AllergenSubmission = {
-  id: number; userId: number; submittedName: string; name: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  message: string; rejectionReason: string | null; allergenId: number | null;
-  createdAt: string; reviewedAt: string | null; reviewedByUserId: number | null;
-};
-
-export const getAllergenSubmissions = async () => {
-  const response = await apiFetch("/api/users/me/allergen-requests", { cache: "no-store" });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(typeof data?.message === "string" ? data.message : "ALLERGEN_HISTORY_FAILED");
-  if (!Array.isArray(data)) throw new Error("ALLERGEN_RESPONSE_INVALID");
-  return data as AllergenSubmission[];
-};
-
-/** Submits a proposal for admin review; does not change profile selections. */
-export async function createCustomAllergen(name: string): Promise<AllergenSubmission> {
-  const response = await apiFetch("/api/users/me/allergens/custom", {
-    method: "POST", body: JSON.stringify({ name }),
-  });
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.message || data?.detail || "ALLERGEN_SUBMIT_FAILED");
-  if (!data || !Number.isInteger(data.id) || !["PENDING", "APPROVED", "REJECTED"].includes(data.status)) {
-    throw new Error("ALLERGEN_RESPONSE_INVALID");
-  }
-  return data as AllergenSubmission;
 }
 
 /** Fetch all provinces */

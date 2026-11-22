@@ -2,7 +2,6 @@
 
 import { validateHealthProfile, healthErrorText } from "@/lib/health-profile-validation";
 import ContentIcon from "@/components/content/ContentIcon";
-import AllergenRequestsPanel from "@/components/profile/AllergenRequestsPanel";
 import AllergenSelectionSave from "@/components/profile/AllergenSelectionSave";
 
 import UiText, { useUiText } from "@/components/UiText";
@@ -77,6 +76,11 @@ interface ProfileErrors {
   fullName?: string;
   heightCm?: string;
   weightKg?: string;
+  goalWeightKg?: string;
+  sex?: string;
+  activityLevel?: string;
+  dietTypeId?: string;
+  location?: string;
 }
 
 function toAreaItems(items: Array<{ code: string; name: string; type: string; latitude?: number | null; longitude?: number | null }>): AreaItem[] {
@@ -90,8 +94,14 @@ function toAreaItems(items: Array<{ code: string; name: string; type: string; la
 function validateDraft(d: ProfileDraft, currentYear: number): ProfileErrors {
   const errors: ProfileErrors = {};
   if (!d.fullName.trim()) errors.fullName = "Full name is required.";
-  if (d.birthYear && !validBirthYear(d.birthYear, currentYear))
+  if (!d.birthYear || !validBirthYear(d.birthYear, currentYear))
     errors.birthYear = `Nhập năm sinh từ ${currentYear - 120} đến ${currentYear}.`;
+  if (!d.heightCm.trim()) errors.heightCm = "Please enter your height.";
+  if (!d.weightKg.trim()) errors.weightKg = "Please enter your current weight.";
+  if (!d.goalWeightKg.trim()) errors.goalWeightKg = "Please enter your target weight.";
+  if (!d.sex) errors.sex = "Please select your sex.";
+  if (!d.activityLevel) errors.activityLevel = "Please select your activity level.";
+  if (!d.dietTypeId) errors.dietTypeId = "Please select your vegetarian diet.";
   return errors;
 }
 
@@ -351,7 +361,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   }, [toastMessage]);
 
   // ── Derived ──────────────────────────────────────────────────────────────
-  const healthErrors = validateHealthProfile(draft);
+  const healthErrors = validateHealthProfile(draft, true);
   const bmi = !healthErrors.heightCm && !healthErrors.weightKg ? computeBmi(String(Number(draft.heightCm)), String(Number(draft.weightKg))) : null;
   const bmiCategory = bmi !== null ? classifyBmi(bmi) : null;
   const selectedActivity = ACTIVITY_LEVELS.find(level => level.value === draft.activityLevel);
@@ -472,7 +482,8 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     if (saving || allergenSaving) return;
     setSaveError(null);
     const validationErrors = validateDraft(draft, currentYear);
-    if (Object.keys(validationErrors).length > 0 || Object.keys(validateHealthProfile(draft)).length > 0) {
+    if (!selectedCoords || !addressQuery.trim()) validationErrors.location = "Please select a valid living address.";
+    if (Object.keys(validationErrors).length > 0 || Object.keys(validateHealthProfile(draft, true)).length > 0) {
       setErrors(validationErrors);
       return;
     }
@@ -481,17 +492,17 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     try {
       const payload: UpdateProfilePayload = {
         fullName: draft.fullName,
-        sex: draft.sex,
+        sex: draft.sex!,
         birthDate: birthDateForYear(draft.birthYear, draft.birthDate),
-        birthYear: draft.birthYear ? Number(draft.birthYear) : null,
-        heightCm: draft.heightCm.trim() ? Number(draft.heightCm) : null,
-        weightKg: draft.weightKg.trim() ? Number(draft.weightKg) : null,
-        activityLevel: draft.activityLevel,
-        goalWeightKg: draft.goalWeightKg.trim() ? Number(draft.goalWeightKg) : null,
-        dietTypeId: draft.dietTypeId,
-        latitude: selectedCoords?.lat ?? null,
-        longitude: selectedCoords?.lng ?? null,
-        livingAddress: addressQuery.trim() || null,
+        birthYear: Number(draft.birthYear),
+        heightCm: parseFloat(draft.heightCm),
+        weightKg: parseFloat(draft.weightKg),
+        activityLevel: draft.activityLevel!,
+        goalWeightKg: parseFloat(draft.goalWeightKg),
+        dietTypeId: draft.dietTypeId!,
+        latitude: selectedCoords!.lat,
+        longitude: selectedCoords!.lng,
+        livingAddress: addressQuery.trim(),
       };
 
       const [updatedProfile] = await Promise.all([
@@ -580,6 +591,9 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <>
+      {Object.keys(errors).length > 0 && <div role="alert" className="vm-feedback rounded-2xl border border-[#E6C6BA] bg-[#FFF6F2] p-4 text-sm text-[#99462A]">
+        {Object.entries(errors).map(([field, message]) => <p key={field}><UiText text={message} /></p>)}
+      </div>}
       {saveError && <div role="alert" className="vm-feedback rounded-2xl border border-[#E6C6BA] bg-[#FFF6F2] p-4 text-sm text-[#99462A]">
         <p className="font-semibold">{t("Could not finish saving your profile", "Chưa thể hoàn tất lưu hồ sơ")}</p>
         <p className="mt-1 whitespace-pre-line"><UiText text={saveError} /></p>
@@ -1038,7 +1052,6 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
           </div>
           {allAllergens.length === 0 && <p className="text-sm text-[#727974]">{t("The allergen list is currently unavailable.", "Hiện chưa có danh sách dị ứng để chọn.")}</p>}
           <AllergenSelectionSave selectedIds={selectedAllergenIds} savedIds={savedAllergenIds} catalog={allAllergens} disabled={saving} onBusyChange={setAllergenSaving} onSaved={applySavedAllergens} />
-          <AllergenRequestsPanel key={avatarOwner?.uid ?? "guest"} onCatalogChange={setAllAllergens} />
         </div>
       </section>
 

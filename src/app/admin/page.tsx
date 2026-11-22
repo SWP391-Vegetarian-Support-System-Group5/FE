@@ -17,6 +17,11 @@ interface AdminPost {
 interface AdminComment {
   commentId: number; authorName: string; content: string; createdAt: string;
 }
+interface PaymentPurchase {
+  paymentTransactionId: number; userId: number; userName: string; userEmail: string;
+  planName: string; amountVnd: number; purchasedAt: string; transactionCode: string;
+}
+interface PaymentRevenue { totalRevenueVnd: number; paidTransactionCount: number; purchases: PaymentPurchase[]; }
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -26,6 +31,7 @@ export default function AdminDashboardPage() {
   const [users, setUsers] = useState<{ userId: number }[]>([]);
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [comments, setComments] = useState<AdminComment[]>([]);
+  const [revenue, setRevenue] = useState<PaymentRevenue | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -36,14 +42,17 @@ export default function AdminDashboardPage() {
       apiGet<{ userId: number }[]>("/api/admin/users", { signal: controller.signal }),
       apiGet<AdminPost[]>("/api/admin/posts", { signal: controller.signal }),
       apiGet<AdminComment[]>("/api/admin/comments", { signal: controller.signal }),
-    ]).then(([nextUsers, nextPosts, nextComments]) => {
-      setUsers(nextUsers); setPosts(nextPosts); setComments(nextComments); setError(false);
+      apiGet<PaymentRevenue>("/api/admin/billing/revenue", { signal: controller.signal }),
+    ]).then(([nextUsers, nextPosts, nextComments, nextRevenue]) => {
+      setUsers(nextUsers); setPosts(nextPosts); setComments(nextComments); setRevenue(nextRevenue); setError(false);
     }).catch(() => { if (!controller.signal.aborted) setError(true); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [user?.role]);
 
   const date = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
+  const dateTime = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  const money = (value: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
   const published = posts.filter(post => post.status.toUpperCase() === "PUBLISHED").length;
   const activities = useMemo(() => [
     ...posts.map(post => ({ id: `p${post.postId}`, author: post.authorName, detail: post.title, kind: post.postType, date: post.createdAt })),
@@ -56,14 +65,16 @@ export default function AdminDashboardPage() {
   return <div className="space-y-6">
     <div className="pt-2"><p className="text-[11px] font-bold uppercase tracking-wider text-[#2D5A46]">{t("Overview & Moderation", "Tổng quan & Kiểm duyệt")}</p><h1 className="mt-1 font-serif text-3xl font-bold text-[#07241A] lg:text-4xl">{t("Administration", "Quản trị")}</h1><p className="mt-1 text-xs text-[#727974]">{t("Keep the VeggieMate community healthy and organized.", "Giữ cộng đồng VeggieMate lành mạnh và ngăn nắp.")}</p></div>
     {(error || moderation.error) && <p role="alert" className="text-xs text-[#C2410C]">{t("Could not load all dashboard data.", "Không thể tải toàn bộ dữ liệu tổng quan.")}</p>}
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       {[
         [t("Members", "Thành viên"), users.length, t("Registered members", "Thành viên đã đăng ký")],
         [t("Content", "Nội dung"), published, t("Published posts and recipes", "Bài viết và công thức đã đăng")],
         [t("Needs Review", "Cần duyệt"), moderation.flaggedCount, t("Items needing review", "Nội dung cần duyệt")],
         [t("Discourse", "Thảo luận"), comments.length, t("Total community comments", "Tổng bình luận cộng đồng")],
       ].map(([label, count, description], index) => <div key={label} className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-sm"><span className="text-[11px] font-bold uppercase tracking-wider text-[#727974]">{label}</span><p className="mt-3 font-serif text-3xl font-bold text-[#07241A]">{loading || (index === 2 && moderation.loading) ? "…" : error || (index === 2 && moderation.error) ? "—" : Number(count).toLocaleString(locale)}</p><p className="mt-1 text-xs text-[#727974]">{description}</p></div>)}
+      <a href="#payment-history" className="rounded-2xl border border-[#EFEEEB] bg-white p-5 shadow-sm transition hover:border-[#A9C9B1] hover:bg-[#F7FAF5]"><span className="text-[11px] font-bold uppercase tracking-wider text-[#727974]">{t("Revenue", "Doanh thu")}</span><p className="mt-3 font-serif text-2xl font-bold text-[#07241A]">{loading || error ? "…" : money(revenue?.totalRevenueVnd ?? 0)}</p><p className="mt-1 text-xs text-[#727974]">{loading || error ? "" : t(`${revenue?.paidTransactionCount ?? 0} successful payments`, `${revenue?.paidTransactionCount ?? 0} giao dịch thành công`)}</p></a>
     </div>
+    <section id="payment-history" className="rounded-2xl border border-[#EFEEEB] bg-white p-6 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFEEEB] pb-4"><div><h2 className="font-serif text-lg font-bold text-[#07241A]">{t("Subscription revenue", "Doanh thu gói đăng ký")}</h2><p className="mt-1 text-xs text-[#727974]">{t("Successful payments only", "Chỉ gồm giao dịch thanh toán thành công")}</p></div><p className="rounded-xl bg-[#EAF5EE] px-4 py-2 text-sm font-bold text-[#205339]">{loading || error ? "…" : money(revenue?.totalRevenueVnd ?? 0)}</p></div>{loading ? <div className="py-8 text-center"><AdminLeafLoading size="sm" text={t("Loading revenue…", "Đang tải doanh thu…")} /></div> : <div className="overflow-x-auto"><table className="mt-4 w-full text-left text-xs"><thead><tr className="border-b border-[#EFEEEB] text-[10px] font-bold uppercase text-[#727974]"><th className="pb-3">{t("Account", "Tài khoản")}</th><th className="pb-3">{t("Plan", "Gói")}</th><th className="pb-3">{t("Amount", "Số tiền")}</th><th className="pb-3">{t("Purchased at", "Thời gian mua")}</th><th className="pb-3">{t("Transfer code", "Mã chuyển khoản")}</th></tr></thead><tbody className="divide-y divide-[#EFEEEB]/60">{revenue?.purchases.map(payment => <tr key={payment.paymentTransactionId} className="hover:bg-[#FBF9F6]/80"><td className="py-3.5"><strong className="block text-[#07241A]">{payment.userName}</strong><span className="text-[#727974]">{payment.userEmail}</span></td><td>{payment.planName}</td><td className="font-semibold text-[#205339]">{money(payment.amountVnd)}</td><td>{dateTime(payment.purchasedAt)}</td><td className="font-mono text-[11px] text-[#627369]">{payment.transactionCode}</td></tr>)}</tbody></table>{!revenue?.purchases.length && <p className="py-6 text-center text-xs text-[#727974]">{t("No successful subscription payments yet.", "Chưa có giao dịch mua gói thành công.")}</p>}</div>}</section>
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
       <section className="rounded-2xl border border-[#EFEEEB] bg-white p-6 shadow-sm lg:col-span-7"><div className="flex items-center justify-between border-b border-[#EFEEEB] pb-4"><h2 className="text-sm font-bold text-[#07241A]">{t("Recent Activity", "Hoạt động gần đây")}</h2><Link href="/admin/content" className="text-xs font-semibold text-[#2D5A46] hover:underline">{t("View ledger", "Xem danh sách")} →</Link></div>{loading ? <div className="py-8 text-center"><AdminLeafLoading size="sm" text={t("Loading activity...", "Đang tải hoạt động...")} /></div> : <div className="divide-y divide-[#EFEEEB]/60">{activities.map(item => <div key={item.id} className="flex items-start justify-between gap-3 py-3.5 text-xs"><div><p className="font-bold">{item.author}</p><p className="mt-1 text-[#727974]"><span className="mr-2 rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-bold text-[#2E7D32]">{ui(item.kind)}</span>{localizeRecipeTitle(item.detail, "vi")}</p></div><time className="shrink-0 text-[11px] text-[#A0A5A1]">{date(item.date)}</time></div>)}{activities.length === 0 && <p className="py-4 text-xs text-[#727974]">{t("No recent activity.", "Chưa có hoạt động gần đây.")}</p>}</div>}</section>
       <section className="flex flex-col justify-between rounded-2xl border border-[#EFEEEB] bg-white p-6 shadow-sm lg:col-span-5"><div><div className="flex items-center justify-between border-b border-[#EFEEEB] pb-4"><h2 className="text-sm font-bold text-[#07241A]">{t("Moderation Attention", "Nội dung cần kiểm duyệt")}</h2><span className="rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-[11px] font-bold text-[#C2410C]">{moderation.loading ? "…" : moderation.error ? "—" : moderation.flaggedCount} {t("Pending", "Đang chờ")}</span></div><div className="mt-4 rounded-xl border border-[#FFDDD2] bg-[#FFF6F3] p-4 text-xs text-[#9A3412]"><strong>{moderation.loading ? "…" : moderation.error ? "—" : moderation.flaggedCount} {t("items need review", "nội dung cần duyệt")}</strong></div><p className="mb-2 mt-4 text-[10px] font-bold uppercase tracking-wider text-[#727974]">{t("Pending decision queue", "Hàng đợi xử lý")}</p><div className="space-y-2">{[[t("Community Recipes", "Công thức cộng đồng"), moderation.recipesCount], [t("Posts", "Bài viết"), moderation.postsCount], [t("Comments & Discussions", "Bình luận & Thảo luận"), moderation.commentsCount]].map(([label, count]) => <Link key={label} href="/admin/flagged" className="flex items-center justify-between rounded-xl bg-[#FBF9F6] p-3 text-xs font-semibold text-[#07241A] transition hover:bg-[#F2EFE9] vm-admin-nav-hover"><span>{label}</span><span>{moderation.loading ? "…" : moderation.error ? "—" : count} ›</span></Link>)}</div></div><Link href="/admin/flagged" className="mt-5 flex justify-center rounded-xl vm-admin-tab-active py-3 text-xs font-semibold text-white transition hover:brightness-105 active:scale-[0.98]">{t("Review Flagged Content", "Duyệt nội dung bị báo cáo")}</Link></section>

@@ -177,6 +177,7 @@ function RecipeContentView() {
     const messageType = published ? "success" : "info";
     const savedMessage = published
       ? (isAdmin ? "Công thức đã được lưu và đăng bởi quản trị viên." : "Bài viết đã được AI duyệt và đăng.")
+      : saved.status === "PENDING_REVIEW" ? "Bài viết thủ công đã được gửi và đang chờ quản trị viên duyệt."
       : saved.moderationReason || "Bài chưa qua kiểm duyệt và đã được lưu bản nháp.";
     if (!imageFile) { setStatusMessage({ type: messageType, text: savedMessage }); return; }
     try {
@@ -757,10 +758,11 @@ function RecipeContentView() {
           ingredients,
           steps,
           categoryIds: selectedCategoryIds,
+          requiresAdminReview: true,
         };
 
         const res = serverRecipeDraftId ? await updateRecipe(serverRecipeDraftId, payload) : await createRecipe(payload);
-        if (res.status === "DRAFT") setServerRecipeDraftId(res.postId);
+        if (res.status !== "PUBLISHED") setServerRecipeDraftId(res.postId);
         createdPost.current = res;
         setPublishedResult(res);
         try {
@@ -795,9 +797,15 @@ function RecipeContentView() {
           <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight text-[#07241A] sm:text-4xl"><UiText text={"Tạo bài viết"} /></h1>
           <p className="mt-1 text-sm text-[#424844]"><UiText text={"Chia sẻ công thức món chay của bạn với cộng đồng."} /></p>
         </div>
-
-
+        <div className="inline-flex rounded-xl border border-[#D7E3D7] bg-[#F3F7F0] p-1 text-xs font-semibold text-[#53675A]" role="group" aria-label="Chế độ tạo bài viết">
+          <button type="button" disabled={isSubmitting || !!publishedResult} onClick={() => { setCreationMode("ai"); setStatusMessage(null); }} className={`rounded-lg px-3 py-2 transition ${creationMode === "ai" ? "bg-[#254B38] text-white shadow-sm" : "hover:bg-white"}`}>Đăng bài bằng AI</button>
+          <button type="button" disabled={isSubmitting || !!publishedResult} onClick={() => { setCreationMode("manual"); setStatusMessage(null); }} className={`rounded-lg px-3 py-2 transition ${creationMode === "manual" ? "bg-[#254B38] text-white shadow-sm" : "hover:bg-white"}`}>Viết thủ công</button>
+        </div>
       </div>
+
+      <p className="mt-4 rounded-xl border border-[#D7E3D7] bg-[#F3F7F0] px-4 py-3 text-xs leading-5 text-[#53675A]">
+        {creationMode === "manual" ? "Bài viết thủ công sẽ được gửi cho quản trị viên duyệt. Nếu bị từ chối, bài sẽ được giữ ở bản nháp để bạn chỉnh sửa và gửi lại." : "Tải video để AI trích xuất công thức. Lượt sử dụng AI được tính theo gói của bạn."}
+      </p>
 
       {/* Global Status Banner */}
       {statusMessage && (
@@ -1368,7 +1376,7 @@ function RecipeContentView() {
               className="flex items-center gap-2 rounded-xl bg-[#07241A] px-6 py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#1E3A2F] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <ContentIcon name="send" />
-              <span>{isSubmitting ? ui("Đang xử lý...") : publishedResult?.status === "PUBLISHED" ? "Đã xuất bản" : ui("Publish recipe")}</span>
+              <span>{isSubmitting ? ui("Đang xử lý...") : publishedResult?.status === "PUBLISHED" ? "Đã xuất bản" : creationMode === "manual" ? "Gửi quản trị viên duyệt" : ui("Publish recipe")}</span>
             </button>
           </div>
         </div>

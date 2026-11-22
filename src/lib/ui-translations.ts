@@ -2,6 +2,13 @@ import type { Language } from "@/context/LanguageContext";
 
 // UI copy only. Author-entered content and arbitrary backend messages are not translated.
 const copy = `
+Please enter your height.|Vui lòng nhập chiều cao.
+Please enter your current weight.|Vui lòng nhập cân nặng hiện tại.
+Please enter your target weight.|Vui lòng nhập cân nặng mục tiêu.
+Please select your sex.|Vui lòng chọn giới tính.
+Please select your activity level.|Vui lòng chọn mức vận động.
+Please select your vegetarian diet.|Vui lòng chọn kiểu ăn chay.
+Please select a valid living address.|Vui lòng chọn địa chỉ sinh sống hợp lệ.
 RECIPE|Công thức
 VIDEO|Video
 BLOG|Bài viết

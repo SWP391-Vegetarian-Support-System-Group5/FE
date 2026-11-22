@@ -58,6 +58,7 @@ export interface CreateRecipePayload {
   ingredients: RecipeIngredientPayload[];
   steps: RecipeStepPayload[];
   categoryIds: number[];
+  requiresAdminReview?: boolean;
 }
 
 export interface RecipeResponse {

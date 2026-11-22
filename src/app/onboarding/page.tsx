@@ -29,9 +29,12 @@ type FormState = {
   activityLevel: "" | (typeof activityLevels)[number][0];
   dietTypeId: string;
   goalWeightKg: string;
+  livingAddress: string;
+  latitude: number | null;
+  longitude: number | null;
 };
 
-const emptyForm: FormState = { birthYear: "", sex: "", heightCm: "", weightKg: "", activityLevel: "", dietTypeId: "", goalWeightKg: "" };
+const emptyForm: FormState = { birthYear: "", sex: "", heightCm: "", weightKg: "", activityLevel: "", dietTypeId: "", goalWeightKg: "", livingAddress: "", latitude: null, longitude: null };
 
 function FieldLabel({ children, icon: Icon }: { children: React.ReactNode; icon: typeof UserRound }) {
   return <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#173C2D]"><Icon size={16} strokeWidth={2.25} className="text-[#658266]" />{children}</span>;
@@ -42,7 +45,6 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { t, locale } = useLanguage();
   const { location: currentLocation } = useCurrentLocation();
-  const [savedLocation, setSavedLocation] = useState<{ latitude: number | null; longitude: number | null; livingAddress: string | null }>({ latitude: null, longitude: null, livingAddress: null });
   const [submitted, setSubmitted] = useState(false);
   const [diets, setDiets] = useState<DietTypeItem[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -56,8 +58,7 @@ export default function OnboardingPage() {
     if (!user) return;
     Promise.all([getProfile(), getDietTypes()]).then(([profile, types]) => {
       setDiets(types);
-      setSavedLocation({ latitude: profile.latitude, longitude: profile.longitude, livingAddress: profile.livingAddress });
-      setForm({ birthYear: profile.birthYear != null ? String(profile.birthYear) : "", sex: profile.sex || "", heightCm: profile.heightCm?.toString() || "", weightKg: profile.weightKg?.toString() || "", activityLevel: profile.activityLevel || "", dietTypeId: profile.dietTypeId?.toString() || "", goalWeightKg: profile.goalWeightKg?.toString() || "" });
+      setForm({ birthYear: profile.birthYear != null ? String(profile.birthYear) : "", sex: profile.sex || "", heightCm: profile.heightCm?.toString() || "", weightKg: profile.weightKg?.toString() || "", activityLevel: profile.activityLevel || "", dietTypeId: profile.dietTypeId?.toString() || "", goalWeightKg: profile.goalWeightKg?.toString() || "", livingAddress: profile.livingAddress || "", latitude: profile.latitude, longitude: profile.longitude });
     }).catch(() => setStatus("Không thể tải hồ sơ. Vui lòng thử lại."));
   }, [loading, router, user]);
 
@@ -86,9 +87,16 @@ export default function OnboardingPage() {
     if (Object.keys(validateHealthProfile(form, true)).length) return;
     if (!form.birthYear || !form.sex || !height || !weight || !form.activityLevel || !form.dietTypeId) { setStatus("Vui lòng hoàn tất các thông tin bắt buộc để tạo thực đơn phù hợp."); return; }
     if (!Number.isInteger(Number(form.birthYear)) || Number(form.birthYear) < 1900 || Number(form.birthYear) > currentYear - 18) { setStatus(`Năm sinh cần nằm trong khoảng 1900 đến ${currentYear - 18}.`); return; }
+    const latitude = currentLocation?.center.lat ?? form.latitude;
+    const longitude = currentLocation?.center.lng ?? form.longitude;
+    const livingAddress = currentLocation?.address ?? form.livingAddress;
+    if (!form.goalWeightKg.trim() || latitude == null || longitude == null || !livingAddress.trim()) {
+      setStatus("requiredLocationAndGoal");
+      return;
+    }
     setSaving(true);
     try {
-      await updateProfile({ fullName: user!.fullName || user!.displayName || "Người dùng VeggieMate", sex: form.sex, birthYear: Number(form.birthYear), heightCm: height, weightKg: weight, activityLevel: form.activityLevel, dietTypeId: Number(form.dietTypeId), goalWeightKg: form.goalWeightKg ? Number(form.goalWeightKg) : null, latitude: currentLocation?.center.lat ?? savedLocation.latitude, longitude: currentLocation?.center.lng ?? savedLocation.longitude, livingAddress: currentLocation?.address ?? savedLocation.livingAddress });
+      await updateProfile({ fullName: user!.fullName || user!.displayName || "Người dùng VeggieMate", sex: form.sex, birthYear: Number(form.birthYear), heightCm: height, weightKg: weight, activityLevel: form.activityLevel, dietTypeId: Number(form.dietTypeId), goalWeightKg: Number(form.goalWeightKg), latitude, longitude, livingAddress: livingAddress.trim() });
       router.replace("/");
     } catch (error) { setStatus(error instanceof Error ? error.message : "Không lưu được hồ sơ."); } finally { setSaving(false); }
   }
@@ -108,13 +116,14 @@ export default function OnboardingPage() {
           <label><FieldLabel icon={Scale}>Cân nặng hiện tại</FieldLabel><div className="relative"><input required step="any" type="number" inputMode="decimal" aria-invalid={!!healthErrors.weightKg} aria-describedby={healthErrors.weightKg ? "onboarding-weightKg-error" : undefined} value={form.weightKg} onChange={(event) => update("weightKg", event.target.value)} placeholder="Ví dụ: 58" className={`${inputClass} pr-14`} /><span className="absolute right-4 top-3 text-sm font-medium text-[#727974]">kg</span></div>{healthErrors.weightKg && <p id="onboarding-weightKg-error" role="alert" className="vm-feedback mt-1.5 text-xs leading-5 text-[#99462A]">{healthErrorText(healthErrors.weightKg, t)}</p>}</label>
           <label><FieldLabel icon={Activity}>Mức vận động</FieldLabel><select required value={form.activityLevel} onChange={(event) => update("activityLevel", event.target.value as FormState["activityLevel"])} className={inputClass}><option value="">Chọn mức vận động</option>{activityLevels.map(([value, label, detail]) => <option key={value} value={value}>{label} · {detail}</option>)}</select></label>
           <label><FieldLabel icon={Leaf}>Kiểu ăn chay</FieldLabel><select required value={form.dietTypeId} onChange={(event) => update("dietTypeId", event.target.value)} className={inputClass}><option value="">Chọn kiểu ăn chay</option>{diets.map((diet) => <option key={diet.dietTypeId} value={diet.dietTypeId}>{formatDietTypeName(diet.name, "vi")}</option>)}</select></label>
-          <label className="sm:col-span-2"><FieldLabel icon={Target}>Cân nặng mục tiêu <span className="font-normal text-[#727974]">(không bắt buộc)</span></FieldLabel><div className="relative"><input step="any" type="number" inputMode="decimal" aria-invalid={!!healthErrors.goalWeightKg} aria-describedby={healthErrors.goalWeightKg ? "onboarding-goalWeightKg-error" : undefined} value={form.goalWeightKg} onChange={(event) => update("goalWeightKg", event.target.value)} placeholder="Ví dụ: 55" className={`${inputClass} pr-14`} /><span className="absolute right-4 top-3 text-sm font-medium text-[#727974]">kg</span></div>{healthErrors.goalWeightKg && <p id="onboarding-goalWeightKg-error" role="alert" className="vm-feedback mt-1.5 text-xs leading-5 text-[#99462A]">{healthErrorText(healthErrors.goalWeightKg, t)}</p>}</label>
+          <label className="sm:col-span-2"><FieldLabel icon={Target}>Cân nặng mục tiêu</FieldLabel><div className="relative"><input required step="any" type="number" inputMode="decimal" aria-invalid={!!healthErrors.goalWeightKg} aria-describedby={healthErrors.goalWeightKg ? "onboarding-goalWeightKg-error" : undefined} value={form.goalWeightKg} onChange={(event) => update("goalWeightKg", event.target.value)} placeholder="Ví dụ: 55" className={`${inputClass} pr-14`} /><span className="absolute right-4 top-3 text-sm font-medium text-[#727974]">kg</span></div>{healthErrors.goalWeightKg && <p id="onboarding-goalWeightKg-error" role="alert" className="vm-feedback mt-1.5 text-xs leading-5 text-[#99462A]">{healthErrorText(healthErrors.goalWeightKg, t)}</p>}</label>
+          <label className="sm:col-span-2"><FieldLabel icon={Target}>Địa chỉ sinh sống</FieldLabel><input required value={form.livingAddress} onChange={(event) => update("livingAddress", event.target.value)} placeholder="Ví dụ: Tăng Nhơn Phú, TP. Hồ Chí Minh" className={inputClass} /><button type="button" onClick={() => navigator.geolocation?.getCurrentPosition(position => { update("latitude", position.coords.latitude); update("longitude", position.coords.longitude); }, () => setStatus("Không thể lấy vị trí. Hãy bật quyền vị trí của trình duyệt rồi thử lại."))} className="mt-2 text-xs font-semibold text-[#1E3A2F] underline">{form.latitude != null ? "Đã lưu vị trí hiện tại" : "Dùng vị trí hiện tại"}</button></label>
         </div>
-        <div className="mt-4 space-y-2"><CurrentLocationControl />{(currentLocation?.address || savedLocation.livingAddress) && <p className="break-words text-sm text-[#173C2D]">{currentLocation?.address || savedLocation.livingAddress}</p>}</div>
+        <div className="mt-4 space-y-2"><CurrentLocationControl />{(currentLocation?.address || form.livingAddress) && <p className="break-words text-sm text-[#173C2D]">{currentLocation?.address || form.livingAddress}</p>}</div>
         {selectedDiet && <div className="mt-3 rounded-2xl border border-[#DDEBDD] bg-[#F4F9F3] p-4 text-sm leading-6 text-[#315C43]"><span className="font-semibold">{formatDietTypeName(selectedDiet.name, "vi")}:</span> {dietTypeAvoidsText(selectedDiet, "vi")}</div>}
         {(bmi != null || estimatedTdee != null) && <div className="mt-3 grid gap-3 rounded-2xl border border-[#DDEBDD] bg-[#F8FBF7] p-4 sm:grid-cols-2"><div><p className="text-xs font-semibold uppercase tracking-wide text-[#6A756D]">Chỉ số cơ thể</p><p className="mt-1 text-lg font-bold text-[#173C2D]">{bmi != null ? <>BMI {bmi.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} · <UiText text={bmiLabel!} /></> : "Đang chờ dữ liệu"}</p>{age && <p className="mt-1 text-xs text-[#68726B]">Tuổi ước tính: {age}</p>}</div><div className="border-t border-[#E1EADF] pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0"><p className="text-xs font-semibold uppercase tracking-wide text-[#6A756D]">Năng lượng hằng ngày</p><p className="mt-1 text-lg font-bold text-[#173C2D]">{estimatedTdee ? `~${estimatedTdee.toLocaleString(locale)} kcal` : "Điền đủ thông tin để tính"}</p><p className="mt-1 text-xs text-[#68726B]">{!healthErrors.goalWeightKg && goalCopy}</p></div></div>}
         {submitted && Object.keys(healthErrors).length > 0 && <div role="alert" className="vm-feedback mt-5 flex items-start gap-2 rounded-xl border border-[#F2D6CB] bg-[#FFF7F4] px-4 py-3 text-sm text-[#99462A]"><CircleAlert size={18} className="mt-0.5 shrink-0" /><div className="min-w-0 space-y-2">{Object.entries(healthErrors).map(([field, error]) => <p key={field}>{healthErrorText(error, t)}</p>)}</div></div>}
-        {status && Object.keys(healthErrors).length === 0 && <p role="alert" className="mt-5 flex items-start gap-2 rounded-xl border border-[#F2D6CB] bg-[#FFF7F4] px-4 py-3 text-sm text-[#99462A]"><CircleAlert size={18} className="mt-0.5 shrink-0" /><UiText text={status} /></p>}
+        {status && Object.keys(healthErrors).length === 0 && <p role="alert" className="mt-5 flex items-start gap-2 rounded-xl border border-[#F2D6CB] bg-[#FFF7F4] px-4 py-3 text-sm text-[#99462A]"><CircleAlert size={18} className="mt-0.5 shrink-0" />{status === "requiredLocationAndGoal" ? t("Please enter your target weight and select a valid living location.", "Vui lòng nhập cân nặng mục tiêu và chọn địa chỉ sinh sống hợp lệ.") : <UiText text={status} />}</p>}
         <div className="sticky bottom-0 mt-4 flex justify-end border-t border-[#EDF0EA] bg-white/95 py-3 backdrop-blur-sm"><button disabled={saving} className="vm-button inline-flex items-center gap-2 rounded-xl bg-[#173C2D] px-5 py-3 text-sm font-bold text-white shadow-[0_7px_16px_rgba(23,60,45,0.18)] hover:bg-[#234A38] disabled:cursor-not-allowed disabled:opacity-50">{saving ? "Đang lưu…" : "Lưu và vào trang chủ"}<ArrowRight size={17} /></button></div>
       </section>
     </form>

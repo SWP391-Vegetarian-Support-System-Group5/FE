@@ -45,6 +45,14 @@ export function deleteAdminPost(id: number) {
   return request<void>(`/api/admin/posts/${id}`, { method: "DELETE" });
 }
 
+export function approveManualPost(id: number) {
+  return request<void>(`/api/admin/posts/${id}/approve`, { method: "POST" });
+}
+
+export function rejectManualPost(id: number, reason: string) {
+  return request<void>(`/api/admin/posts/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) });
+}
+
 export function deleteAdminComment(id: number) {
   return request<void>(`/api/admin/comments/${id}`, { method: "DELETE" });
 }

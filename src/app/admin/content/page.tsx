@@ -15,6 +15,8 @@ import AdminLeafLoading from "@/components/ui/AdminLeafLoading";
 import {
   deleteAdminComment,
   deleteAdminPost,
+  approveManualPost,
+  rejectManualPost,
   getAdminContent,
   setAdminCommentVisibility,
   type AdminComment,
@@ -198,6 +200,19 @@ export default function AdminContentPage() {
       setBusyPostId(null);
       setPendingRemoval(null);
     }
+  }
+
+  async function handleReviewPost(post: AdminPost, approved: boolean) {
+    const reason = approved ? "" : window.prompt(t("Tell the author why this post was rejected.", "Nhập lý do từ chối để gửi cho tác giả."))?.trim();
+    if (!approved && !reason) return;
+    setBusyPostId(post.postId);
+    try {
+      if (approved) await approveManualPost(post.postId); else await rejectManualPost(post.postId, reason!);
+      await loadContent();
+      notify(approved ? "Post approved and published." : "Post rejected and returned as a draft.", approved ? "Đã duyệt và xuất bản bài viết." : "Đã từ chối và trả bài về bản nháp.");
+    } catch {
+      notify("Could not review the post.", "Không thể duyệt bài viết.", true);
+    } finally { setBusyPostId(null); }
   }
 
   async function openContentDetail(post: AdminPost) {
@@ -572,6 +587,8 @@ export default function AdminContentPage() {
                                 <span className="font-semibold text-[#07241A]">
                                   {item.status === "PUBLISHED"
                                     ? t("Published", "Đã xuất bản")
+                                    : item.status === "PENDING_REVIEW"
+                                      ? t("Awaiting review", "Chờ duyệt")
                                     : item.status === "DRAFT"
                                       ? t("Draft", "Bản nháp")
                                       : t("Removed", "Đã xóa")}
@@ -591,6 +608,12 @@ export default function AdminContentPage() {
                                 >
                                   <ContentIcon name="close" width="1em" height="1em" className="inline-block shrink-0 align-[-0.125em]" />
                                 </button>
+                              )}
+                              {item.status === "PENDING_REVIEW" && (
+                                <div className="flex shrink-0 gap-1">
+                                  <button type="button" disabled={busyPostId === item.postId} onClick={(event) => { event.stopPropagation(); void handleReviewPost(item, true); }} className="rounded-md bg-[#1E3A2F] px-2 py-1 text-[10px] font-bold text-white disabled:opacity-50">{t("Approve", "Duyệt")}</button>
+                                  <button type="button" disabled={busyPostId === item.postId} onClick={(event) => { event.stopPropagation(); void handleReviewPost(item, false); }} className="rounded-md border border-[#A24635] px-2 py-1 text-[10px] font-bold text-[#A24635] disabled:opacity-50">{t("Reject", "Từ chối")}</button>
+                                </div>
                               )}
                             </div>
                           </td>
