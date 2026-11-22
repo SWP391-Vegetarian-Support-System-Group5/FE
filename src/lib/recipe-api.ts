@@ -45,6 +45,7 @@ export interface RecipeStepPayload {
 }
 
 export interface CreateRecipePayload {
+  animalDerivedIngredientsConfirmed?: boolean;
   title: string;
   recipeName: string;
   content: string;
@@ -118,6 +119,7 @@ export interface UpdateVideoRecipeDraftPayload {
 }
 
 export interface PublishVideoRecipeDraftPayload {
+  animalDerivedIngredientsConfirmed?: boolean;
   recipeName: string;
   categoryIds: number[];
 }

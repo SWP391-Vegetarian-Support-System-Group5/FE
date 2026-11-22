@@ -1,0 +1,112 @@
+<div id="n4-potential-practice">
+  <div class="text-small text-muted">N4 · 可能形 · 12 câu</div>
+  <h2 lang="ja">日本での生活と、できるようになったこと</h2>
+  <div lang="ja" class="passage">
+    <p>私はベトナムから来た大学生です。今、日本の小さい町で一人で住んでいます。日本に来たばかりのころは、日本語がほとんど <span class="gap">①＿＿＿＿</span>。自分の名前はカタカナで <span class="gap">②＿＿＿＿</span> が、漢字の多い手紙は <span class="gap">③＿＿＿＿</span>。料理も一人では <span class="gap">④＿＿＿＿</span> から、毎日、外でご飯を食べていました。</p>
+    <p>日本に来てから、半年になりました。今は、店の人と日本語で <span class="gap">⑤＿＿＿＿</span>。やさしい日本の映画なら、字幕なしで <span class="gap">⑥＿＿＿＿</span>。毎晩、料理の練習もしているので、今では、みそ汁やカレーが一人で <span class="gap">⑦＿＿＿＿</span>。でも、納豆はにおいが苦手なので、まだ <span class="gap">⑧＿＿＿＿</span>。</p>
+    <p>昨日は熱があったので、学校へ <span class="gap">⑨＿＿＿＿</span>。友達から「来週の土曜日、私の家に <span class="gap">⑩＿＿＿＿</span> か」と電話がありました。来週は休みなので、その友達に <span class="gap">⑪＿＿＿＿</span>。友達の家にはピアノがあります。私は子どものころから練習しているので、日本の歌もピアノで <span class="gap">⑫＿＿＿＿</span>。土曜日が楽しみです。</p>
+  </div>
+  <hr>
+  <form id="n4-answer-form" novalidate>
+    <div id="n4-fields" class="answer-grid"></div>
+    <div class="viz-row actions">
+      <button type="submit" class="btn btn-primary">Kiểm tra bài</button>
+      <span id="n4-count" class="text-small text-muted">Đã điền 0/12</span>
+    </div>
+    <p id="n4-result" role="status" aria-live="polite"></p>
+  </form>
+</div>
+<style>
+  #n4-potential-practice { color: var(--foreground); }
+  #n4-potential-practice .passage { overflow-wrap: anywhere; }
+  #n4-potential-practice .passage p { margin: 20px 0; }
+  #n4-potential-practice .gap { color: var(--primary); white-space: nowrap; }
+  #n4-potential-practice .answer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  #n4-potential-practice .field { min-width: 0; }
+  #n4-potential-practice .field label { display: block; margin-bottom: 6px; }
+  #n4-potential-practice .field .prompt { display: block; margin-bottom: 6px; }
+  #n4-potential-practice .feedback { margin: 8px 0 0; overflow-wrap: anywhere; }
+  #n4-potential-practice .actions { margin-top: 24px; }
+  @media (max-width: 520px) { #n4-potential-practice .answer-grid { grid-template-columns: 1fr; } }
+</style>
+<script>
+(() => {
+  const root = document.getElementById('n4-potential-practice');
+  const data = [
+    ['①', '話します（はなします）', 'Quá khứ · phủ định · lịch sự', ['話せませんでした','はなせませんでした'], 'Nhóm I: 話す → 話せる → 話せませんでした. Khi mới đến, tôi gần như không nói được tiếng Nhật.'],
+    ['②', '書きます（かきます）', 'Quá khứ · khẳng định · lịch sự', ['書けました','かけました'], 'Nhóm I: 書く → 書ける → 書けました. Lúc đó tôi đã có thể viết tên bằng katakana.'],
+    ['③', '読みます（よみます）', 'Quá khứ · phủ định · lịch sự', ['読めませんでした','よめませんでした'], 'Nhóm I: 読む → 読める → 読めませんでした. Khi ấy chưa đọc được thư có nhiều kanji.'],
+    ['④', 'します', 'Quá khứ · phủ định · lịch sự', ['できませんでした','出来ませんでした'], 'Bất quy tắc: する → できる → できませんでした. Khi ấy chưa tự nấu ăn được.'],
+    ['⑤', '話します（はなします）', 'Hiện tại · khẳng định · lịch sự', ['話せます','はなせます'], 'Nhóm I: 話す → 話せる → 話せます. Bây giờ có thể nói chuyện bằng tiếng Nhật.'],
+    ['⑥', '見ます（みます）', 'Hiện tại · khẳng định · lịch sự', ['見られます','みられます'], 'Nhóm II: 見る → 見られる → 見られます. Dùng dạng chuẩn của bài học; 見れます là cách nói lược ら trong khẩu ngữ.'],
+    ['⑦', '作ります（つくります）', 'Hiện tại · khẳng định · lịch sự', ['作れます','つくれます'], 'Nhóm I: 作る → 作れる → 作れます. Chú ý 作る thuộc nhóm I dù kết thúc bằng る.'],
+    ['⑧', '食べます（たべます）', 'Hiện tại · phủ định · lịch sự', ['食べられません','たべられません'], 'Nhóm II: 食べる → 食べられる → 食べられません. Tôi vẫn chưa ăn được natto vì không chịu được mùi.'],
+    ['⑨', '行きます（いきます）', 'Quá khứ · phủ định · lịch sự', ['行けませんでした','いけませんでした'], 'Nhóm I: 行く → 行ける → 行けませんでした. Hôm qua bị sốt nên đã không thể đến trường.'],
+    ['⑩', '来ます（きます）', 'Khẳng định · lịch sự; không nhập か', ['来られます','こられます'], 'Bất quy tắc: 来る（くる）→ 来られる（こられる）→ 来られます. Câu hỏi: thứ Bảy tuần sau bạn có thể đến nhà tôi không?'],
+    ['⑪', '会います（あいます）', 'Khẳng định · lịch sự', ['会えます','あえます'], 'Nhóm I: 会う → 会える → 会えます. Có thể gặp người bạn ấy vào tuần sau; dạng không quá khứ cũng dùng cho tương lai.'],
+    ['⑫', '弾きます（ひきます）', 'Hiện tại · khẳng định · lịch sự', ['弾けます','ひけます'], 'Nhóm I: 弾く → 弾ける → 弾けます. Có thể chơi các bài hát Nhật trên piano.']
+  ];
+  const fields = root.querySelector('#n4-fields');
+  const form = root.querySelector('#n4-answer-form');
+  const result = root.querySelector('#n4-result');
+  const count = root.querySelector('#n4-count');
+  const normalize = value => value.normalize('NFKC').replace(/[\s。．.!！?？]+/gu, '').replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  data.forEach(([number, verb, prompt], index) => {
+    const field = document.createElement('div');
+    field.className = 'field';
+    const label = document.createElement('label');
+    label.className = 'form-label';
+    label.htmlFor = 'n4-answer-' + index;
+    label.textContent = number + ' ' + verb;
+    label.lang = 'ja';
+    const hint = document.createElement('span');
+    hint.className = 'prompt text-small text-muted';
+    hint.id = 'n4-prompt-' + index;
+    hint.textContent = prompt;
+    const input = document.createElement('input');
+    input.className = 'form-control';
+    input.id = label.htmlFor;
+    input.type = 'text';
+    input.lang = 'ja';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.placeholder = 'Nhập bằng hiragana hoặc kanji';
+    input.setAttribute('aria-describedby', hint.id + ' n4-feedback-' + index);
+    const feedback = document.createElement('p');
+    feedback.className = 'feedback text-small';
+    feedback.id = 'n4-feedback-' + index;
+    feedback.hidden = true;
+    input.addEventListener('input', () => {
+      feedback.hidden = true;
+      input.removeAttribute('aria-invalid');
+      result.textContent = '';
+      count.textContent = 'Đã điền ' + [...fields.querySelectorAll('input')].filter(el => el.value.trim()).length + '/12';
+    });
+    field.append(label, hint, input, feedback);
+    fields.append(field);
+  });
+  form.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && (event.isComposing || event.keyCode === 229)) event.preventDefault();
+  });
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const inputs = [...fields.querySelectorAll('input')];
+    const missing = inputs.find(input => !normalize(input.value));
+    if (missing) {
+      result.textContent = 'Ông điền đủ 12 ô rồi hãy nộp nha. Đáp án vẫn đang được ẩn.';
+      missing.focus();
+      return;
+    }
+    let score = 0;
+    inputs.forEach((input, index) => {
+      const correct = data[index][3].some(answer => normalize(answer) === normalize(input.value));
+      const feedback = root.querySelector('#n4-feedback-' + index);
+      if (correct) score++;
+      input.setAttribute('aria-invalid', String(!correct));
+      feedback.hidden = false;
+      feedback.textContent = (correct ? '✓ Đúng. ' : '✗ Chưa đúng. Đáp án: ' + data[index][3][0] + '. ') + data[index][4];
+    });
+    result.textContent = 'Kết quả: ' + score + '/12 câu đúng · ' + score * 10 + '/120 điểm. Ông có thể sửa rồi kiểm tra lại.';
+  });
+})();
+</script>

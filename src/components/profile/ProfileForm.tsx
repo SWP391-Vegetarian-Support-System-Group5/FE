@@ -1,5 +1,6 @@
 "use client";
 
+import { validateHealthProfile, healthErrorText } from "@/lib/health-profile-validation";
 import ContentIcon from "@/components/content/ContentIcon";
 import AllergenRequestsPanel from "@/components/profile/AllergenRequestsPanel";
 import AllergenSelectionSave from "@/components/profile/AllergenSelectionSave";
@@ -45,6 +46,8 @@ import { getStoredToken, getStoredUser } from "@/lib/auth";
 import { dietTypeAvoidsText, formatDietTypeName } from "@/lib/diet-type-display";
 import { saveLivingLocation } from "@/lib/living-location";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrentLocation } from "@/context/CurrentLocationContext";
+import CurrentLocationControl from "@/components/profile/CurrentLocationControl";
 import { ACTIVITY_LEVELS, birthYearFromDate, birthDateForYear, validBirthYear, isActivityLevel } from "@/lib/profile-energy";
 
 const ProfileLeafletMap = dynamic(() => import("@/components/profile/ProfileLeafletMap"), {
@@ -89,12 +92,6 @@ function validateDraft(d: ProfileDraft, currentYear: number): ProfileErrors {
   if (!d.fullName.trim()) errors.fullName = "Full name is required.";
   if (d.birthYear && !validBirthYear(d.birthYear, currentYear))
     errors.birthYear = `Nhập năm sinh từ ${currentYear - 120} đến ${currentYear}.`;
-  const h = Number(d.heightCm);
-  if (d.heightCm !== "" && (!Number.isFinite(h) || h < 1 || h > 300))
-    errors.heightCm = "Chiều cao phải từ 1 đến 300 cm.";
-  const w = Number(d.weightKg);
-  if (d.weightKg !== "" && (!Number.isFinite(w) || w < 1 || w > 1000))
-    errors.weightKg = "Cân nặng phải từ 1 đến 1.000 kg.";
   return errors;
 }
 
@@ -120,6 +117,7 @@ export default function ProfileForm() {
 function ProfileFields({ onRetry }: { onRetry: () => void }) {
   const ui = useUiText();
   const { language, t, locale } = useLanguage();
+  const { location: currentLocation } = useCurrentLocation();
   const currentYear = new Date().getFullYear();
   // ── Core state ────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -172,6 +170,14 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [appliedLocation, setAppliedLocation] = useState<typeof currentLocation>(null);
+  if (!loading && !loadFailure && currentLocation && currentLocation !== appliedLocation) {
+    setAppliedLocation(currentLocation);
+    setAddressQuery(currentLocation.address);
+    setSelectedCoords(currentLocation.center);
+    setSelectedProvinceCode("");
+    setSelectedAreaCode("");
+  }
 
   // UI toggles
   const [showDietDropdown, setShowDietDropdown] = useState(false);
@@ -345,7 +351,8 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   }, [toastMessage]);
 
   // ── Derived ──────────────────────────────────────────────────────────────
-  const bmi = computeBmi(draft.heightCm, draft.weightKg);
+  const healthErrors = validateHealthProfile(draft);
+  const bmi = !healthErrors.heightCm && !healthErrors.weightKg ? computeBmi(String(Number(draft.heightCm)), String(Number(draft.weightKg))) : null;
   const bmiCategory = bmi !== null ? classifyBmi(bmi) : null;
   const selectedActivity = ACTIVITY_LEVELS.find(level => level.value === draft.activityLevel);
 
@@ -359,6 +366,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   const updateField = useCallback(
     <K extends keyof ProfileDraft>(field: K, value: ProfileDraft[K]) => {
       setDraft((prev) => ({ ...prev, [field]: value }));
+      setSaveError(null);
       setErrors((prev) => {
         const next = { ...prev };
         delete next[field as keyof ProfileErrors];
@@ -464,7 +472,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
     if (saving || allergenSaving) return;
     setSaveError(null);
     const validationErrors = validateDraft(draft, currentYear);
-    if (Object.keys(validationErrors).length > 0) {
+    if (Object.keys(validationErrors).length > 0 || Object.keys(validateHealthProfile(draft)).length > 0) {
       setErrors(validationErrors);
       return;
     }
@@ -476,10 +484,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         sex: draft.sex,
         birthDate: birthDateForYear(draft.birthYear, draft.birthDate),
         birthYear: draft.birthYear ? Number(draft.birthYear) : null,
-        heightCm: draft.heightCm ? parseFloat(draft.heightCm) : null,
-        weightKg: draft.weightKg ? parseFloat(draft.weightKg) : null,
+        heightCm: draft.heightCm.trim() ? Number(draft.heightCm) : null,
+        weightKg: draft.weightKg.trim() ? Number(draft.weightKg) : null,
         activityLevel: draft.activityLevel,
-        goalWeightKg: draft.goalWeightKg ? parseFloat(draft.goalWeightKg) : null,
+        goalWeightKg: draft.goalWeightKg.trim() ? Number(draft.goalWeightKg) : null,
         dietTypeId: draft.dietTypeId,
         latitude: selectedCoords?.lat ?? null,
         longitude: selectedCoords?.lng ?? null,
@@ -802,10 +810,12 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
               <input
                 type="text"
                 inputMode="decimal"
+                aria-invalid={!!healthErrors.heightCm}
+                aria-describedby={healthErrors.heightCm ? "profile-heightCm-error" : undefined}
                 value={draft.heightCm}
                 onChange={(e) => updateField("heightCm", e.target.value)}
                 className={`w-full rounded-xl bg-[#F5F3F0] py-2.5 pl-4 pr-12 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20 ${
-                  errors.heightCm ? "ring-2 ring-[#99462A]/40" : ""
+                  healthErrors.heightCm ? "ring-2 ring-[#99462A]/40" : ""
                 }`}
                 placeholder="0"
               />
@@ -813,8 +823,8 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
                 cm
               </span>
             </div>
-            {errors.heightCm && (
-              <span className="text-xs text-[#99462A]">{<UiText text={errors.heightCm} />}</span>
+            {healthErrors.heightCm && (
+              <span id="profile-heightCm-error" role="alert" className="vm-feedback text-xs text-[#99462A]">{healthErrorText(healthErrors.heightCm, t)}</span>
             )}
           </div>
 
@@ -827,10 +837,12 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
               <input
                 type="text"
                 inputMode="decimal"
+                aria-invalid={!!healthErrors.weightKg}
+                aria-describedby={healthErrors.weightKg ? "profile-weightKg-error" : undefined}
                 value={draft.weightKg}
                 onChange={(e) => updateField("weightKg", e.target.value)}
                 className={`w-full rounded-xl bg-[#F5F3F0] py-2.5 pl-4 pr-12 text-[15px] leading-6 text-[#1B1C1A] outline-none transition placeholder:text-[#727974] focus:ring-2 focus:ring-[#1E3A2F]/20 ${
-                  errors.weightKg ? "ring-2 ring-[#99462A]/40" : ""
+                  healthErrors.weightKg ? "ring-2 ring-[#99462A]/40" : ""
                 }`}
                 placeholder="0"
               />
@@ -838,8 +850,8 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
                 kg
               </span>
             </div>
-            {errors.weightKg && (
-              <span className="text-xs text-[#99462A]">{<UiText text={errors.weightKg} />}</span>
+            {healthErrors.weightKg && (
+              <span id="profile-weightKg-error" role="alert" className="vm-feedback text-xs text-[#99462A]">{healthErrorText(healthErrors.weightKg, t)}</span>
             )}
           </div>
         </div>
@@ -869,7 +881,8 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
           </div>
           <label className="flex flex-col gap-1.5 text-xs font-semibold text-[#424844]">
             Cân nặng mục tiêu
-            <div className="relative"><input type="text" inputMode="decimal" value={draft.goalWeightKg} disabled={saving} onChange={event => updateField("goalWeightKg", event.target.value)} placeholder="Ví dụ: 60" className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 pr-10 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20" /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#727974]">kg</span></div>
+            <div className="relative"><input type="text" inputMode="decimal" aria-invalid={!!healthErrors.goalWeightKg} aria-describedby={healthErrors.goalWeightKg ? "profile-goalWeightKg-error" : undefined} value={draft.goalWeightKg} disabled={saving} onChange={event => updateField("goalWeightKg", event.target.value)} placeholder="Ví dụ: 60" className="w-full rounded-xl bg-[#F5F3F0] px-4 py-2.5 pr-10 text-sm font-normal outline-none focus:ring-2 focus:ring-[#1E3A2F]/20" /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#727974]">kg</span></div>
+            {healthErrors.goalWeightKg && <span id="profile-goalWeightKg-error" role="alert" className="vm-feedback text-xs font-normal leading-5 text-[#99462A]">{healthErrorText(healthErrors.goalWeightKg, t)}</span>}
           </label>
         </div>
 
@@ -1031,6 +1044,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
 
       {/* ═══ 5. LIVING LOCATION CARD ═══ */}
       <section id="living-location" className="vm-form-panel scroll-mt-28 flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        <CurrentLocationControl />
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-0.5">
