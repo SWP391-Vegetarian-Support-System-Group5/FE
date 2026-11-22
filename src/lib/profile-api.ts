@@ -126,8 +126,8 @@ export async function updateProfile(payload: UpdateProfilePayload) {
 }
 
 /** Persists the map location without overwriting the rest of a user's health profile. */
-export function updateLivingLocation(latitude: number, longitude: number, livingAddress?: string) {
-  return apiPut<BackendUserProfile>("/api/users/me/location", { latitude, longitude, livingAddress });
+export function updateLivingLocation(latitude: number, longitude: number, livingAddress?: string, signal?: AbortSignal) {
+  return apiPut<BackendUserProfile>("/api/users/me/location", { latitude, longitude, livingAddress }, { signal });
 }
 
 /** Fetch all available diet types */
@@ -198,9 +198,9 @@ export function geocodeAddress(address: string) {
 }
 
 /** Reverse-geocode coordinates to an address */
-export function reverseGeocode(latitude: number, longitude: number) {
-  return apiGet<AddressSuggestion>(
-    `/api/locations/reverse-geocode?latitude=${latitude}&longitude=${longitude}`
+export function reverseGeocode(latitude: number, longitude: number, signal?: AbortSignal) {
+  return apiGet<{ formattedAddress: string }>(
+    `/api/locations/reverse-geocode?latitude=${latitude}&longitude=${longitude}`, { signal }
   );
 }
 

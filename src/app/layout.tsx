@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AuthProvider } from "@/context/AuthContext";
 import { AdminModerationProvider } from "@/context/AdminModerationContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { CurrentLocationProvider } from "@/context/CurrentLocationContext";
 import AuthAccessBoundary from "@/components/AuthAccessBoundary";
 import InteractionEffects from "@/components/ui/InteractionEffects";
 import NavigationLoading from "@/components/ui/NavigationLoading";
@@ -35,7 +36,7 @@ export default function RootLayout({
         <NavigationLoading />
         <LanguageProvider>
           <AuthProvider>
-            <AdminModerationProvider><AuthAccessBoundary>{children}</AuthAccessBoundary></AdminModerationProvider>
+            <CurrentLocationProvider><AdminModerationProvider><AuthAccessBoundary>{children}</AuthAccessBoundary></AdminModerationProvider></CurrentLocationProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>

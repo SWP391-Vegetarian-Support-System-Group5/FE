@@ -100,6 +100,11 @@ function RecipeContentView() {
   const [ingredients, setIngredients] = useState<RecipeIngredientPayload[]>([
     { ingredientName: "", amount: "", dietaryGroup: "PLANT", allergenId: null },
   ]);
+  // Confirm the exact row that was reviewed; edits or restored drafts require a new confirmation.
+  const [confirmedIngredients, setConfirmedIngredients] = useState<Set<RecipeIngredientPayload>>(() => new Set());
+  const animalDerivedIngredientsConfirmed = ingredients.every(ingredient =>
+    ingredient.dietaryGroup === "PLANT" || confirmedIngredients.has(ingredient));
+
   const [steps, setSteps] = useState<RecipeStepPayload[]>([
     { stepNumber: 1, instruction: "" },
   ]);
@@ -680,6 +685,11 @@ function RecipeContentView() {
       return;
     }
 
+    if (!animalDerivedIngredientsConfirmed) {
+      setStatusMessage({ type: "error", text: t("Confirm each dairy, egg or honey ingredient before publishing.", "Vui lòng xác nhận từng nguyên liệu sữa, trứng hoặc mật ong trước khi đăng.") });
+      return;
+    }
+
     if (steps.length === 0) {
       setStatusMessage({
         type: "error",
@@ -723,6 +733,7 @@ function RecipeContentView() {
 
         // Step 2: Publish via POST /api/video-recipe-drafts/{id}/publish
         const published = await publishVideoRecipeDraft(draftId, {
+          animalDerivedIngredientsConfirmed,
           recipeName: recipeName.trim(),
           categoryIds: selectedCategoryIds,
         });
@@ -734,6 +745,7 @@ function RecipeContentView() {
       } else {
         // Manual mode: POST /api/recipes
         const payload = {
+          animalDerivedIngredientsConfirmed,
           title: title.trim(),
           recipeName: recipeName.trim(),
           content: content.trim(),
@@ -1153,6 +1165,7 @@ function RecipeContentView() {
         <div className="mt-6 space-y-3">
           {ingredients.map((ing, index) => {
             const isNonPlant = ing.dietaryGroup !== "PLANT";
+            const isConfirmed = confirmedIngredients.has(ing);
             return (
               <div
                 key={index}
@@ -1246,11 +1259,21 @@ function RecipeContentView() {
                   </div>
                 </div>
 
-                {/* Non-plant clarification warning */}
                 {isNonPlant && (
-                  <div className="rounded-xl bg-[#FDE8E4] px-3 py-1.5 text-[11px] text-[#99462A] flex items-center justify-between">
-                    <span><ContentIcon name="warning" className="mr-1 inline-block align-text-bottom" width="14" height="14" /><UiText text={"Nhóm nguyên liệu"} />{" "}<strong>{t(...INGREDIENT_CATEGORY_LABELS[ing.dietaryGroup])}</strong>{" "}<UiText text={"ảnh hưởng đến độ tương thích với chế độ thuần chay."} /></span>
-                    <span className="font-semibold text-[10px] uppercase"><UiText text={"Cần làm rõ"} /></span>
+                  <div className={`vm-feedback flex flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-xs ${isConfirmed ? "bg-[#EAF5EE] text-[#205339]" : "bg-[#FDE8E4] text-[#99462A]"}`}>
+                    <div className="min-w-0 flex-1 basis-60">
+                      <p className="flex items-start gap-1.5"><ContentIcon name={isConfirmed ? "check" : "warning"} className="mt-0.5 shrink-0" width="14" height="14" />
+                        <span>{isConfirmed
+                          ? t("You have confirmed this ingredient for the recipe. It will be classified according to its source.", "Bạn đã xác nhận sử dụng nguyên liệu này trong công thức. Hệ thống vẫn phân loại theo đúng nguồn gốc.")
+                          : t("This ingredient contains dairy, eggs or honey. Check its source and confirm before publishing.", "Nguyên liệu thuộc nhóm sữa, trứng hoặc mật ong. Kiểm tra nguồn gốc và xác nhận trước khi đăng.")}</span>
+                      </p>
+                      <p className="mt-1 pl-5 font-medium">{t(...INGREDIENT_CATEGORY_LABELS[ing.dietaryGroup])}{isConfirmed ? t(" — confirmed for use in this recipe.", " — đã xác nhận sử dụng trong công thức.") : t(" — not suitable for a vegan diet.", " — không phù hợp với chế độ thuần chay.")}</p>
+                    </div>
+                    {isConfirmed ? <span role="status" className="inline-flex items-center gap-1.5 rounded-lg bg-white/70 px-3 py-2 font-semibold"><ContentIcon name="check" width="14" height="14" />{t("Confirmed", "Đã xác nhận")}</span> :
+                      <button type="button" disabled={isSubmitting || !ing.ingredientName.trim()} onClick={() => {
+                        setConfirmedIngredients(previous => new Set(previous).add(ing));
+                        setStatusMessage(null);
+                      }} className="vm-button inline-flex items-center gap-2 rounded-lg bg-[#163E2E] px-3 py-2 font-semibold text-white disabled:opacity-50" aria-label={t(`Confirm ingredient ${ing.ingredientName}`, `Xác nhận nguyên liệu ${ing.ingredientName}`)}><ContentIcon name="check" width="14" height="14" />{t("Confirm ingredient", "Xác nhận nguyên liệu")}</button>}
                   </div>
                 )}
               </div>

@@ -2,6 +2,13 @@ import type { Language } from "@/context/LanguageContext";
 
 // UI copy only. Author-entered content and arbitrary backend messages are not translated.
 const copy = `
+Please enter your height.|Vui lòng nhập chiều cao.
+Please enter your current weight.|Vui lòng nhập cân nặng hiện tại.
+Please enter your target weight.|Vui lòng nhập cân nặng mục tiêu.
+Please select your sex.|Vui lòng chọn giới tính.
+Please select your activity level.|Vui lòng chọn mức vận động.
+Please select your vegetarian diet.|Vui lòng chọn kiểu ăn chay.
+Please select a valid living address.|Vui lòng chọn địa chỉ sinh sống hợp lệ.
 RECIPE|Công thức
 VIDEO|Video
 BLOG|Bài viết
@@ -703,6 +710,10 @@ Tree nuts|Hạt cây
 Sesame|Mè
 Underweight|Thiếu cân
 Normal|Bình thường
+Normal range|Bình thường
+Enter your height before setting a target weight.|Vui lòng nhập chiều cao trước khi đặt cân nặng mục tiêu.
+A user in the underweight BMI group cannot set a lower target weight.|BMI hiện tại của bạn thuộc nhóm thiếu cân (gầy). Vui lòng chọn giữ nguyên cân nặng hoặc mục tiêu cao hơn nếu bạn muốn tăng cân.
+A user in the high-BMI group cannot set a higher target weight.|BMI hiện tại của bạn thuộc nhóm BMI cao. Vui lòng chọn giữ nguyên cân nặng hoặc mục tiêu thấp hơn nếu bạn muốn giảm cân.
 Overweight|Thừa cân
 Obese|Béo phì
 Full name is required.|Họ và tên là bắt buộc.
@@ -1080,6 +1091,8 @@ export function translateUi(text: string, language: Language): string {
   const entry = catalog.get(text);
   if (entry) return entry[language === "vi" ? 1 : 0];
   if (language === "vi") {
+    const targetRange = text.match(/^Target weight must stay within the healthy BMI range for your height \(([\d.,]+)-([\d.,]+) kg\)\.$/);
+    if (targetRange) return `Máy chủ hiện vẫn giới hạn cân nặng mục tiêu từ ${targetRange[1].replace(".", ",")} đến ${targetRange[2].replace(".", ",")} kg theo chiều cao. Hồ sơ chưa được lưu vì quy tắc này chưa được cập nhật.`;
     if (/^\d+ mins?(?: · \d+ kcal)?$/.test(text)) return text.replace(/mins?/, "phút");
     if (/^\d+ min total prep$/.test(text)) return text.replace("min total prep", "phút chuẩn bị");
   }
