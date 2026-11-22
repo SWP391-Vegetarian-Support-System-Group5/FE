@@ -81,7 +81,7 @@ export default function AdminRevenuePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-2">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-[#2D5A46]">
-            {t("FEE MANAGEMENT", "QUẢN LÝ PHÍ (FEE MANAGEMENT)")}
+            {t("BILLING MANAGEMENT", "QUẢN LÝ THANH TOÁN")}
           </p>
           <h1 className="mt-1 font-serif text-3xl font-bold text-[#07241A] lg:text-4xl">
             {t("Subscription revenue", "Doanh thu gói đăng ký")}
