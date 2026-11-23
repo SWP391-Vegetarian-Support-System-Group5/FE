@@ -126,12 +126,22 @@ test("both branch conventions for detail URLs resolve, invalid IDs do not", asyn
   }
 });
 
-test("main category screen is retained and connected to the current taxonomy", () => {
+test("main category screen retains both catalogs and requests inactive categories for administrators", async () => {
   const source = readFileSync(new URL("../src/app/admin/categories/page.tsx", import.meta.url), "utf8");
-  assert.match(source, /Dual Filter & Dishes/);
   assert.match(source, /getRecipeCategories\(true\)/);
-  assert.match(source, /api\/recipe-categories/);
+  assert.match(source, /getIngredientCategories\(\)/);
+  assert.match(source, /getIngredients\(\)/);
+  assert.match(source, /<CategoryRecipeAssignments\b/);
   assert.doesNotMatch(source, /redirect\(/);
+  const paths = [];
+  const categories = loadModule("src/lib/recipe-categories.ts", {
+    "@/lib/api": { apiGet: async path => { paths.push(path); return [{ id: 4, isActive: false }]; } },
+  });
+  const result = await categories.getRecipeCategories(true);
+  assert.equal(paths[0], "/api/recipe-categories?includeInactive=true");
+  assert.equal(result[0].isActive, false);
+  await categories.getRecipeCategories();
+  assert.equal(paths[1], "/api/recipe-categories");
 });
 
 test("merging main does not enable the admin-role bypass", () => {

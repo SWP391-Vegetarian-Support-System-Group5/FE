@@ -112,7 +112,7 @@ export default function HomePage() {
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
                 <h2 className="font-serif text-3xl font-medium tracking-tight text-[#07241A] sm:text-4xl">
-                  {t("Popular Recipes", "Công thức phổ biến")}
+                  {t("Top-rated recipes", "Công thức được đánh giá cao")}
                 </h2>
                 <p className="mt-2 text-sm text-[#424844]">
                   {t("Discover recipes the community loves.", "Khám phá công thức được cộng đồng yêu thích.")}

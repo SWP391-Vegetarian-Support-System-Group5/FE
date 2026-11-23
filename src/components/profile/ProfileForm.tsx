@@ -1,5 +1,7 @@
 "use client";
 
+import { saveAllergenSelection } from "@/lib/save-allergen-selection";
+
 import { validateHealthProfile, healthErrorText } from "@/lib/health-profile-validation";
 import ContentIcon from "@/components/content/ContentIcon";
 import AllergenSelectionSave from "@/components/profile/AllergenSelectionSave";
@@ -26,7 +28,6 @@ import {
   getDietTypes,
   getAllAllergens,
   getUserAllergens,
-  updateUserAllergens,
   getProvinces,
   getAddressSuggestions,
   geocodeAddress,
@@ -480,6 +481,8 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (saving || allergenSaving) return;
+    const session = getStoredToken();
+    if (!session) return;
     setSaveError(null);
     const validationErrors = validateDraft(draft, currentYear);
     if (!selectedCoords || !addressQuery.trim()) validationErrors.location = "Please select a valid living address.";
@@ -505,10 +508,10 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         livingAddress: addressQuery.trim(),
       };
 
-      const [updatedProfile] = await Promise.all([
-        updateProfile(payload),
-        updateUserAllergens(selectedAllergenIds),
-      ]);
+      const updatedProfile = await updateProfile(payload);
+      if (getStoredToken() !== session) return;
+      const allergenResult = await saveAllergenSelection(selectedAllergenIds);
+      if (getStoredToken() !== session) return;
 
       const newDraft: ProfileDraft = {
         fullName: updatedProfile.fullName ?? "",
@@ -531,7 +534,7 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
 
       setDraft(newDraft);
       setSavedDraft({ ...newDraft });
-      setSavedAllergenIds([...selectedAllergenIds]);
+      applySavedAllergens(allergenResult.items);
       if (updatedProfile.latitude != null && updatedProfile.longitude != null) {
         saveLivingLocation({
           provinceCode: selectedProvinceCode || "hochiminh",
@@ -541,8 +544,11 @@ function ProfileFields({ onRetry }: { onRetry: () => void }) {
         });
       }
       setErrors({});
-      setToastMessage("Profile updated successfully.");
+      setToastMessage(!allergenResult.matchesRequested
+        ? t("Profile saved. Allergen selections have been synchronized with the server; please review them.", "Đã lưu hồ sơ. Lựa chọn dị ứng đã được đồng bộ theo máy chủ; vui lòng kiểm tra lại.")
+        : allergenResult.listsRefreshed ? t("Profile updated and matching food lists refreshed.", "Đã cập nhật hồ sơ và tải lại danh sách món phù hợp.") : t("Profile saved, but food lists could not be refreshed. Please reload the page.", "Đã lưu hồ sơ, nhưng chưa tải lại được danh sách món. Vui lòng tải lại trang."));
     } catch (err) {
+      if (getStoredToken() !== session) return;
       setSaveError(err instanceof Error ? err.message : "Không thể hoàn tất lưu hồ sơ. Vui lòng thử lại.");
     } finally {
       setSaving(false);

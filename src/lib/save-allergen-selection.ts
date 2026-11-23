@@ -1,3 +1,5 @@
+import { refreshPersonalizedLists } from "@/lib/refresh-personalized-lists";
+import { invalidatePersonalizedData } from "@/lib/personalized-data";
 import { getUserAllergens, updateUserAllergens, type AllergenItem } from "@/lib/profile-api";
 import { getStoredToken } from "@/lib/auth";
 
@@ -20,6 +22,7 @@ export async function saveAllergenSelection(ids: number[]) {
   if (!session) throw new Error("ALLERGEN_SESSION_CHANGED");
   const response: unknown = await updateUserAllergens(expected);
   if (getStoredToken() !== session) throw new Error("ALLERGEN_SESSION_CHANGED");
+  invalidatePersonalizedData();
   const confirmed = selectionFromResponse(response);
   let items: AllergenItem[];
   let refreshed = true;
@@ -31,5 +34,6 @@ export async function saveAllergenSelection(ids: number[]) {
   if (getStoredToken() !== session) throw new Error("ALLERGEN_SESSION_CHANGED");
   const currentIds = [...new Set(items.map(item => item.allergenId))].sort((a, b) => a - b);
   const matchesRequested = currentIds.length === expected.length && currentIds.every((id, index) => id === expected[index]);
-  return { items, refreshed, matchesRequested };
+  const listsRefreshed = await refreshPersonalizedLists(session);
+  return { items, refreshed, matchesRequested, listsRefreshed };
 }

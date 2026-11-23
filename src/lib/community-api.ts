@@ -46,15 +46,16 @@ export interface CommunityEvent {
   commentCount: number | null;
 }
 
-export function listPosts(params: { postType?: string; limit?: number; keyword?: string; category?: number; categoryType?: string } = {}) {
+export function listPosts(params: { postType?: string; sort?: "rating" | "latest"; limit?: number; keyword?: string; category?: number; categoryType?: string } = {}) {
   const query = new URLSearchParams();
   if (params.postType) query.set("postType", params.postType);
+  if (params.sort) query.set("sort", params.sort);
   if (params.limit) query.set("limit", String(params.limit));
   if (params.category) query.set("category", String(params.category));
   if (params.categoryType) query.set("categoryType", params.categoryType);
   if (params.keyword) query.set("keyword", params.keyword);
   const suffix = query.toString();
-  return apiGet<PostResponse[]>(`/api/posts${suffix ? `?${suffix}` : ""}`);
+  return apiGet<PostResponse[]>(`/api/posts${suffix ? `?${suffix}` : ""}`, { cache: "no-store" });
 }
 
 export function getPost(postId: number) {

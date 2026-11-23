@@ -9,12 +9,13 @@ const maxDurationMs = 10 * 60_000;
 export const hasPendingImages = (plan: MealPlanResponse | null) => !!plan?.meals.some(meal =>
   meal.imageGenerationStatus === "PENDING" || meal.imageGenerationStatus === "PROCESSING");
 
-export function useMealImagePolling({ plan, owner, enabled, busy, onUpdate }: {
+export function useMealImagePolling({ plan, owner, enabled, busy, onUpdate, onInvalidated }: {
   plan: MealPlanResponse | null;
   owner: string | undefined;
   enabled: boolean;
   busy: boolean;
   onUpdate: (plan: MealPlanResponse) => void;
+  onInvalidated?: () => void;
 }) {
   const [revision, setRevision] = useState(0);
   const [notice, setNotice] = useState<{ key: string; text: string } | null>(null);
@@ -69,6 +70,7 @@ export function useMealImagePolling({ plan, owner, enabled, busy, onUpdate }: {
         if (stopped || controller.signal.aborted) return;
         const status = failure instanceof MealPlanRequestError ? failure.status : undefined;
         if (status === 401 || status === 403) stop("Phiên đăng nhập không còn hợp lệ hoặc không có quyền xem thực đơn. Vui lòng đăng nhập lại.");
+        else if (status === 409) { stop("Hồ sơ đã thay đổi. Vui lòng tạo lại thực đơn phù hợp."); onInvalidated?.(); }
         else if (status === 404) stop("Không tìm thấy thực đơn. Hãy tải lại dữ liệu.");
         else setNotice({ key, text: "Chưa cập nhật được ảnh từ máy chủ. Giữ ảnh hiện tại và tiếp tục kiểm tra trong thời gian chờ." });
       } finally { inFlight = false; }
@@ -81,7 +83,7 @@ export function useMealImagePolling({ plan, owner, enabled, busy, onUpdate }: {
       timeout = setTimeout(expire, deadline - Date.now());
     }
     return () => { stop(); };
-  }, [enabled, owner, planId, pending, busy, key, onUpdate]);
+  }, [enabled, owner, planId, pending, busy, key, onUpdate, onInvalidated]);
 
   return { imagePollingNotice: notice?.key === key ? notice.text : "", resumeImagePolling: resume };
 }

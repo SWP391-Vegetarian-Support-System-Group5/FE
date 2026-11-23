@@ -5,6 +5,8 @@
  * base URL and JWT token are handled automatically.
  */
 
+import { readSessionToken } from "@/lib/auth-session";
+import { invalidatePersonalizedData } from "@/lib/personalized-data";
 import { apiFetch, apiGet, apiPut } from "@/lib/api";
 import type { ActivityLevel } from "@/lib/profile-energy";
 
@@ -104,6 +106,7 @@ export function getProfile() {
 
 /** Update the authenticated user's profile */
 export async function updateProfile(payload: UpdateProfilePayload) {
+  const session = readSessionToken();
   const response = await apiFetch("/api/users/me/profile", {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -122,7 +125,9 @@ export async function updateProfile(payload: UpdateProfilePayload) {
     }
     throw new Error(message);
   }
-  return response.json() as Promise<BackendUserProfile>;
+  const profile = await response.json() as BackendUserProfile;
+  if (session && readSessionToken() === session) invalidatePersonalizedData();
+  return profile;
 }
 
 /** Persists the map location without overwriting the rest of a user's health profile. */

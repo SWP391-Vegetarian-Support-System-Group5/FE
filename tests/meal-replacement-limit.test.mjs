@@ -11,7 +11,7 @@ function load(path, dependencies = {}, globals = {}) {
   vm.runInNewContext(compiled, { exports, require: name => {
     assert.ok(Object.hasOwn(dependencies, name), `Unexpected import: ${name}`);
     return dependencies[name];
-  }, ...globals });
+  }, Error, ...globals });
   return exports;
 }
 
@@ -37,17 +37,25 @@ async function setup({ failFirst = false } = {}) {
   const plan = { mealPlanId: 24, startDate: "2026-10-24", bmi: null, bmiCategory: null,
     meals: [{ mealPlanMealId: 413, dayNumber: 1, mealType: "BREAKFAST", recipeId: 10, recipeName: "Tofu" }] };
   const imports = {
+    "@/hooks/usePersonalizedRevision": { usePersonalizedRevision: () => 0 },
+    "@/lib/personalized-data": { getPersonalizedRevision: () => 0 },
+    "@/lib/save-allergen-selection": {},
+    "@/lib/auth": { getStoredToken: () => "test-session" },
+    "./useMealImagePolling": { useMealImagePolling: () => ({ imagePollingNotice: null }), hasPendingImages: () => false },
+    "@/lib/meal-plan-goals": {},
     react: {
       useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = typeof initial === "function" ? initial() : initial;
         return [slots[i], value => { slots[i] = typeof value === "function" ? value(slots[i]) : value; }]; },
       useRef(initial) { const i = cursor++; if (!(i in slots)) slots[i] = { current: initial }; return slots[i]; },
       useMemo: callback => callback(),
+      useCallback: callback => callback,
       useEffect: callback => { if (firstRender) effects.push(callback); },
     },
     "@/context/AuthContext": { useAuth: () => ({ user: { uid: "user-1" }, loading: false }) },
     "@/context/LanguageContext": { useLanguage: () => ({ t: english => english, language: "en", locale: "en-US" }) },
     "@/lib/api": { getMediaUrl: value => value || "" },
     "@/lib/meal-plan-api": {
+      MealPlanRequestError: class extends Error {},
       getMealPlans: async () => [plan],
       replaceMeal: async () => { calls++; if (failFirst && calls === 1) throw Object.assign(new Error("Retry later"), { status: 429 }); return plan; },
     },

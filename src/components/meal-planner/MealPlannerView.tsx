@@ -18,7 +18,7 @@ import { useMealPlanner } from "./useMealPlanner";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { getMealReplacementOptions, type MealPlanRecipeOptionResponse } from "@/lib/meal-plan-api";
+import { MealPlanRequestError, getMealReplacementOptions, type MealPlanRecipeOptionResponse } from "@/lib/meal-plan-api";
 
 export interface MealItem {
   id: string;
@@ -232,12 +232,14 @@ export default function MealPlannerView() {
   const [viewMode, setViewMode] = useState<"week" | "day">("week");
   const [selectedDay, setSelectedDay] = useState(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pickerError, setPickerError] = useState(false);
+  const [pickerRevision, setPickerRevision] = useState(0);
   const [mealPicker, setMealPicker] = useState<{ dayIndex: number; meal: MealItem } | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
   const [pickerOptions, setPickerOptions] = useState<MealPlanRecipeOptionResponse[]>([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const {
-    profileProblems, saveWeeklyWeight, currentWeightKg, weightOwner,
+    needsRebuild, emptyPlan, invalidatePlan, profileProblems, saveWeeklyWeight, currentWeightKg, weightOwner,
     goalContext, inputProblems, confirmGeneration, closeGoalDialog, selectedWeekRange, savedWeekRange, savedStartDate, planNutrition,
     imagePollingNotice, imagesPending, reloadMealImages,
     planId, applyMealImage, refreshMealImages, setImageBusy,
@@ -250,6 +252,7 @@ export default function MealPlannerView() {
     goalWeightKg, estimatedWeeksToGoal,
   } = useMealPlanner();
   const openMealPicker = (dayIndex: number, meal: MealItem) => {
+    setPickerError(false);
     setPickerQuery("");
     setPickerOptions([]);
     setMealPicker({ dayIndex, meal });
@@ -258,14 +261,19 @@ export default function MealPlannerView() {
     if (!mealPicker || !planId) return;
     let active = true;
     const timer = window.setTimeout(() => {
-      setPickerLoading(true);
+      setPickerLoading(true); setPickerOptions([]); setPickerError(false);
       void getMealReplacementOptions(planId, Number(mealPicker.meal.id), pickerQuery)
         .then(options => { if (active) setPickerOptions(options); })
-        .catch(() => { if (active) setPickerOptions([]); })
+        .catch(failure => {
+          if (!active) return;
+          setPickerOptions([]);
+          if (failure instanceof MealPlanRequestError && failure.status === 409) { invalidatePlan(); setMealPicker(null); }
+          else setPickerError(true);
+        })
         .finally(() => { if (active) setPickerLoading(false); });
     }, pickerQuery ? 250 : 0);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [mealPicker, planId, pickerQuery]);
+  }, [mealPicker, planId, pickerQuery, pickerRevision, invalidatePlan]);
   return (
     <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
       {/* Toast */}
@@ -322,7 +330,10 @@ export default function MealPlannerView() {
 
       {loading && <p role="status" className="py-4">{ui("Loading...")}</p>}
       {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-      {!loading && days.length === 0 && <p className="py-4">{ui("No meal plan yet.")}</p>}
+      {!loading && days.length === 0 && <div role="status" className="vm-feedback my-4 rounded-2xl border border-[#D9E6DC] bg-[#F1F7EF] p-4 text-sm text-[#254B38]">{needsRebuild
+        ? t("Your saved plan no longer matches your profile. Generate a new plan with your current diet and allergens.", "Thực đơn cũ không còn phù hợp với hồ sơ. Vui lòng tạo lại theo kiểu ăn chay và dị ứng hiện tại.")
+        : emptyPlan ? t("No meals match your profile and current inputs. No new plan was created.", "Chưa có món phù hợp với hồ sơ và nguyên liệu hiện tại. Hệ thống chưa tạo thực đơn mới.")
+        : t("No matching meal plan is available. Generate a plan using your current profile.", "Chưa có thực đơn phù hợp. Bạn có thể tạo thực đơn theo hồ sơ hiện tại.")}</div>}
       <section className="mt-3 rounded-2xl border border-[#E5E7DF] bg-white p-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1"><p className="text-[11px] font-medium uppercase tracking-wider text-[#727974]">{savedWeekRange ? "Tuần đang xem" : "Tuần dự kiến"}</p>
@@ -613,14 +624,14 @@ export default function MealPlannerView() {
         </div>
       </div>
 
-      {mealPicker && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => !isRegenerating && setMealPicker(null)}>
+      {mealPicker && !!planId && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => !isRegenerating && setMealPicker(null)}>
         <div role="dialog" aria-modal="true" aria-labelledby="meal-picker-title" className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
           <div className="border-b border-[#EFEEEB] px-6 py-5">
             <div className="flex items-start justify-between gap-4"><div><h2 id="meal-picker-title" className="font-serif text-xl font-bold text-[#07241A]">Chọn món thay thế</h2><p className="mt-1 text-xs leading-5 text-[#647068]">Chỉ hiển thị món phù hợp với kiểu ăn chay, dị ứng và nguyên liệu hiện có của bạn.</p></div><button type="button" onClick={() => setMealPicker(null)} className="rounded-lg p-2 text-[#727974] hover:bg-[#F5F3F0]" aria-label="Đóng">×</button></div>
             <input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} placeholder="Tìm món muốn ăn..." className="mt-4 h-11 w-full rounded-xl border border-[#D9E6DC] bg-[#FBF9F6] px-4 text-sm outline-none transition focus:border-[#1E3A2F] focus:ring-2 focus:ring-[#1E3A2F]/10" />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            {pickerLoading ? <p className="p-4 text-sm text-[#647068]">Đang tìm món phù hợp...</p> : pickerOptions.length === 0 ? <p className="p-4 text-sm text-[#647068]">Không tìm thấy món phù hợp với từ khóa này.</p> : <div className="space-y-2">{pickerOptions.map(option => <button key={option.recipeId} type="button" disabled={isRegenerating} onClick={() => void handleReplaceMeal(mealPicker.dayIndex, mealPicker.meal.id, mealPicker.meal.slot, option.recipeId).then(success => { if (success) setMealPicker(null); })} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#E5E7DF] p-4 text-left transition hover:border-[#9AB59A] hover:bg-[#F6FAF5] disabled:opacity-50"><span><strong className="block text-sm text-[#07241A]">{option.recipeName}</strong><span className="mt-1 block text-xs text-[#727974]">{[option.prepMinutes && option.cookMinutes ? `${option.prepMinutes + option.cookMinutes} phút` : option.prepMinutes ? `${option.prepMinutes} phút` : "", `~ ${Math.round(option.caloriesPerServing)} kcal/khẩu phần`].filter(Boolean).join(" · ")}</span></span><span className="shrink-0 rounded-lg bg-[#173C2D] px-3 py-2 text-xs font-semibold text-white">Chọn</span></button>)}</div>}
+            {pickerError ? <div role="alert" className="vm-feedback rounded-xl bg-red-50 p-4 text-sm text-red-800">{t("Replacement meals could not be loaded.", "Chưa tải được món thay thế.")} <button type="button" onClick={() => setPickerRevision(value => value + 1)} className="vm-button underline">{t("Retry", "Thử lại")}</button></div> : pickerLoading ? <p className="p-4 text-sm text-[#647068]">Đang tìm món phù hợp...</p> : pickerOptions.length === 0 ? <p className="p-4 text-sm text-[#647068]">Không tìm thấy món phù hợp với từ khóa này.</p> : <div className="space-y-2">{pickerOptions.map(option => <button key={option.recipeId} type="button" disabled={isRegenerating} onClick={() => void handleReplaceMeal(mealPicker.dayIndex, mealPicker.meal.id, mealPicker.meal.slot, option.recipeId).then(success => { if (success) setMealPicker(null); })} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#E5E7DF] p-4 text-left transition hover:border-[#9AB59A] hover:bg-[#F6FAF5] disabled:opacity-50"><span><strong className="block text-sm text-[#07241A]">{option.recipeName}</strong><span className="mt-1 block text-xs text-[#727974]">{[option.prepMinutes && option.cookMinutes ? `${option.prepMinutes + option.cookMinutes} phút` : option.prepMinutes ? `${option.prepMinutes} phút` : "", `~ ${Math.round(option.caloriesPerServing)} kcal/khẩu phần`].filter(Boolean).join(" · ")}</span></span><span className="shrink-0 rounded-lg bg-[#173C2D] px-3 py-2 text-xs font-semibold text-white">Chọn</span></button>)}</div>}
           </div>
           <div className="border-t border-[#EFEEEB] px-6 py-4 text-right"><button type="button" onClick={() => setMealPicker(null)} className="rounded-xl px-4 py-2 text-sm font-semibold text-[#424844] hover:bg-[#F5F3F0]">Hủy</button></div>
         </div>

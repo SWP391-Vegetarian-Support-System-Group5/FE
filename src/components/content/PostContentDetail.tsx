@@ -161,6 +161,11 @@ export default function PostContentDetail({ postId }: { postId: number }) {
           </div>
           <a href="#comments" className="text-sm hover:text-[#BC4B22]">{post.commentCount} {t("Comments", "bình luận")}</a>
         </div>
+        {!!recipe?.unverifiedIngredientNames?.length && !!user && (user.userId === post.userId || user.role?.toUpperCase() === "ADMIN") && <div role="status" className="vm-feedback mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-medium">{t("Some ingredient sources need administrator review.", "Một số nguyên liệu cần admin xác minh nguồn gốc.")}</p>
+          <p className="mt-1 break-words">{recipe.unverifiedIngredientNames.join(", ")}</p>
+          <p className="mt-1">{t("This recipe may be withheld from suggestions for users with allergies until review is complete.", "Công thức có thể chưa được đưa vào gợi ý cho người có dị ứng cho đến khi xác minh xong.")}</p>
+        </div>}
         {post.postType === "RECIPE" && !!user && (user.userId === post.userId || user.role?.toUpperCase() === "ADMIN") && <div className="mt-4"><ImageManager key={postId} imageUrl={post.imageUrl || post.thumbnailUrl}
           onUpload={file => uploadPostImage(postId, file)} onDelete={() => deletePostImage(postId)}
           onApplied={result => { setPost(current => current ? { ...current, imageUrl: result.imageUrl } : current); setRecipe(current => current ? { ...current, imageUrl: result.imageUrl } : current); }}
