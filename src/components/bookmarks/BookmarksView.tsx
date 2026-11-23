@@ -1,5 +1,7 @@
 "use client";
 
+import { usePersonalizedRevision } from "@/hooks/usePersonalizedRevision";
+
 import ContentIcon from "@/components/content/ContentIcon";
 
 import UiText, { useUiText } from "@/components/UiText";
@@ -53,7 +55,8 @@ export default function BookmarksView() {
   const locks = useRef(new Set<string>());
   const [revision, setRevision] = useState(0);
 
-  const requestKey = JSON.stringify([user?.uid, revision]);
+  const personalizedRevision = usePersonalizedRevision();
+  const requestKey = JSON.stringify([user?.uid, revision, personalizedRevision]);
   const denied = !authLoading && (!user || !getStoredToken());
   const loading = authLoading || (!denied && loadedKey !== requestKey);
   const error = denied ? "Bạn cần đăng nhập để xem bài đã lưu." : loadedKey === requestKey ? requestError : "";

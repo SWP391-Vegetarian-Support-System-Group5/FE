@@ -1,3 +1,4 @@
+import { invalidatePersonalizedData } from "./personalized-data";
 import type { BackendUser } from "./auth";
 
 // Persist only within this tab and frontend run, never in localStorage.
@@ -9,7 +10,7 @@ export function subscribeSession(listener: () => void) {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
 }
-function notifySession() { listeners.forEach(listener => listener()); }
+function notifySession() { invalidatePersonalizedData(false); listeners.forEach(listener => listener()); }
 const storageKey = "veggiemate_auth_session";
 const epoch = process.env.NEXT_PUBLIC_AUTH_SESSION_EPOCH || "current-build";
 

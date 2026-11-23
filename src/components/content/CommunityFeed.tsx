@@ -1,5 +1,8 @@
 "use client";
 
+import { usePersonalizedRevision } from "@/hooks/usePersonalizedRevision";
+
+import { comparePostRatings } from "@/lib/post-ranking";
 import ContentIcon from "@/components/content/ContentIcon";
 import UiText from "@/components/UiText";
 
@@ -28,7 +31,7 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
   const gallery = !bookmarksOnly && !mineOnly && !compact;
   const [categoryLabel, setCategoryLabel] = useState("");
   const [categoryMissing, setCategoryMissing] = useState(false);
-  const [sortBy, setSortBy] = useState<"latest" | "popular" | "rated">("latest");
+  const [sortBy, setSortBy] = useState<"latest" | "popular" | "rated">(bookmarksOnly || mineOnly ? "latest" : "rated");
   const [filters, setFilters] = useRememberedFilters(`${scope}:${keyword}`, { postType: "", search: keyword });
   const postType = gallery ? "" : showFilters ? filters.postType : "";
   const search = showFilters ? filters.search : keyword;
@@ -44,8 +47,9 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
   const [pending, setPending] = useState<number[]>([]);
   const locks = useRef(new Set<number>());
 
-  const requestKey = JSON.stringify([scope, search, postType, categoryId, revision]);
-  const bookmarkKey = JSON.stringify([user?.uid, revision]);
+  const personalizedRevision = usePersonalizedRevision();
+  const requestKey = JSON.stringify([scope, search, postType, categoryId, revision, personalizedRevision, sortBy]);
+  const bookmarkKey = JSON.stringify([user?.uid, revision, personalizedRevision]);
   const denied = !authLoading && (bookmarksOnly || mineOnly) && (!user || !getStoredToken());
   const loading = authLoading || (!denied && loadedKey !== requestKey);
   const error = denied ? "Bạn cần đăng nhập để xem nội dung này." : loadedKey === requestKey ? requestError : "";
@@ -70,7 +74,7 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
       return () => controller.abort();
     }
     const timer = setTimeout(() => {
-      const request = bookmarksOnly ? getBookmarks(controller.signal) : getPosts({ keyword: search, postType, category: categoryId }, controller.signal);
+      const request = bookmarksOnly ? getBookmarks(controller.signal) : getPosts({ keyword: search, postType, category: categoryId, sort: sortBy === "rated" ? "rating" : "latest" }, controller.signal);
       request.then(data => {
         if (controller.signal.aborted) return;
         setError("");
@@ -80,7 +84,7 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
         .finally(() => { if (!controller.signal.aborted) setLoadedKey(requestKey); });
     }, 250);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [authLoading, user, bookmarksOnly, mineOnly, search, postType, categoryId, revision, requestKey, bookmarkKey]);
+  }, [authLoading, user, bookmarksOnly, mineOnly, search, postType, categoryId, revision, requestKey, bookmarkKey, sortBy]);
   useEffect(() => {
     const controller = new AbortController();
     if (authLoading || !user || !getStoredToken() || bookmarksOnly) return () => controller.abort();
@@ -106,7 +110,7 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
   }
   const visible = (loadedKey === requestKey && !denied ? posts : []).filter(p => !bookmarksOnly || ((!postType || p.postType === postType) && `${p.title} ${p.content} ${p.authorName}`.toLowerCase().includes(search.toLowerCase()))).sort((a, b) =>
     sortBy === "popular" ? (b.ratingCount + b.commentCount) - (a.ratingCount + a.commentCount) || b.postId - a.postId
-      : sortBy === "rated" ? b.averageRating - a.averageRating || b.ratingCount - a.ratingCount || b.postId - a.postId
+      : sortBy === "rated" ? comparePostRatings(a, b)
         : new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime() || b.postId - a.postId);
   const input = "rounded-xl border border-[#E5E7DF] bg-[#FBF9F6] px-4 py-2.5 text-sm outline-none focus:border-[#254B38]";
   return <section className="text-[#07241A]">
@@ -115,8 +119,8 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
       <Link href="/create-content" className="vm-button rounded-xl bg-[#254B38] px-5 py-2.5 text-sm font-semibold text-white">Tạo bài viết</Link>
     </div>
     {gallery && <div className="my-6 flex flex-wrap items-center gap-5 border-b border-[#EFEEEB] pb-5 text-sm font-semibold">
-      <span className="text-[#727974]">SẮP XẾP:</span>
-      {([ ["latest", "Mới nhất"], ["popular", "Phổ biến"], ["rated", "Đánh giá cao"] ] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setSortBy(value)} aria-pressed={sortBy === value} className={sortBy === value ? "border-b-2 border-[#0C8E78] pb-1 text-[#07241A]" : "pb-1 text-[#727974] hover:text-[#07241A]"}>{label}</button>)}
+      <span className="text-[#727974]">{t("SORT BY:", "SẮP XẾP:")}</span>
+      {([ ["rated", t("Highest rated", "Đánh giá cao")], ["latest", t("Latest", "Mới nhất")], ["popular", t("Popular", "Phổ biến")] ] as const).map(([value, label]) => <button key={value} type="button" onClick={() => setSortBy(value)} aria-pressed={sortBy === value} className={sortBy === value ? "border-b-2 border-[#0C8E78] pb-1 text-[#07241A]" : "pb-1 text-[#727974] hover:text-[#07241A]"}>{label}</button>)}
     </div>}
     {!compact && showFilters && <div className="my-6 flex flex-wrap gap-3">
       <input aria-label="Tìm bài viết" type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm bài viết…" className={`${input} min-w-48 flex-1`} />
@@ -126,7 +130,7 @@ export default function CommunityFeed({ keyword = "", categoryId, bookmarksOnly 
     {(error || bookmarkError) && <div role="alert" className="my-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error || bookmarkError} <Link href="/login" className="underline">Đăng nhập</Link><button onClick={() => { setBookmarkError(""); setRevision(n => n + 1); }} className="ml-4 underline">Thử lại</button></div>}
     {notice && <p role="status" className="vm-feedback mt-4 rounded-xl border border-[#CCDCCB] bg-[#E8F0E5] px-4 py-3 text-sm text-[#254B38]">{notice}</p>}
     {categoryMissing && <p role="alert" className="my-5 text-sm text-red-700">Danh mục này không tồn tại hoặc đã bị ẩn.</p>}
-    {loading ? <CardSkeleton count={compact ? 4 : 3} compact={compact} /> : !error && !visible.length && !categoryMissing ? <p className="vm-enter rounded-3xl border border-[#EFEEEB] bg-white p-10 text-center text-[#727974]">Chưa có bài viết phù hợp.</p> : !categoryMissing && <div className={`vm-stagger mt-7 grid gap-6 sm:grid-cols-2 ${compact ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+    {loading ? <CardSkeleton count={compact ? 4 : 3} compact={compact} /> : !error && !visible.length && !categoryMissing ? <p role="status" className="vm-enter rounded-3xl border border-[#EFEEEB] bg-white p-10 text-center text-[#727974]">{t("No posts match your profile and current search.", "Chưa tìm thấy bài viết phù hợp với hồ sơ và điều kiện tìm kiếm của bạn.")}</p> : !categoryMissing && <div className={`vm-stagger mt-7 grid gap-6 sm:grid-cols-2 ${compact ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
       {(compact ? visible.slice(0, 4) : visible).map(post => <article key={post.postId} className="vm-card vm-enter group overflow-hidden rounded-3xl border border-[#EFEEEB] bg-white shadow-xs">
         <div className="relative aspect-[16/10] overflow-hidden bg-[#E8EDE4]">
           <Link href={`/view-detail/post-${post.postId}`} className="absolute inset-0 flex items-center justify-center">

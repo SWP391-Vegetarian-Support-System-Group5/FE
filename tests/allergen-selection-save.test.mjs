@@ -8,15 +8,19 @@ import * as runtime from "react/jsx-runtime";
 const compile = path => ts.transpileModule(readFileSync(path, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
 const soy = { allergenId: 2, name: "Soy" };
 const egg = { allergenId: 7, name: "Egg" };
-function service({ readFails = false, writeFails = false, malformed = false, current = [soy, egg], switchSession = false } = {}) {
+function service({ readFails = false, writeFails = false, malformed = false, current = [soy, egg], switchSession = false, listsRefreshed = true } = {}) {
   const calls = []; let session = "test-session";
+  const lifecycle = [];
   const exports = {};
   const imports = {
+    "@/lib/personalized-data": { invalidatePersonalizedData() { lifecycle.push("invalidate"); } },
+    "@/lib/refresh-personalized-lists": { refreshPersonalizedLists: async () => { lifecycle.push("refresh"); return listsRefreshed; } },
     "@/lib/auth": { getStoredToken: () => session },
     "@/lib/profile-api": {
       updateUserAllergens: async ids => {
         calls.push(["PUT", Array.from(ids)]);
         if (writeFails) throw new Error("BE save failed");
+        lifecycle.push("saved");
         if (switchSession) session = "other-session";
         return malformed ? null : { userId: 1, allergens: ids.map(id => ({ id, name: id === 2 ? "Soy" : "Egg" })) };
       },
@@ -24,17 +28,27 @@ function service({ readFails = false, writeFails = false, malformed = false, cur
     },
   };
   vm.runInNewContext(compile("src/lib/save-allergen-selection.ts"), { exports, require: key => { assert.ok(key in imports); return imports[key]; }, Error });
-  return { save: exports.saveAllergenSelection, calls };
+  return { save: exports.saveAllergenSelection, calls, lifecycle };
 }
 
 test("PUT uses the complete deduplicated selection then GET confirms persisted values", async () => {
   const api = service(); const result = await api.save([7, 2, 7]);
   assert.deepEqual(api.calls, [["PUT", [2, 7]], ["GET"]]);
   assert.equal(result.refreshed, true); assert.equal(result.matchesRequested, true);
+  assert.deepEqual(api.lifecycle, ["saved", "invalidate", "refresh"]);
 });
 test("a failed PUT preserves edits by rejecting and never reports success or reads back", async () => {
   const api = service({ writeFails: true });
   await assert.rejects(api.save([2]), /BE save failed/); assert.equal(api.calls.length, 1);
+  assert.deepEqual(api.lifecycle, []);
+});
+test("a saved selection remains confirmed when fetching new food lists fails", async () => {
+  const api = service({ listsRefreshed: false, current: [soy] });
+  const result = await api.save([2]);
+  assert.equal(result.matchesRequested, true);
+  assert.equal(result.listsRefreshed, false);
+  assert.equal(result.items[0].allergenId, 2);
+  assert.deepEqual(api.calls, [["PUT", [2]], ["GET"]]);
 });
 test("read failure after a confirmed PUT is reported separately from save failure", async () => {
   const api = service({ readFails: true }); const result = await api.save([2]);
@@ -71,7 +85,7 @@ test("selection UI waits for confirmation, cancel sends nothing, and double conf
     "react/jsx-runtime": runtime,
     "@/components/content/ContentDialog": { default: "dialog" },
     "@/context/LanguageContext": { useLanguage: () => ({ t: en => en }) },
-    "@/lib/save-allergen-selection": { saveAllergenSelection: async ids => { writes.push(Array.from(ids)); await new Promise(resolve => { finish = resolve; }); return { items: [soy], refreshed: true, matchesRequested: true }; } },
+    "@/lib/save-allergen-selection": { saveAllergenSelection: async ids => { writes.push(Array.from(ids)); await new Promise(resolve => { finish = resolve; }); return { items: [soy], refreshed: true, matchesRequested: true, listsRefreshed: true }; } },
   };
   vm.runInNewContext(compile("src/components/profile/AllergenSelectionSave.tsx"), { exports, require: key => { assert.ok(key in imports); return imports[key]; }, Error });
   const render = () => { cursor = 0; return exports.default(props); };
@@ -85,5 +99,5 @@ test("selection UI waits for confirmation, cancel sends nothing, and double conf
   const confirm = button(render(), "Confirm and save"); confirm.props.onClick(); confirm.props.onClick();
   assert.equal(writes.length, 1); assert.equal(busyChanges[0], true);
   finish(); await new Promise(setImmediate);
-  assert.match(text(render()), /saved and reloaded/); assert.equal(busyChanges.at(-1), false);
+  assert.match(text(render()), /updated and matching food lists refreshed/); assert.equal(busyChanges.at(-1), false);
 });

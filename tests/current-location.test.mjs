@@ -27,7 +27,7 @@ test("location API forwards cancellation signals and reads the actual reverse-ge
       return new Response(JSON.stringify(url.includes("reverse-geocode") ? { formattedAddress: "Saved address" } : { userId: 7 }));
     },
   });
-  const profile = load("src/lib/profile-api.ts", { "@/lib/api": api });
+  const profile = load("src/lib/profile-api.ts", { "@/lib/api": api, "@/lib/auth-session": { readSessionToken: () => "session" }, "@/lib/personalized-data": { invalidatePersonalizedData() {} } });
   const signal = new AbortController().signal;
   assert.equal((await profile.reverseGeocode(10.8, 106.7, signal)).formattedAddress, "Saved address");
   await profile.updateLivingLocation(10.8, 106.7, "Saved address", signal);

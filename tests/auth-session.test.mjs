@@ -12,7 +12,7 @@ function load(path, imports = {}, globals = {}) {
   const exports = {};
   vm.runInNewContext(code, {
     exports, process: { env: {} }, Response, atob,
-    require(name) { assert.ok(Object.hasOwn(imports, name), `Unexpected import: ${name}`); return imports[name]; },
+    require(name) { if (name === "./personalized-data") return { invalidatePersonalizedData() {} }; assert.ok(Object.hasOwn(imports, name), `Unexpected import: ${name}`); return imports[name]; },
     ...globals,
   });
   return exports;

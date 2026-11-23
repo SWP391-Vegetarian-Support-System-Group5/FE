@@ -15,6 +15,9 @@ export interface IngredientItem {
   ingredientCategoryId: number;
   dietaryGroup: DietaryGroup | "UNVERIFIED";
   allergenId: number | null;
+  allergenIds?: number[];
+  isAllergenProfileVerified?: boolean;
+  allergenEvidence?: string | null;
 }
 
 export interface AllergenItem {
@@ -62,6 +65,9 @@ export interface CreateRecipePayload {
 }
 
 export interface RecipeResponse {
+  averageRating?: number;
+  ratingCount?: number;
+  unverifiedIngredientNames?: string[];
   moderationReason?: string | null;
   postId: number;
   title: string;

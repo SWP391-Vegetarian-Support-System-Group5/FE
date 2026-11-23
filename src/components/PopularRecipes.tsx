@@ -1,38 +1,46 @@
 "use client";
 
+import { usePersonalizedRevision } from "@/hooks/usePersonalizedRevision";
+import { rankPostsByRating } from "@/lib/post-ranking";
+import { useAuth } from "@/context/AuthContext";
 import ContentIcon from "@/components/content/ContentIcon";
 
 import CardSkeleton from "@/components/ui/CardSkeleton";
 import FeedImage from "@/components/ui/FeedImage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { createCommunityEventSource, listPosts, type CommunityEvent, type PostResponse } from "@/lib/community-api";
+import { createCommunityEventSource, listPosts, type PostResponse } from "@/lib/community-api";
 import { useLanguage } from "@/context/LanguageContext";
 import { localizeRecipeTitle } from "@/lib/localized-content";
 import { getMediaUrl } from "@/lib/api";
 
 export default function PopularRecipes() {
   const { language, locale, t } = useLanguage();
+  const { user, loading: authLoading } = useAuth();
+  const personalizedRevision = usePersonalizedRevision();
+  const owner = `${user?.uid ?? "guest"}:${personalizedRevision}`;
+  const [loadedOwner, setLoadedOwner] = useState<string | null>(null);
   const [posts, setPosts] = useState<PostResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [revision, setRevision] = useState(0);
 
   useEffect(() => {
+    if (authLoading) return;
     let active = true;
     let latestRequest = 0;
     const load = async () => {
       const request = ++latestRequest;
       try {
-        const posts = await listPosts({ postType: "RECIPE", limit: 4 });
+        const posts = await listPosts({ postType: "RECIPE", sort: "rating", limit: 4 });
         if (active && request === latestRequest) {
-          setPosts(posts);
+          setPosts(posts.filter(post => post.status === "PUBLISHED" && post.postType === "RECIPE"));
           setFailed(false);
         }
       } catch {
-        if (active && request === latestRequest) setFailed(true);
+        if (active && request === latestRequest) { setFailed(true); setPosts([]); }
       } finally {
-        if (active && request === latestRequest) setLoading(false);
+        if (active && request === latestRequest) { setLoading(false); setLoadedOwner(owner); }
       }
     };
     void load();
@@ -42,17 +50,13 @@ export default function PopularRecipes() {
     source.addEventListener("postCreated", refresh);
     source.addEventListener("postUpdated", refresh);
     source.addEventListener("postRemoved", refresh);
-    source.addEventListener("ratingUpdated", (event) => {
-      const payload = JSON.parse((event as MessageEvent).data) as CommunityEvent;
-      if (!payload.postId) return;
-      setPosts((current) => current.map((post) => post.postId === payload.postId
-        ? { ...post, averageRating: payload.averageRating ?? post.averageRating, ratingCount: payload.ratingCount ?? post.ratingCount }
-        : post));
-    });
+    source.addEventListener("ratingUpdated", refresh);
     source.addEventListener("commentCreated", refresh);
     source.addEventListener("commentRemoved", refresh);
-    return () => { active = false; source.close(); };
-  }, [revision]);
+    const onFocus = () => { void load(); };
+    window.addEventListener("focus", onFocus);
+    return () => { active = false; source.close(); window.removeEventListener("focus", onFocus); };
+  }, [revision, owner, authLoading]);
 
   const retry = () => {
     setLoading(true);
@@ -61,7 +65,7 @@ export default function PopularRecipes() {
   const numbers = new Intl.NumberFormat(locale);
   const ratings = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-  if (loading) return <CardSkeleton count={4} compact />;
+  if (authLoading || loading || loadedOwner !== owner) return <CardSkeleton count={4} compact />;
 
   return (
     <div className="mt-8">
@@ -75,11 +79,11 @@ export default function PopularRecipes() {
       {!failed && posts.length === 0 && (
         <div role="status" className="col-span-full flex flex-col items-center rounded-3xl border border-dashed border-[#CCD5C6] bg-white/70 px-6 py-12 text-center">
           <span aria-hidden="true" className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E6EFE2] text-[#527244]"><ContentIcon name="recipe" width="24" height="24" /></span>
-          <p className="font-serif text-xl font-medium text-[#1E3A2F]">{t("A new recipe is on its way", "Chờ một công thức mới")}</p>
-          <p className="mt-2 text-sm text-[#59635C]">{t("No recipe posts have been published yet.", "Chưa có bài công thức nào được đăng.")}</p>
+          <p className="font-serif text-xl font-medium text-[#1E3A2F]">{t("No matching recipes", "Chưa có công thức phù hợp")}</p>
+          <p className="mt-2 text-sm text-[#59635C]">{t("No recipes match your profile and current choices.", "Chưa tìm thấy công thức phù hợp với hồ sơ và lựa chọn hiện tại của bạn.")}</p>
         </div>
       )}
-      {posts.map((post) => {
+      {rankPostsByRating(posts).slice(0, 4).map((post) => {
         const storedImage = post.imageUrl ?? post.thumbnailUrl;
         const imageSource = storedImage ? getMediaUrl(storedImage) : null;
         return <Link key={post.postId} href={`/view-detail/${post.postId}`} className="vm-card vm-enter group flex h-full min-w-0 flex-col overflow-hidden rounded-3xl border border-[#E0E5DA] bg-white shadow-[0_3px_12px_#1e3a2f05] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#527244]">
