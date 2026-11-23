@@ -15,7 +15,7 @@ interface AdminPost {
   postId: number; authorName: string; title: string; postType: string; status: string; createdAt: string;
 }
 interface AdminComment {
-  commentId: number; authorName: string; content: string; createdAt: string;
+  commentId: number; authorName: string; content: string; status?: string; createdAt: string;
 }
 interface PaymentPurchase {
   paymentTransactionId: number; userId: number; userName: string; userEmail: string;
@@ -55,10 +55,18 @@ export default function AdminDashboardPage() {
   const money = (value: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
   const published = posts.filter(post => post.status.toUpperCase() === "PUBLISHED").length;
   const activities = useMemo(() => [
-    ...posts.map(post => ({ id: `p${post.postId}`, author: post.authorName, detail: post.title, kind: post.postType, date: post.createdAt })),
-    ...comments.map(comment => ({ id: `c${comment.commentId}`, author: comment.authorName, detail: comment.content, kind: "COMMENT", date: comment.createdAt })),
+    ...posts
+      .filter(post => post.status?.toUpperCase() === "PUBLISHED")
+      .map(post => ({ id: `p${post.postId}`, author: post.authorName, detail: post.title, kind: post.postType, date: post.createdAt })),
+    ...comments
+      .filter(comment => {
+        const s = comment.status?.toUpperCase();
+        return !s || s === "PUBLISHED" || s === "ACTIVE" || (!["REMOVED", "HIDDEN", "DELETED"].includes(s));
+      })
+      .map(comment => ({ id: `c${comment.commentId}`, author: comment.authorName, detail: comment.content, kind: "COMMENT", date: comment.createdAt })),
   ].filter(item => !Number.isNaN(Date.parse(item.date))).sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 4), [posts, comments]);
   const recent = posts
+    .filter(post => post.status?.toUpperCase() === "PUBLISHED")
     .slice()
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 4);
 
