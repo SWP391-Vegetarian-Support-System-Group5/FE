@@ -1,3 +1,4 @@
+import { fetchDietTypes } from "@/lib/diet-types-api";
 import { fallbackAreas, vietnamProvinces } from "@/lib/location-data";
 import { apiFetch } from "@/lib/api";
 import type { Area, Province, Restaurant } from "@/types/location";
@@ -51,7 +52,7 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 // Once the real API responds, the exact same UI automatically switches to server data.
 async function getJson<T>(path: string, fallback: T, timeoutMs = 2500, propagateError = false): Promise<T> {
   try {
-    const response = await apiFetch(`/api${path}`, { signal: AbortSignal.timeout(timeoutMs) });
+    const response = await apiFetch(`/api${path}`, { signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
     if (response.status === 401 || response.status === 403) throw new Error("Bạn cần đăng nhập lại để tìm địa điểm.");
     if (!response.ok) throw new Error(`API returned ${response.status}`);
     return (await response.json()) as T;
@@ -85,7 +86,7 @@ export const locationApi = {
       `/locations/reverse-geocode?${new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) })}`,
       null,
     ),
-  restaurants: async (provinceCode: string, areaCode: string, latitude?: number, longitude?: number, dietTypeId?: number | null, keyword?: string): Promise<Restaurant[]> => {
+  restaurants: async (provinceCode: string, areaCode: string, latitude?: number, longitude?: number, keyword?: string): Promise<Restaurant[]> => {
     if (latitude === undefined || longitude === undefined) return Promise.resolve([]);
 
     const params = new URLSearchParams({
@@ -93,11 +94,10 @@ export const locationApi = {
       longitude: String(longitude),
       radius: String(nearbyRadiusKm),
     });
-    if (dietTypeId != null) params.set("dietTypeId", String(dietTypeId));
     if (keyword?.trim()) params.set("keyword", keyword.trim());
     const [items, dietTypes] = await Promise.all([
       getJson<BackendRestaurant[]>(`/restaurants/nearby?${params}`, [], 15000, true),
-      getJson<Array<{ id: number; name: string }>>("/diet-types", [], 8000, true),
+      fetchDietTypes(),
     ]);
     const names = new Map(dietTypes.map(type => [type.id, type.name]));
     return items.filter(item => item.latitude != null && item.longitude != null).map(item => ({

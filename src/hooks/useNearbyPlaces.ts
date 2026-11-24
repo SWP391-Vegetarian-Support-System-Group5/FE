@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { usePersonalizedRevision } from "@/hooks/usePersonalizedRevision";
+import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { locationApi } from "@/lib/location-api";
 import { readLivingLocation } from "@/lib/living-location";
@@ -24,7 +26,7 @@ function nearestSix<T extends { distanceKm?: number | null }>(items: T[]) {
 }
 
 export function displayPlaceCategory(value: string | null | undefined, t: (en: string, vi: string) => string) {
-  return (value || "Unclassified").split(", ").map(label => {
+  const labels = (value || "Unclassified").split(", ").map(label => {
     switch (label.toUpperCase().replace(/[- ]/g, "_")) {
       case "VEGAN": return t("Vegan", "Thuần chay");
       case "LACTO_VEGETARIAN": return t("Lacto-vegetarian", "Chay có sữa");
@@ -35,10 +37,13 @@ export function displayPlaceCategory(value: string | null | undefined, t: (en: s
       default: return label;
     }
   }).join(", ");
+  return value && value !== "Unclassified" ? `${t("Offers", "Có phục vụ")}: ${labels}` : labels;
 }
 
 export function useNearbyPlaces() {
   const { t } = useLanguage();
+  const personalizedRevision = usePersonalizedRevision();
+  const { user, loading: authLoading } = useAuth();
   const [places, setPlaces] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(t("Finding VeggieMate restaurants around your location...", "Đang tìm nhà hàng VeggieMate quanh vị trí của bạn..."));
@@ -49,17 +54,22 @@ export function useNearbyPlaces() {
     let cancelled = false;
 
     async function loadPlaces() {
+      if (authLoading) return;
+      if (!user) {
+        setPlaces([]);
+        setLoading(false);
+        setMessage(t("Sign in to find restaurants for your diet.", "Đăng nhập để tìm quán phù hợp với kiểu ăn của bạn."));
+        return;
+      }
       setLoading(true);
       const saved = readLivingLocation();
       const provinceCode = saved?.provinceCode || "hochiminh";
       const areaCode = saved?.areaCode || "all";
       let center: Coordinates | null = null;
-      let dietTypeId: number | null = null;
       let label = t("your profile address", "địa chỉ hồ sơ của bạn");
 
       try {
         const profile = await getProfile();
-        dietTypeId = profile.dietTypeId;
         if (profile.latitude != null && profile.longitude != null) {
           center = { lat: profile.latitude, lng: profile.longitude };
         }
@@ -87,7 +97,7 @@ export function useNearbyPlaces() {
         return;
       }
 
-      const data = nearestSix(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId));
+      const data = nearestSix(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng));
       if (cancelled) return;
       setOrigin(center);
       setPlaces(data);
@@ -105,7 +115,7 @@ export function useNearbyPlaces() {
       setMessage(t("Could not load restaurant data. Please try again.", "Không tải được dữ liệu nhà hàng. Vui lòng thử lại."));
     });
     return () => { cancelled = true; };
-  }, [t]);
+  }, [t, personalizedRevision, user, authLoading]);
 
   const countLabel = useMemo(() => loading ? t("Searching...", "Đang tìm...") : `${places.length} ${t("real places", "địa điểm thật")}`, [loading, places.length, t]);
 

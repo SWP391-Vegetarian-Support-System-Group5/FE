@@ -1,5 +1,6 @@
 "use client";
 
+import { usePersonalizedRevision } from "@/hooks/usePersonalizedRevision";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -83,6 +84,7 @@ function getBrowserLocation(): Promise<Coordinates | null> {
 
 export default function ExplorePage() {
   const router = useRouter();
+  const personalizedRevision = usePersonalizedRevision();
   const { t } = useLanguage();
   const { user } = useAuth();
   const [{ query: searchQuery, tab: activeTab }, setFilters] = useRememberedFilters(`explore:${user?.uid || "guest"}`, { query: "", tab: "all" });
@@ -119,12 +121,10 @@ export default function ExplorePage() {
       const provinceCode = saved?.provinceCode || "hochiminh";
       const areaCode = saved?.areaCode || "all";
       let center: Coordinates | null = null;
-      let dietTypeId: number | null = null;
       let label = t("your profile address", "địa chỉ trong hồ sơ của bạn");
 
       try {
         const profile = await getProfile();
-        dietTypeId = profile.dietTypeId;
         if (profile.latitude != null && profile.longitude != null) {
           center = { lat: profile.latitude, lng: profile.longitude };
         }
@@ -155,11 +155,14 @@ export default function ExplorePage() {
         return;
       }
 
-      const places = await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId);
+      const places = await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng);
       if (cancelled) return;
       setRestaurants(places.map(toRestaurantItem));
       setOrigin(center);
-      setSelectedRestaurant((current) => current && places.some((place) => place.id === current.id) ? current : null);
+      setSelectedRestaurant((current) => {
+        const updated = current && places.find(place => place.id === current.id);
+        return updated ? toRestaurantItem(updated) : null;
+      });
       setLocationLabel(label);
       setRestaurantMessage(places.length > 0
         ? t(`Showing nearby VeggieMate restaurants around ${label}.`, `Đang hiển thị nhà hàng VeggieMate gần ${label}.`)
@@ -174,7 +177,7 @@ export default function ExplorePage() {
       setRestaurantMessage(t("Could not load restaurant data. Please try again.", "Không tải được dữ liệu nhà hàng. Vui lòng thử lại."));
     });
     return () => { cancelled = true; };
-  }, [t, user]);
+  }, [t, user, personalizedRevision]);
 
   const toggleSave = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();

@@ -79,13 +79,9 @@ export default function CuratedVeganPlaces() {
                 />
 
                 {place.isPlaceholder && <span className="absolute bottom-3 left-3 rounded bg-white/90 px-2 py-1 text-xs">{t("Illustration", "Ảnh minh họa")}</span>}
-                <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5">
+                <div className="absolute top-3.5 left-3.5 right-3.5 flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold shadow-md backdrop-blur-xs ${
-                      place.dietTag === "100% Vegan"
-                        ? "bg-[#8E3A2B] text-white"
-                        : "bg-[#07241A] text-white"
-                    }`}
+                    className="rounded-full px-3 py-1 text-xs font-semibold shadow-md backdrop-blur-xs bg-[#07241A] text-white"
                   >
                     {place.dietTag}
                   </span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { subscribePersonalizedData } from "@/lib/personalized-data";
 import UiText, { useUiText } from "@/components/UiText";
 
 
@@ -124,17 +125,16 @@ export default function LocationExplorer() {
     const request = ++requestSequence.current;
     setLoading(true);
     try {
-      const profile = await getProfile().catch(() => null);
       const data = await locationApi.restaurants(
         filters.provinceCode,
         filters.areaCode,
         coordinates.lat,
         coordinates.lng,
-        profile?.dietTypeId,
         keyword,
       );
       if (request !== requestSequence.current) return;
       setRestaurants(data);
+      setDetailRestaurant(current => current ? data.find(item => item.id === current.id) : undefined);
       setSelected(data[0]);
       return true;
     } catch {
@@ -147,6 +147,10 @@ export default function LocationExplorer() {
       if (request === requestSequence.current) setLoading(false);
     }
   }, [areaCode, center, provinceCode, t]);
+
+  useEffect(() => subscribePersonalizedData(() => {
+    if (initialLocationReady) void loadRestaurants(center, { provinceCode, areaCode }, activeDishQuery);
+  }), [initialLocationReady, loadRestaurants, center, provinceCode, areaCode, activeDishQuery]);
 
   const searchRestaurantsByDish = async (event: React.FormEvent) => {
     event.preventDefault();

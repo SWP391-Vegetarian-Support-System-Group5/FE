@@ -1,3 +1,4 @@
+import { fetchDietTypes } from "@/lib/diet-types-api";
 /**
  * Profile API service — centralizes all backend calls used by the Profile page.
  *
@@ -50,6 +51,7 @@ export interface UpdateProfilePayload {
 
 /** Single diet type from GET /api/diet-types */
 export interface DietTypeItem {
+  compatibleRestaurantDietTypeIds?: number[];
   dietTypeId: number;
   name: string;
   description?: string;
@@ -137,13 +139,14 @@ export function updateLivingLocation(latitude: number, longitude: number, living
 
 /** Fetch all available diet types */
 export async function getDietTypes() {
-  const items = await apiGet<BackendCatalogItem[]>("/api/diet-types");
+  const items = await fetchDietTypes();
   return items.map((item) => ({
-    dietTypeId: item.dietTypeId ?? item.id ?? 0,
+    dietTypeId: item.id,
+    compatibleRestaurantDietTypeIds: item.compatibleRestaurantDietTypeIds,
     name: item.name,
     description: item.description,
-    allowedIngredientGroups: (item as BackendCatalogItem & { allowedIngredientGroups?: string[] }).allowedIngredientGroups ?? [],
-    prohibitedIngredientGroups: (item as BackendCatalogItem & { prohibitedIngredientGroups?: string[] }).prohibitedIngredientGroups ?? [],
+    allowedIngredientGroups: item.allowedIngredientGroups ?? [],
+    prohibitedIngredientGroups: item.prohibitedIngredientGroups ?? [],
   })).filter((item) => item.dietTypeId > 0);
 }
 

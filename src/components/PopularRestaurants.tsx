@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePersonalizedRevision } from "@/hooks/usePersonalizedRevision";
+import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { locationApi } from "@/lib/location-api";
 import { readLivingLocation } from "@/lib/living-location";
@@ -33,6 +35,8 @@ function nearestThree(items: Restaurant[]) {
 
 export default function PopularRestaurants() {
   const { locale, t } = useLanguage();
+  const personalizedRevision = usePersonalizedRevision();
+  const { user, loading: authLoading } = useAuth();
   const [places, setPlaces] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -43,16 +47,21 @@ export default function PopularRestaurants() {
     let cancelled = false;
 
     async function loadRestaurants() {
+      if (authLoading) return;
+      if (!user) {
+        setPlaces([]);
+        setLoading(false);
+        setMessage(t("Sign in to find restaurants for your diet.", "Đăng nhập để tìm quán phù hợp với kiểu ăn của bạn."));
+        return;
+      }
       setLoading(true);
       const saved = readLivingLocation();
       let provinceCode = saved?.provinceCode || "hochiminh";
       let areaCode = saved?.areaCode || "all";
       let center: Coordinates | null = null;
-      let dietTypeId: number | null = null;
 
       try {
         const profile = await getProfile();
-        dietTypeId = profile.dietTypeId;
         if (profile.latitude != null && profile.longitude != null) {
           center = { lat: profile.latitude, lng: profile.longitude };
         }
@@ -81,9 +90,10 @@ export default function PopularRestaurants() {
       }
       setOrigin(center);
 
-      const nextPlaces = nearestThree(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng, dietTypeId));
+      const nextPlaces = nearestThree(await locationApi.restaurants(provinceCode, areaCode, center.lat, center.lng));
       if (cancelled) return;
       setPlaces(nextPlaces);
+      setSelectedPlace(current => current ? nextPlaces.find(item => item.id === current.id) ?? null : null);
       setMessage(nextPlaces.length
         ? t("VeggieMate restaurants within 5 km of your saved location.", "Nhà hàng VeggieMate trong bán kính 5km quanh vị trí đã lưu.")
         : t("No matching restaurants were found within 5 km of your saved location.", "Chưa tìm thấy nhà hàng phù hợp trong bán kính 5km quanh vị trí đã lưu."));
@@ -97,7 +107,7 @@ export default function PopularRestaurants() {
       setMessage(t("Could not load restaurant data. Please try again.", "Không tải được dữ liệu nhà hàng. Vui lòng thử lại."));
     });
     return () => { cancelled = true; };
-  }, [t]);
+  }, [t, personalizedRevision, user, authLoading]);
 
   return (
     <>
@@ -137,7 +147,7 @@ export default function PopularRestaurants() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
                   </div>
                 </div>}
-                <span className="absolute left-3 top-3 rounded-full bg-[#1E3A2F] px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
+                <span className="absolute left-3 right-3 top-3 w-fit max-w-[calc(100%-1.5rem)] rounded-2xl bg-[#1E3A2F] px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
                   {displayPlaceCategory(place.category, t)}
                 </span>
                 <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[#1E3A2F] shadow-sm">

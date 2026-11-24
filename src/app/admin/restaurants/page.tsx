@@ -109,7 +109,7 @@ function getRestaurantStatus(item: AdminRestaurant): "Public" | "Private" {
 }
 
 export default function AdminRestaurantsPage() {
-  const { t, locale } = useLanguage();
+  const { t, locale, language } = useLanguage();
   const [items, setItems] = useState<AdminRestaurant[]>([]);
   const [dietTypes, setDietTypes] = useState<DietTypeOption[]>([]);
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
@@ -513,10 +513,10 @@ export default function AdminRestaurantsPage() {
             </svg>
           }
           options={[
-            { value: "", label: t("Types of Vegetarianism: All", "Loại hình ăn chay: Tất cả") },
+            { value: "", label: t("Available options: All", "Món phù hợp được phục vụ: Tất cả") },
             ...dietTypes.map((type) => ({
               value: String(type.id),
-              label: formatDietTypeName(type.name),
+              label: formatDietTypeName(type.name, language),
             })),
           ]}
         />
@@ -546,11 +546,11 @@ export default function AdminRestaurantsPage() {
       {/* Main Table Container */}
       <div className="overflow-hidden rounded-2xl border border-[#EFEEEB] bg-white shadow-2xs">
         {/* Table Header */}
-        <div className="hidden grid-cols-12 gap-4 border-b border-[#EFEEEB] bg-[#FBF9F6] px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#727974] md:grid">
-          <div className="col-span-5">{t("RESTAURANT & IDENTITY", "NHÀ HÀNG & NHẬN DIỆN")}</div>
-          <div className="col-span-4">{t("LOCATION", "ĐỊA ĐIỂM")}</div>
-          <div className="col-span-2">{t("TYPES OF VEGETARIANISM", "LOẠI HÌNH ĂN CHAY")}</div>
-          <div className="col-span-1 text-right">{t("STATUS", "TRẠNG THÁI")}</div>
+        <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_176px] gap-6 border-b border-[#EFEEEB] bg-[#FBF9F6] px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-[#727974] xl:grid">
+          <div className="min-w-0">{t("RESTAURANT & IDENTITY", "NHÀ HÀNG & NHẬN DIỆN")}</div>
+          <div className="min-w-0">{t("LOCATION", "ĐỊA ĐIỂM")}</div>
+          <div className="min-w-0">{t("TYPES OF VEGETARIANISM", "LOẠI HÌNH ĂN CHAY")}</div>
+          <div className="min-w-0">{t("STATUS", "TRẠNG THÁI")}</div>
         </div>
 
         {/* Table Body / Rows */}
@@ -573,26 +573,16 @@ export default function AdminRestaurantsPage() {
               const thumbnail = getRestaurantThumbnail(item, idx);
               const subname = getRestaurantSubname(item);
 
-              // Find primary diet name
-              const primaryDiet = item.dietTypeIds
-                .map((id) => dietTypes.find((dt) => dt.id === id)?.name)
-                .filter(Boolean)[0] || "";
-
-              const isVegan =
-                primaryDiet.toLowerCase().includes("vegan") ||
-                primaryDiet.toLowerCase().includes("thuần");
-              const isLactoOvo =
-                primaryDiet.toLowerCase().includes("lacto") ||
-                primaryDiet.toLowerCase().includes("ovo") ||
-                primaryDiet.toLowerCase().includes("trứng");
+              const optionDiets = item.dietTypeIds
+                .map((id) => dietTypes.find((type) => type.id === id) ?? { id, name: `#${id}` });
 
               return (
                 <div
                   key={item.restaurantId}
-                  className="group relative flex flex-col gap-4 px-5 py-4 transition hover:bg-[#FDFCFB] md:grid md:grid-cols-12 md:items-center"
+                  className="group relative grid min-w-0 grid-cols-1 gap-4 px-5 py-5 transition-colors hover:bg-[#FDFCFB] motion-reduce:transition-none md:grid-cols-2 md:gap-x-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_176px] xl:items-center"
                 >
                   {/* RESTAURANT & IDENTITY */}
-                  <div className="col-span-5 flex items-center gap-3.5">
+                  <div className="min-w-0 flex items-center gap-3.5">
                     <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[#EFEEEB] bg-[#F4F2EE]">
                       <Image
                         src={thumbnail}
@@ -607,10 +597,10 @@ export default function AdminRestaurantsPage() {
                       <h2 className="font-serif text-[15px] font-bold text-[#07241A] tracking-tight truncate">
                         {item.name}
                       </h2>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-xs text-[#727974] truncate">
-                        <span className="italic">{subname}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-[#727974]">
+                        <span className="min-w-0 break-words italic">{subname}</span>
                         <span>•</span>
-                        <span className="font-mono text-[11px] text-[#8F948F]">
+                        <span className="shrink-0 whitespace-nowrap font-mono text-[11px] text-[#8F948F]">
                           ID: VMR-{item.restaurantId.toString().padStart(4, "0")}
                         </span>
                       </div>
@@ -618,7 +608,7 @@ export default function AdminRestaurantsPage() {
                   </div>
 
                   {/* LOCATION */}
-                  <div className="col-span-4 flex items-start gap-1.5">
+                  <div className="min-w-0 flex items-start gap-2">
                     <svg
                       width="15"
                       height="15"
@@ -631,53 +621,42 @@ export default function AdminRestaurantsPage() {
                       <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
                       <circle cx="12" cy="10" r="3" />
                     </svg>
-                    <p className="max-w-xs text-xs text-[#525854] leading-relaxed line-clamp-2">
+                    <p className="min-w-0 break-words text-xs text-[#525854] leading-relaxed">
                       {item.address}
                     </p>
                   </div>
 
-                  {/* TYPES OF VEGETARIANISM */}
-                  <div className="col-span-2">
-                    {isVegan ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D5EBDC] bg-[#EAF5EE] px-3 py-1 text-[11px] font-semibold text-[#1E7E51]">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" />
-                          <line x1="16" y1="8" x2="2" y2="22" />
-                        </svg>
-                        <span>100% Vegan (Thuần chay)</span>
+                  {/* Each tag describes an available option, not the entire menu. */}
+                  <div className="min-w-0 flex flex-wrap items-start gap-2">
+                    {optionDiets.length > 0 ? optionDiets.map((type) => (
+                      <span
+                        key={type.id}
+                        className="inline-flex min-w-0 max-w-full whitespace-normal break-words rounded-2xl border border-[#D5EBDC] bg-[#EAF5EE] px-3 py-1.5 text-[11px] font-medium leading-5 text-[#1E7E51]"
+                      >
+                        {t("Offers", "Có phục vụ")} {formatDietTypeName(type.name, language)}
                       </span>
-                    ) : isLactoOvo ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FDE0CF] bg-[#FFF3EB] px-3 py-1 text-[11px] font-semibold text-[#C25E26]">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <circle cx="12" cy="12" r="8" />
-                          <path d="M12 8v8" />
-                        </svg>
-                        <span>Chay trứng (Lacto-Ovo)</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#EFEEEB] bg-[#FBF9F6] px-3 py-1 text-[11px] font-semibold text-[#424844]">
-                        <span>{primaryDiet ? formatDietTypeName(primaryDiet) : t("Plant-based", "Thuần thực vật")}</span>
-                      </span>
+                    )) : (
+                      <span className="text-xs text-[#727974]">{t("Unclassified", "Chưa phân loại")}</span>
                     )}
                   </div>
 
                   {/* STATUS & ROW ACTIONS */}
-                  <div className="col-span-1 flex items-center justify-between md:justify-end gap-2">
+                  <div className="flex min-w-0 items-center justify-between gap-3 border-t border-[#EFEEEB] pt-3 md:self-end xl:self-auto xl:border-t-0 xl:pt-0">
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${status === "Public"
+                      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-medium ${status === "Public"
                         ? "bg-[#EAF5EE] text-[#1E7E51]"
                         : "bg-[#F3F4F6] text-[#6B7280]"
                         }`}
                     >
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${status === "Public" ? "bg-[#1E7E51]" : "bg-[#9CA3AF]"
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${status === "Public" ? "bg-[#1E7E51]" : "bg-[#9CA3AF]"
                           }`}
                       />
                       <span>{t(status, status === "Public" ? "Công khai" : "Riêng tư")}</span>
                     </span>
 
                     {/* Action buttons (pencil & trash) */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
                         disabled={busy}
@@ -867,7 +846,13 @@ export default function AdminRestaurantsPage() {
                 <ImageFilePicker value={form.imageUrl} file={imageFile} onFileChange={setImageFile} onValueChange={url => setForm({ ...form, imageUrl: url || "" })} disabled={busy} />
 
                 <fieldset className="text-xs font-semibold text-[#07241A]">
-                  <legend className="mb-1.5">{t("Types of Vegetarianism", "Các loại hình ăn chay")} *</legend>
+                  <legend className="mb-1.5">{t("Available dietary options (select all that apply)", "Tag món phù hợp được phục vụ (chọn nhiều)")} *</legend>
+                  <p className="mb-3 text-xs font-normal leading-relaxed text-[#727974]">
+                    {t(
+                      "Select only the options the restaurant actually serves. A mixed menu with vegan dishes and dairy/egg dishes can have both Vegan and Lacto-ovo tags. Vegan users can find it through the Vegan tag; this does not mean every dish is vegan.",
+                      "Chỉ chọn các loại món quán thực sự phục vụ. Quán có món thuần chay và món chứa sữa/trứng có thể chọn cả tag Thuần chay và Ăn chay có sữa và trứng. Người thuần chay tìm được quán nhờ tag Thuần chay; không có nghĩa mọi món trong quán đều thuần chay."
+                    )}
+                  </p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {dietTypes.map((type) => (
                       <label
@@ -890,7 +875,7 @@ export default function AdminRestaurantsPage() {
                           }
                           className="h-4 w-4 rounded accent-[#1E3A2F]"
                         />
-                        <span className="text-xs font-medium">{formatDietTypeName(type.name)}</span>
+                        <span className="text-xs font-medium">{formatDietTypeName(type.name, language)}</span>
                       </label>
                     ))}
                   </div>
