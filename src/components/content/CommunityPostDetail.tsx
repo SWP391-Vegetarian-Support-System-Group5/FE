@@ -10,12 +10,14 @@ import Navbar from "@/components/Navbar";
 import { localizeAmount, localizeIngredient, localizeRecipeTitle, localizeText } from "@/lib/localized-content";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { getStoredToken } from "@/lib/auth";
 import { getMediaUrl } from "@/lib/api";
 import { formatDietTypeName } from "@/lib/diet-type-display";
 import { getRecipeById, type RecipeResponse } from "@/lib/recipe-api";
 import { addComment, bookmarkPost, communityError, deleteComment, deletePost, getBookmarks, getComments, getPost, getPosts, getRating, PostApiError, ratePost, removeBookmark, replyToComment, updateComment, type CommentResponse, type PostResponse } from "@/lib/post-api";
 import ContentDialog from "./ContentDialog";
+import ReportCommentButton from "./ReportCommentButton";
 import ImageManager from "@/components/ui/ImageManager";
 import { uploadPostImage, deletePostImage } from "@/lib/image-api";
 import InlinePostRating from "./InlinePostRating";
@@ -32,6 +34,7 @@ export default function CommunityPostDetail({ postId }: { postId: number }) {
 
 function PostDetail({ postId, authLoading }: { postId: number; authLoading: boolean }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [post, setPost] = useState<PostResponse | null>(null);
   const [recipe, setRecipe] = useState<RecipeResponse | null>(null);
   const [comments, setComments] = useState<CommentResponse[]>([]);
@@ -44,6 +47,7 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [awaitingReview, setAwaitingReview] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [dialog, setDialog] = useState<"edit" | "delete" | null>(null);
   const [ratingLocked, setRatingLocked] = useState(false);
@@ -112,7 +116,7 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
   }
   async function mutate(action: () => Promise<void>, refresh: () => Promise<void>, message: string) {
     if (lock.current || !requireLogin()) return;
-    lock.current = true; setBusy(true); setError(""); setNotice("");
+    lock.current = true; setBusy(true); setError(""); setNotice(""); setAwaitingReview(false);
     try {
       await action();
       if (!alive.current) return;
@@ -125,10 +129,17 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
   function renderComment(item: CommentResponse): React.ReactNode {
     const canManage = !!user && (isAdmin || item.userId === user.userId);
     return <div key={item.commentId} className="border-t border-[#EFEEEB] pt-5">
-      <p className="text-sm font-semibold">{item.authorName}</p>
-      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-7 text-[#59635C]">{item.status === "REMOVED" ? "Bình luận đã được xóa." : item.content}</p>
+      {item.status === "REMOVED" ? (
+        <p className="text-sm italic text-[#59635C]">{t("This comment was deleted.", "Bình luận đã được xóa.")}</p>
+      ) : (
+        <>
+          <p className="text-sm font-semibold">{item.authorName}</p>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-7 text-[#59635C]">{item.content}</p>
+        </>
+      )}
       {item.status !== "REMOVED" && <div className="mt-2 flex gap-4 text-xs text-[#BC4B22]">
         <button disabled={busy} onClick={() => { if (requireLogin()) { setCommentAction({ type: "reply", comment: item }); setCommentText(""); } }}>Trả lời</button>
+        {user && item.status === "PUBLISHED" && item.userId !== user.userId && <ReportCommentButton key={user.userId} commentId={item.commentId} disabled={busy} />}
         {canManage && <><button disabled={busy} onClick={() => { setCommentAction({ type: "edit", comment: item }); setCommentText(item.content); }}>Sửa</button><button disabled={busy} onClick={() => setCommentAction({ type: "delete", comment: item })}>Xóa</button></>}
       </div>}
       {!!item.replies?.length && <div className="mt-4 space-y-4 border-l-2 border-[#E5E7DF] pl-4">{item.replies.map(renderComment)}</div>}
@@ -138,7 +149,7 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
   return <main className="min-h-[60vh] bg-[#FBF9F6] text-[#07241A]"><article className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-12">
     <nav className="text-xs text-[#727974]"><Link href="/">Trang chủ</Link> / <Link href="/community">Công thức</Link></nav>
     {error && <div role="alert" className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">{error} <Link href="/login" className="underline">Đăng nhập</Link><button className="ml-4 underline" onClick={() => window.location.reload()}>Tải lại</button></div>}
-    {notice && <p role="status" className="mt-4 text-sm text-[#254B38]">{notice}</p>}
+    {(awaitingReview || notice) && <p role="status" className="mt-4 text-sm text-[#254B38]">{awaitingReview ? t("Your comment is awaiting moderation.", "Bình luận của bạn đang chờ kiểm duyệt.") : notice}</p>}
     {initialLoading ? <p role="status" className="py-12">Đang tải bài viết…</p> : removed ? <p className="py-12">Bài viết đã được xóa. <Link href="/community" className="underline">Về cộng đồng</Link></p> : post && <>
       <header className="py-8"><p className="text-xs tracking-widest text-[#BC4B22]">{post.postType === "RECIPE" ? "Công thức" : "Bài viết"}</p><h1 className="mt-3 break-words font-serif text-4xl sm:text-5xl">{localizeRecipeTitle(post.title, "vi")}</h1><p className="mt-5 text-sm text-[#727974]">{post.authorName}</p>{post.postType === "RECIPE" && <div className="mt-4 flex flex-wrap items-center gap-2 text-sm"><span className="text-[#59635C]">Kiểu ăn chay phù hợp:</span>{post.compatibleDietTypes?.length ? post.compatibleDietTypes.map(type => <span key={type.id} className="rounded-md bg-[#E8F0E5] px-2.5 py-1 text-[#254B38]">{formatDietTypeName(type.name, "vi")}</span>) : <span className="text-[#727974]">Chưa xác minh từ nguyên liệu</span>}</div>}</header>
       {post.videoUrl ? <video controls preload="metadata" poster={getMediaUrl((post.imageUrl ?? post.thumbnailUrl)) || undefined} src={getMediaUrl(post.videoUrl)} className="aspect-video w-full rounded-3xl bg-[#193B2E]" /> : (post.imageUrl ?? post.thumbnailUrl) && <div className="relative aspect-video overflow-hidden rounded-3xl"><Image src={getMediaUrl((post.imageUrl ?? post.thumbnailUrl))} alt={post.title} fill unoptimized sizes="100vw" className="object-cover" /></div>}
@@ -173,7 +184,7 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
         <section className={panel}><h2 className="font-serif text-2xl">Nội dung bài viết</h2><p className="mt-4 whitespace-pre-wrap break-words text-sm leading-8 text-[#59635C]">{localizeText(post.content, "vi")}</p></section>
         {recipe && <section className={panel}><h2 className="font-serif text-2xl">Công thức & cách chế biến</h2><p className="mt-3 text-sm text-[#727974]">{recipe.servings != null && `${recipe.servings} phần ăn · `}{recipe.caloriesPerServing != null && `~ ${Math.round(recipe.caloriesPerServing)} kcal/khẩu phần · `}{recipe.prepMinutes != null && `Chuẩn bị ${recipe.prepMinutes} phút · `}{recipe.cookMinutes != null && `Nấu ${recipe.cookMinutes} phút`}</p><h3 className="mt-6 font-serif text-xl">Nguyên liệu</h3><ul className="mt-4 divide-y divide-[#EFEEEB]">{recipe.ingredients.map((item, index) => <li key={index} className="flex justify-between gap-4 py-3 text-sm"><span>{localizeIngredient(item.ingredientName, "vi")}</span><span>{localizeAmount(item.amount, "vi")}</span></li>)}</ul><h3 className="mt-6 font-serif text-xl">Các bước thực hiện</h3><ol className="mt-5 space-y-5">{recipe.steps.map(step => <li key={step.stepNumber} className="flex gap-4 text-sm leading-7"><span className="font-semibold">{step.stepNumber}.</span><p className="whitespace-pre-wrap">{localizeText(step.instruction, "vi")}</p></li>)}</ol></section>}
         <section id="comments" className={`${panel} scroll-mt-28`}><h2 className="font-serif text-2xl">Community Thoughts · Góc chia sẻ</h2>
-          <form className="mt-6" onSubmit={e => { e.preventDefault(); if (!comment.trim()) return; mutate(async () => { await addComment(postId, comment.trim()); if (alive.current) setComment(""); }, refreshComments, "Đã gửi bình luận."); }}>
+          <form className="mt-6" onSubmit={e => { e.preventDefault(); if (!comment.trim()) return; mutate(async () => { const created = await addComment(postId, comment.trim()); if (alive.current) { setAwaitingReview(created.status === "PENDING_REVIEW"); setComment(""); } }, refreshComments, "Đã gửi bình luận."); }}>
             <label htmlFor="post-comment" className="sr-only">Viết bình luận</label><textarea id="post-comment" required disabled={busy} rows={3} value={comment} onChange={e => setComment(e.target.value)} placeholder="Chia sẻ trải nghiệm hoặc đặt câu hỏi…" className="w-full rounded-2xl border border-[#DDE2D7] bg-[#FBF9F6] p-4 text-sm outline-none focus:border-[#43734D]" /><div className="mt-3 flex justify-end"><button disabled={busy || authLoading || !comment.trim()} className={button}>{busy ? "Đang gửi…" : "Gửi bình luận"}</button></div>
           </form><div className="mt-7 space-y-6">{commentsLoading && <p role="status" className="text-sm text-[#727974]">Đang tải bình luận…</p>}{commentsError && <p role="alert" className="text-sm text-red-700">{commentsError}</p>}{comments.map(renderComment)}{!commentsLoading && !commentsError && !comments.length && <p className="text-sm text-[#727974]">Chưa có bình luận.</p>}</div>
         </section>
@@ -182,7 +193,10 @@ function PostDetail({ postId, authLoading }: { postId: number; authLoading: bool
     {post && dialog === "edit" && <PostEditor post={post} onSaved={async () => { setNotice("Đã lưu thay đổi."); try { await refreshPost(); } catch (e) { setError(`Bài đã được lưu nhưng tải lại dữ liệu thất bại. ${communityError(e)}`); } }} onClose={() => setDialog(null)} />}
     {dialog === "delete" && <ContentDialog title="Xóa bài viết?" onClose={() => { if (!busy) setDialog(null); }}><div className="p-6"><p className="text-sm">Bài viết sẽ được gỡ khỏi cộng đồng.</p><button disabled={busy} className={`${button} mt-5`} onClick={() => mutate(async () => { await deletePost(postId); setRemoved(true); setDialog(null); }, async () => { await getPosts(); }, "Đã xóa bài viết.")}>{busy ? "Đang xóa…" : "Xác nhận xóa"}</button>{error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}</div></ContentDialog>}
     {commentAction && <ContentDialog title={commentAction.type === "reply" ? "Trả lời bình luận" : commentAction.type === "edit" ? "Sửa bình luận" : "Xóa bình luận?"} onClose={() => { if (!busy) setCommentAction(null); }}><form className="p-6" onSubmit={e => { e.preventDefault(); const action = commentAction; if (action.type !== "delete" && !commentText.trim()) return; mutate(async () => {
-      if (action.type === "reply") await replyToComment(action.comment.commentId, commentText.trim());
+      if (action.type === "reply") {
+        const reply = await replyToComment(action.comment.commentId, commentText.trim());
+        if (alive.current) setAwaitingReview(reply.status === "PENDING_REVIEW");
+      }
       else if (action.type === "edit") await updateComment(action.comment.commentId, commentText.trim());
       else await deleteComment(action.comment.commentId);
       setCommentAction(null); setCommentText("");
