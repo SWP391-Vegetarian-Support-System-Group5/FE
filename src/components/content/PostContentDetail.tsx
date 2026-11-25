@@ -15,6 +15,7 @@ import { deleteComment, replyToComment, updateComment } from "@/lib/post-api";
 import InlinePostRating from "./InlinePostRating";
 import ContentIcon from "./ContentIcon";
 import ContentDialog from "./ContentDialog";
+import ReportCommentButton from "./ReportCommentButton";
 
 async function fetchPostDetail(postId: number) {
   const [post, comments] = await Promise.all([getPost(postId), getPostComments(postId)]);
@@ -34,7 +35,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
   const [actionText, setActionText] = useState("");
   const [actionError, setActionError] = useState(false);
   const [actionPending, setActionPending] = useState(false);
-  const [replyQueued, setReplyQueued] = useState(false);
+  const [awaitingReview, setAwaitingReview] = useState(false);
   const [loadedPostId, setLoadedPostId] = useState<number | null>(null);
   const loading = loadedPostId !== postId;
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +111,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
     setError(null);
     try {
       const created = await addPostComment(postId, text);
+      setAwaitingReview(created.status === "PENDING_REVIEW");
       if (created.status === "PUBLISHED") {
         setComments((current) => current.some((item) => item.commentId === created.commentId) ? current : [...current, created]);
       }
@@ -129,7 +131,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
   function openCommentAction(type: "reply" | "edit" | "delete", item: CommentResponse) {
     setActionText(type === "edit" ? item.content : "");
     setActionError(false);
-    setReplyQueued(false);
+    setAwaitingReview(false);
     setCommentAction({ type, commentId: item.commentId });
   }
 
@@ -144,7 +146,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
     try {
       if (type === "reply") {
         const reply = await replyToComment(commentId, text);
-        setReplyQueued(reply.status === "PENDING_REVIEW");
+        setAwaitingReview(reply.status === "PENDING_REVIEW");
       } else if (type === "edit") {
         await updateComment(commentId, text);
       } else {
@@ -163,11 +165,18 @@ export default function PostContentDetail({ postId }: { postId: number }) {
     const canManage = !!user && (item.userId === user.userId || user.role?.toUpperCase() === "ADMIN");
     return (
       <div key={item.commentId} className="border-t border-[#EFEEEB] pt-5">
-        <p className="text-sm font-semibold">{item.authorName} <span className="ml-2 text-xs font-normal text-[#727974]">{new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(item.createdAt))}</span></p>
-        <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#59635C]">{item.content}</p>
+        {item.status === "REMOVED" ? (
+          <p className="text-sm italic text-[#59635C]">{t("This comment was deleted.", "Bình luận đã được xóa.")}</p>
+        ) : (
+          <>
+            <p className="text-sm font-semibold">{item.authorName} <span className="ml-2 text-xs font-normal text-[#727974]">{new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(item.createdAt))}</span></p>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#59635C]">{item.content}</p>
+          </>
+        )}
         {user && item.status === "PUBLISHED" && (
           <div className="mt-2 flex flex-wrap gap-4 text-xs text-[#BC4B22]">
             <button type="button" disabled={actionPending} onClick={() => openCommentAction("reply", item)}>{t("Reply", "Trả lời")}</button>
+            {item.userId !== user.userId && <ReportCommentButton key={user.userId} commentId={item.commentId} disabled={actionPending} />}
             {canManage && <>
               <button type="button" disabled={actionPending} onClick={() => openCommentAction("edit", item)}>{t("Edit", "Sửa")}</button>
               <button type="button" disabled={actionPending} onClick={() => openCommentAction("delete", item)}>{t("Delete", "Xóa")}</button>
@@ -258,7 +267,7 @@ export default function PostContentDetail({ postId }: { postId: number }) {
                 <textarea disabled={submittingComment} value={comment} onChange={e => setComment(e.target.value)} maxLength={1000} rows={3} placeholder={t("Share your cooking experience or ask a question...", "Chia sẻ trải nghiệm nấu ăn hoặc đặt câu hỏi...")} className="w-full resize-y rounded-2xl border border-[#DDE2D7] bg-[#FBF9F6] p-4 text-sm outline-none focus:border-[#43734D]" />
                 <div className="mt-3 flex justify-end"><button disabled={submittingComment || !comment.trim()} className="rounded-full bg-[#254B38] px-6 py-2.5 text-sm font-medium text-white disabled:opacity-40">{submittingComment ? t("Sending...", "Đang gửi...") : t("Post comment", "Gửi bình luận")}</button></div>
               </form>
-              {replyQueued && <p role="status" className="mt-4 text-sm text-[#254B38]">{t("Your reply is awaiting moderation.", "Câu trả lời của bạn đang chờ kiểm duyệt.")}</p>}
+              {awaitingReview && <p role="status" className="mt-4 text-sm text-[#254B38]">{t("Your comment is awaiting moderation.", "Bình luận của bạn đang chờ kiểm duyệt.")}</p>}
               <div className="mt-7 space-y-6">{comments.map(renderComment)}</div>
             </section>
           </div>
