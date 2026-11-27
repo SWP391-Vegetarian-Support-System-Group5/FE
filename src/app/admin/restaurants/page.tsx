@@ -298,8 +298,10 @@ export default function AdminRestaurantsPage() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form || busy) return;
-    if (form.dietTypeIds.length === 0) {
-      setError(t("Select at least one diet type.", "Hãy chọn ít nhất một loại ăn chay."));
+    if (editing ? form.dietTypeIds.length === 0 : form.dietTypeIds.length !== 1) {
+      setError(editing
+        ? t("Select at least one diet type.", "Hãy chọn ít nhất một loại ăn chay.")
+        : t("Select one diet type.", "Hãy chọn một loại chay."));
       return;
     }
     setBusy(true);
@@ -846,12 +848,16 @@ export default function AdminRestaurantsPage() {
                 <ImageFilePicker value={form.imageUrl} file={imageFile} onFileChange={setImageFile} onValueChange={url => setForm({ ...form, imageUrl: url || "" })} disabled={busy} />
 
                 <fieldset className="text-xs font-semibold text-[#07241A]">
-                  <legend className="mb-1.5">{t("Available dietary options (select all that apply)", "Tag món phù hợp được phục vụ (chọn nhiều)")} *</legend>
+                  <legend className="mb-1.5">
+                    {editing
+                      ? t("Available dietary options (select all that apply)", "Tag món phù hợp được phục vụ (chọn nhiều)")
+                      : t("Diet Type", "Loại chay")} *
+                  </legend>
                   <p className="mb-3 text-xs font-normal leading-relaxed text-[#727974]">
-                    {t(
+                    {editing ? t(
                       "Select only the options the restaurant actually serves. A mixed menu with vegan dishes and dairy/egg dishes can have both Vegan and Lacto-ovo tags. Vegan users can find it through the Vegan tag; this does not mean every dish is vegan.",
                       "Chỉ chọn các loại món quán thực sự phục vụ. Quán có món thuần chay và món chứa sữa/trứng có thể chọn cả tag Thuần chay và Ăn chay có sữa và trứng. Người thuần chay tìm được quán nhờ tag Thuần chay; không có nghĩa mọi món trong quán đều thuần chay."
-                    )}
+                    ) : t("Select one diet type the restaurant serves.", "Chọn một loại chay mà nhà hàng phục vụ.")}
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {dietTypes.map((type) => (
@@ -863,14 +869,17 @@ export default function AdminRestaurantsPage() {
                           }`}
                       >
                         <input
-                          type="checkbox"
+                          type={editing ? "checkbox" : "radio"}
+                          name="restaurantDietType"
                           checked={form.dietTypeIds.includes(type.id)}
                           onChange={(event) =>
                             setForm({
                               ...form,
-                              dietTypeIds: event.target.checked
-                                ? [...form.dietTypeIds, type.id]
-                                : form.dietTypeIds.filter((id) => id !== type.id),
+                              dietTypeIds: !editing
+                                ? [type.id]
+                                : event.target.checked
+                                  ? [...form.dietTypeIds, type.id]
+                                  : form.dietTypeIds.filter((id) => id !== type.id),
                             })
                           }
                           className="h-4 w-4 rounded accent-[#1E3A2F]"
@@ -895,7 +904,7 @@ export default function AdminRestaurantsPage() {
                   />
                 </label>
 
-                <div className="text-xs font-semibold text-[#07241A]">
+                {editing && <div className="text-xs font-semibold text-[#07241A]">
                   <div className="flex items-center justify-between">
                     <span>
                       {t("Ingredients Used in Dishes", "Nguyên liệu sử dụng")} ({form.ingredientIds.length})
@@ -937,7 +946,7 @@ export default function AdminRestaurantsPage() {
                         </label>
                       ))}
                   </div>
-                </div>
+                </div>}
 
                 <div className="flex justify-end gap-3 border-t border-[#EFEEEB] pt-4">
                   <button
