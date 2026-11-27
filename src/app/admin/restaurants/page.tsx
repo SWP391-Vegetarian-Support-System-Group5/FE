@@ -890,19 +890,21 @@ export default function AdminRestaurantsPage() {
                   </div>
                 </fieldset>
 
-                <label className="block text-xs font-semibold text-[#07241A]">
-                  {t("Signature Foods (comma separated)", "Món ăn đặc trưng (cách nhau bằng dấu phẩy)")}
-                  <textarea
-                    rows={2}
-                    value={form.foods}
-                    onChange={(event) => setForm({ ...form, foods: event.target.value })}
-                    placeholder={t(
-                      "e.g. Claypot Tofu, Hue Spicy Noodles, Spring Rolls",
-                      "Ví dụ: Đậu hũ kho tộ, Bún bò Huế chay, Gỏi cuốn"
-                    )}
-                    className={inputClass}
-                  />
-                </label>
+                {editing && (
+                  <label className="block text-xs font-semibold text-[#07241A]">
+                    {t("Signature Foods (comma separated)", "Món ăn đặc trưng (cách nhau bằng dấu phẩy)")}
+                    <textarea
+                      rows={2}
+                      value={form.foods}
+                      onChange={(event) => setForm({ ...form, foods: event.target.value })}
+                      placeholder={t(
+                        "e.g. Claypot Tofu, Hue Spicy Noodles, Spring Rolls",
+                        "Ví dụ: Đậu hũ kho tộ, Bún bò Huế chay, Gỏi cuốn"
+                      )}
+                      className={inputClass}
+                    />
+                  </label>
+                )}
 
                 {editing && <div className="text-xs font-semibold text-[#07241A]">
                   <div className="flex items-center justify-between">
