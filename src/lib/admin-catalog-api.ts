@@ -1,3 +1,5 @@
+import { fetchDietTypes, type DietType } from "@/lib/diet-types-api";
+import { invalidatePersonalizedData } from "@/lib/personalized-data";
 import { apiFetch, apiGet } from "@/lib/api";
 
 export interface AdminRestaurant {
@@ -15,10 +17,7 @@ export interface AdminRestaurant {
 
 export type RestaurantPayload = Pick<AdminRestaurant, "name" | "address" | "imageUrl" | "dietTypeIds" | "foods" | "ingredientIds">;
 
-export interface DietTypeOption {
-  id: number;
-  name: string;
-}
+export type DietTypeOption = DietType;
 
 export interface AdminAllergen {
   id: number;
@@ -38,11 +37,12 @@ async function mutate<T>(path: string, method: "POST" | "PUT" | "DELETE", body?:
       ? data.message : `${method} ${path} failed (${response.status})`;
     throw new Error(message);
   }
+  if (path.startsWith("/api/admin/restaurants")) invalidatePersonalizedData();
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }
 
-export const listRestaurants = () => apiGet<AdminRestaurant[]>("/api/restaurants");
-export const listDietTypes = () => apiGet<DietTypeOption[]>("/api/diet-types");
+export const listRestaurants = () => apiGet<AdminRestaurant[]>("/api/restaurants", { cache: "no-store" });
+export const listDietTypes = fetchDietTypes;
 export const createRestaurant = (body: RestaurantPayload) => mutate<AdminRestaurant>("/api/admin/restaurants", "POST", body);
 export const updateRestaurant = (id: number, body: RestaurantPayload) => mutate<void>(`/api/admin/restaurants/${id}`, "PUT", body);
 export const deleteRestaurant = (id: number) => mutate<void>(`/api/admin/restaurants/${id}`, "DELETE");
