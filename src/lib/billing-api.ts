@@ -9,7 +9,7 @@ export interface SubscriptionPlan {
 export interface AiUsage {
   planCode: string; planName: string; isPremium: boolean;
   chatbotUsed: number; chatbotLimit: number; aiPostUsed: number; aiPostLimit: number;
-  nextRefillAt: string; subscriptionExpiresAt: string | null;
+  nextRefillAt: string; subscriptionExpiresAt: string | null; aiPostNextRefillAt?: string;
 }
 
 export interface PaymentTransaction {
