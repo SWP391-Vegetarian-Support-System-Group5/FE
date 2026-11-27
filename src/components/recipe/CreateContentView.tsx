@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { localizeText } from "@/lib/localized-content";
 import { getStoredToken } from "@/lib/auth";
+import { getAiUsage } from "@/lib/billing-api";
 import { getMediaUrl } from "@/lib/api";
 import { readMyContent, saveManualContent, removeManualContent, rememberPublishedContent } from "@/lib/my-content";
 import {
@@ -52,6 +53,20 @@ const INGREDIENT_CATEGORY_LABELS: Record<string, [string, string]> = {
 
 const subscribeHydration = () => () => {};
 const DRAFT_POLL_INTERVAL_MS = 4_000;
+function formatQuotaTime(value: string): string | null {
+  const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? value : `${value}+07:00`;
+  const date = new Date(zoned);
+  return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric", hour12: false,
+  }).format(date);
+}
+
+function quotaErrorMessage(message: string): string | null {
+  const match = message.match(/AI post quota has been used\. It refills at ([^\s]+?)\.?$/i);
+  if (!match) return null;
+  const refill = formatQuotaTime(match[1]);
+  return `Bạn đã hết lượt tạo bài bằng AI.${refill ? ` Lượt sẽ được cấp lại lúc ${refill}.` : ""}`;
+}
 const isMissingVideoSource = (message: string | null) =>
   (message?.includes("The original video file is no longer available") ||
     message?.includes("The original video is no longer on the server") ||
@@ -477,6 +492,14 @@ function RecipeContentView() {
     setDraftErrorMessage(null);
 
     try {
+      const usage = await getAiUsage();
+      if (controller.signal.aborted) return;
+      if (usage.aiPostUsed >= usage.aiPostLimit) {
+        const refill = usage.aiPostNextRefillAt ? formatQuotaTime(usage.aiPostNextRefillAt) : null;
+        setDraftStatus("FAILED");
+        setDraftErrorMessage(`Bạn đã hết lượt tạo bài bằng AI.${refill ? ` Lượt sẽ được cấp lại lúc ${refill}.` : " Vui lòng kiểm tra thời gian cấp lại trong gói đăng ký."}`);
+        return;
+      }
       const res = await uploadVideoRecipeDraft(videoFile, { onProgress: setUploadPercent, signal: controller.signal });
       setDraftId(res.videoRecipeDraftId);
       setDraftStatus(res.status);
@@ -494,7 +517,7 @@ function RecipeContentView() {
       }
       const msg = err instanceof Error ? err.message : "Tải lên video thất bại";
       setDraftStatus("FAILED");
-      setDraftErrorMessage(localizeText(msg, language));
+      setDraftErrorMessage(quotaErrorMessage(msg) || localizeText(msg, language));
     } finally {
       uploadAbort.current = null;
       setIsUploading(false);
@@ -526,7 +549,7 @@ function RecipeContentView() {
       setDraftStatus("FAILED");
       setDraftErrorMessage(isMissingVideoSource(msg)
         ? t("The original video is no longer on the server. Upload it again to create a new draft.", "Video gốc không còn trên máy chủ. Hãy tải lại video để tạo bản nháp mới.")
-        : localizeText(msg, language));
+        : quotaErrorMessage(msg) || localizeText(msg, language));
     }
   };
 
