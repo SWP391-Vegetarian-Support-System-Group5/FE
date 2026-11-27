@@ -13,7 +13,7 @@ const dietCopies: Record<string, DietCopy> = {
   },
   VEGETARIAN: {
     en: "Vegetarian is the broad meat-free option in this system: it avoids meat, poultry, fish, seafood, animal broth and gelatin, while allowing dairy, eggs and honey.",
-    vi: "Ăn chay là kiểu ăn chay phổ thông trong hệ thống: không ăn thịt, gia cầm, cá, hải sản, nước dùng từ động vật và gelatin; vẫn có thể dùng sữa, trứng và mật ong.",
+    vi: "Chay trường là kiểu ăn chay phổ thông trong hệ thống: không ăn thịt, gia cầm, cá, hải sản, nước dùng từ động vật và gelatin; vẫn có thể dùng sữa, trứng và mật ong.",
   },
   LACTO_VEGETARIAN: {
     en: "Lacto vegetarian avoids meat, poultry, fish, seafood, eggs, animal broth and gelatin, but allows dairy products such as milk, yogurt and cheese.",
@@ -45,7 +45,7 @@ export function dietTypeAvoidsText(dietType: DietTypeItem | null | undefined, la
 }
 
 export function formatDietTypeName(name: string | null | undefined, language: Language = "vi") {
-  const vi: Record<string, string> = { VEGAN: "Thuần chay", VEGETARIAN: "Ăn chay", LACTO_VEGETARIAN: "Ăn chay có sữa", OVO_VEGETARIAN: "Ăn chay có trứng", LACTO_OVO_VEGETARIAN: "Ăn chay có sữa và trứng" };
+  const vi: Record<string, string> = { VEGAN: "Thuần chay", VEGETARIAN: "Chay trường", LACTO_VEGETARIAN: "Ăn chay có sữa", OVO_VEGETARIAN: "Ăn chay có trứng", LACTO_OVO_VEGETARIAN: "Ăn chay có sữa và trứng" };
   if (language === "vi" && name) return vi[name.toUpperCase()] ?? name;
   return name ? name.replaceAll("_", " ") : "";
 }

@@ -87,7 +87,8 @@ export interface CommentResponse {
 }
 export const getComments = (id: number, signal?: AbortSignal) => request<CommentResponse[]>(`/api/posts/${id}/comments`, "GET", undefined, signal);
 export const addComment = (id: number, content: string) => request<CommentResponse>(`/api/posts/${id}/comments`, "POST", { content });
-export const replyToComment = (id: number, content: string) => request<CommentResponse>(`/api/comments/${id}/replies`, "POST", { content });
+export const reportComment = (id: number, reason: string) => request<unknown>("/api/reports/comments/" + id, "POST", { reason });
+export const replyToComment = (id: number, content: string) => request<CommentResponse>("/api/comments/" + id + "/replies", "POST", { content });
 export const updateComment = (id: number, content: string) => request<void>(`/api/comments/${id}`, "PUT", { content });
 export const deleteComment = (id: number) => request<void>(`/api/comments/${id}`, "DELETE");
 export const getRating = (id: number, signal?: AbortSignal) => request<{ averageRating: number }>(`/api/posts/${id}/rating`, "GET", undefined, signal);

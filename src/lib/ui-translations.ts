@@ -1069,6 +1069,7 @@ Search restaurant by name, ID, or address...|Tìm nhà hàng theo tên, mã ho�
 Location: All Localities|Địa điểm: Tất cả khu vực
 Types of Vegetarianism: All|Loại hình ăn chay: Tất cả
 RESTAURANT & IDENTITY|NHÀ HÀNG & NHẬN DIỆN
+RESTAURANT|NHÀ HÀNG
 LOCATION|ĐỊA ĐIỂM
 TYPES OF VEGETARIANISM|LOẠI HÌNH ĂN CHAY
 RATING & COMMUNITY|ĐÁNH GIÁ & CỘNG ĐỒNG
@@ -1077,6 +1078,14 @@ verified reviews|đánh giá xác thực
 Public|Công khai
 Private|Riêng tư
 dining places in Vietnam database|địa điểm ăn chay trong hệ thống Việt Nam
+Subscription Plans|Gói đăng ký
+Subscription Revenue|Doanh thu gói đăng ký
+Billing Management|Quản lý thanh toán
+BILLING MANAGEMENT|QUẢN LÝ THANH TOÁN
+Billing management|Quản lý thanh toán
+Fee management|Quản lý thanh toán
+Fee Management|Quản lý thanh toán
+FEE MANAGEMENT|QUẢN LÝ THANH TOÁN
 `;
 
 const catalog = new Map<string, readonly [string, string]>();
