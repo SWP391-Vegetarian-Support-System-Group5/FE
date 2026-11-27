@@ -49,14 +49,16 @@ test("empty optional fields, required onboarding values and goal dependencies", 
 test("BMI uses unrounded thresholds, rejects gain for obesity and loss for underweight", () => {
   const obese = { heightCm: "170", weightKg: "100" };
   assert.equal(validate({ ...obese, goalWeightKg: "101" }).goalWeightKg, "obesityGain");
-  for (const goalWeightKg of ["100", "95"]) assert.equal(validate({ ...obese, goalWeightKg }).goalWeightKg, undefined);
+  assert.equal(validate({ ...obese, goalWeightKg: "100" }).goalWeightKg, "obesityGain");
+  for (const goalWeightKg of ["95"]) assert.equal(validate({ ...obese, goalWeightKg }).goalWeightKg, undefined);
   const thin = { heightCm: "180", weightKg: "50" };
   assert.equal(validate({ ...thin, goalWeightKg: "49" }).goalWeightKg, "underweightLoss");
-  for (const goalWeightKg of ["50", "55"]) assert.equal(validate({ ...thin, goalWeightKg }).goalWeightKg, undefined);
-  assert.equal(validate({ heightCm: "200", weightKg: "74", goalWeightKg: "73" }).goalWeightKg, undefined); // exactly 18.5
+  assert.equal(validate({ ...thin, goalWeightKg: "50" }).goalWeightKg, "underweightLoss");
+  for (const goalWeightKg of ["55"]) assert.equal(validate({ ...thin, goalWeightKg }).goalWeightKg, undefined);
+  assert.equal(validate({ heightCm: "200", weightKg: "74", goalWeightKg: "73" }).goalWeightKg, "goalBmiRange"); // exactly 18.5
   assert.equal(validate({ heightCm: "200", weightKg: "73.99", goalWeightKg: "73" }).goalWeightKg, "underweightLoss");
   assert.equal(validate({ heightCm: "150", weightKg: "67.5", goalWeightKg: "68" }).goalWeightKg, "obesityGain"); // exactly 30
-  assert.equal(validate({ heightCm: "150", weightKg: "67.49", goalWeightKg: "68" }).goalWeightKg, undefined);
+  assert.equal(validate({ heightCm: "150", weightKg: "67.49", goalWeightKg: "68" }).goalWeightKg, "overweightGain");
 });
 
 test("measurement errors stop target validation until both measurements are valid", () => {
@@ -67,10 +69,10 @@ test("measurement errors stop target validation until both measurements are vali
     assert.equal(errors.goalWeightKg, undefined);
   }
   assert.equal(validate({ heightCm: "170", weightKg: "110", goalWeightKg: "111" }).goalWeightKg, "obesityGain");
-  for (const goalWeightKg of ["110", "100"]) {
+  for (const goalWeightKg of ["100"]) {
     assert.equal(Object.keys(validate({ heightCm: "170", weightKg: "110", goalWeightKg })).length, 0);
   }
-  assert.equal(Object.keys(validate({ heightCm: "180", weightKg: "50", goalWeightKg: "50" })).length, 0);
+  assert.equal(Object.keys(validate({ heightCm: "180", weightKg: "50", goalWeightKg: "55" })).length, 0);
 });
 
 test("known backend health validation messages render in Vietnamese", () => {
@@ -86,7 +88,7 @@ test("known backend health validation messages render in Vietnamese", () => {
 });
 
 test("each error translates at render time in both languages", () => {
-  for (const error of ["heightRequired", "heightRange", "weightRequired", "weightRange", "goalRange", "goalNeedsMeasurements", "obesityGain", "underweightLoss"]) {
+  for (const error of ["heightRequired", "heightRange", "weightRequired", "weightRange", "goalRange", "goalNeedsMeasurements", "obesityGain", "underweightLoss", "overweightGain", "goalRequired", "goalBmiRange"]) {
     const en = health.healthErrorText(error, en => en);
     const vi = health.healthErrorText(error, (_en, vi) => vi);
     assert.ok(en.length > 10 && vi.length > 10);
@@ -134,6 +136,13 @@ test("onboarding prevents invalid API writes, updates dependent errors and prese
   selects[1].props.onChange({ target: { value: "LIGHT" } });
   selects[2].props.onChange({ target: { value: "1" } });
   tree = render();
+  change(1, "180"); change(2, "95");
+  assert.equal(input("goalWeightKg").props.value, "70.5");
+  language = "en"; tree = render();
+  assert.equal(input("goalWeightKg").props.value, "70.5");
+  change(3, "82"); change(1, "181");
+  assert.equal(input("goalWeightKg").props.value, "82");
+  language = "vi"; tree = render();
   change(1, "140"); change(2, "100"); change(3, "101");
   await submit(); assert.equal(writes.length, 0);
   assert.equal(input("heightCm").props["aria-invalid"], true);
@@ -150,10 +159,25 @@ test("onboarding prevents invalid API writes, updates dependent errors and prese
   await submit(); assert.equal(writes.length, 0);
   currentLocation = { address: "Synced GPS address", center: { lat: 10.8, lng: 106.7 } };
   tree = render();
-  change(3, "50"); await submit();
+  change(3, "55"); await submit();
   assert.equal(writes.length, 1);
-  assert.equal(writes[0].goalWeightKg, 50);
+  assert.equal(writes[0].goalWeightKg, 55);
   assert.equal(writes[0].latitude, 10.8);
   assert.equal(writes[0].longitude, 106.7);
   assert.equal(writes[0].livingAddress, "Synced GPS address");
 });
+
+ test("suggestions are valid, partial goals accepted, opposite BMI extremes rejected", () => {
+  for (const [heightCm, weightKg] of [["180", "95"], ["180", "50"], ["170", "65"], ["209.9", "46"]]) {
+    const goalWeightKg = health.suggestGoalWeight(heightCm, weightKg);
+    assert.ok(goalWeightKg);
+    assert.equal(Object.keys(health.validateHealthProfile({heightCm, weightKg, goalWeightKg}, true)).length, 0);
+  }
+  assert.equal(health.suggestGoalWeight("", "95"), "");
+  assert.equal(health.suggestGoalWeight("140", "95"), "");
+  assert.equal(health.suggestGoalWeight("170", "65"), "65");
+  assert.equal(validate({heightCm:"180", weightKg:"95", goalWeightKg:"82"}).goalWeightKg, undefined);
+  assert.equal(validate({heightCm:"180", weightKg:"95", goalWeightKg:"50"}).goalWeightKg, "goalBmiRange");
+  assert.equal(validate({heightCm:"180", weightKg:"50", goalWeightKg:"90"}).goalWeightKg, "goalBmiRange");
+  assert.equal(health.validateHealthProfile(valid, true).goalWeightKg, "goalRequired");
+ });
